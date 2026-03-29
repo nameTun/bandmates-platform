@@ -21,6 +21,10 @@ export class User {
     @Column({ nullable: true })
     googleId: string;
 
+    // Lưu Facebook ID để nhận diện user khi đăng nhập bằng Facebook.
+    @Column({ nullable: true })
+    facebookId: string;
+
     @Column({ nullable: true })
     name: string;
 

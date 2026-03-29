@@ -5,6 +5,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { UsersModule } from '../users/users.module';
 import { AuthService } from './auth.service';
 import { GoogleStrategy } from './strategies/google.strategy';
+import { FacebookStrategy } from './strategies/facebook.strategy';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { AuthController } from './auth.controller';
 
@@ -13,6 +14,7 @@ import { AuthController } from './auth.controller';
         UsersModule,
         PassportModule,
         JwtModule.registerAsync({
+            global: true,
             imports: [ConfigModule],
             inject: [ConfigService],
             useFactory: async (configService: ConfigService) => ({
@@ -23,7 +25,7 @@ import { AuthController } from './auth.controller';
             }),
         }),
     ],
-    providers: [AuthService, GoogleStrategy, JwtStrategy],
+    providers: [AuthService, GoogleStrategy, FacebookStrategy, JwtStrategy],
     controllers: [AuthController],
     exports: [AuthService],
 })

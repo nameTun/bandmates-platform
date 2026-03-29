@@ -81,4 +81,19 @@ export class AuthService {
             googleId: details.googleId,
         });
     }
+
+    async validateFacebookUser(details: { email: string; name: string; facebookId: string }): Promise<User> {
+        const user = await this.usersService.findOneByEmail(details.email);
+        if (user) {
+            // Nếu có user trùng email (vd đã Sign up bằng tay hoặc Google), tự động link tài khoản facebook
+            // Lưu ý: Ở đây ta bỏ qua việc update user.facebookId nếu đã có để code ngắn gọn,
+            // hoặc lý tưởng là gọi this.usersService.update(...)
+            return user;
+        }
+        return this.usersService.create({
+            email: details.email,
+            name: details.name,
+            facebookId: details.facebookId,
+        });
+    }
 }

@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Button, Input, Card, Typography, List, Tag, notification, Progress } from 'antd';
 import { SendOutlined, CheckCircleOutlined, WarningOutlined } from '@ant-design/icons';
-import api from '../services/api';
-import { useAuthStore } from '../store/useAuthStore';
+import api from '../../../lib/api';
+import { useAuthStore } from '../../auth/store/useAuthStore';
 import { useNavigate } from 'react-router-dom';
 
 const { Title, Paragraph, Text } = Typography;

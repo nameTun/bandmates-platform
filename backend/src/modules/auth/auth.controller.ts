@@ -33,6 +33,25 @@ export class AuthController {
         return res.redirect(`http://localhost:5173/login?status=success`);
     }
 
+    @Get('facebook')
+    @UseGuards(AuthGuard('facebook'))
+    async facebookAuth(@Req() req: any) { }
+
+    @Get('facebook/callback')
+    @UseGuards(AuthGuard('facebook'))
+    async facebookAuthRedirect(@Req() req: any, @Res() res: Response) {
+        const tokens = await this.authService.login(req.user);
+
+        res.cookie('refreshToken', tokens.refreshToken, {
+            httpOnly: true,
+            secure: false, 
+            sameSite: 'lax',
+            maxAge: 7 * 24 * 60 * 60 * 1000,
+        });
+
+        return res.redirect(`http://localhost:5173/login?status=success`);
+    }
+
     @Post('refresh')
     async refresh(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
         const refreshToken = req.cookies['refreshToken'];

@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
-import { useAuthStore } from '../store/useAuthStore';
+import { useAuthStore } from '../features/auth/store/useAuthStore';
 
 // Khởi tạo axios instance
 const api = axios.create({
