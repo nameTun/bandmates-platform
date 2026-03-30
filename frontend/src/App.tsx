@@ -2,7 +2,6 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom';
 import { Avatar, Dropdown } from 'antd';
 import { UserOutlined, LogoutOutlined } from '@ant-design/icons';
-import { Sparkles } from 'lucide-react';
 import { useAuthStore } from './features/auth/store/useAuthStore';
 import LoginPage from './features/auth/pages/LoginPage';
 import RegisterPage from './features/auth/pages/RegisterPage';
@@ -30,9 +29,8 @@ const AppHeader: React.FC = () => {
   return (
     <nav className="sticky top-0 w-full z-50 bg-white/80 backdrop-blur-md border-b border-outline">
       <div className="flex justify-between items-center px-6 h-16 max-w-7xl mx-auto">
-        <Link to="/" className="flex items-center gap-2 text-xl font-bold tracking-tight text-on-background hover:opacity-80 transition-opacity">
-          <Sparkles size={22} className="text-primary fill-primary/20" />
-          <span>BandMates AI</span>
+        <Link to="/" className="flex items-center hover:opacity-80 transition-opacity">
+          <img src="/BandMates.svg" alt="BandMates Logo" className="h-40 w-auto object-contain" />
         </Link>
 
         <div className="flex items-center gap-6">
@@ -74,10 +72,10 @@ const App: React.FC = () => {
         </main>
         
         {/* Global Footer */}
-        <footer className="w-full py-8 md:py-12 bg-surface border-t border-outline mt-auto">
+        <footer className="w-full bg-surface border-t border-outline mt-auto">
             <div className="flex flex-col md:flex-row justify-between items-center px-8 gap-4 max-w-7xl mx-auto">
-                <div className="font-bold text-on-background flex items-center gap-2">
-                    <Sparkles size={16} className="text-primary" /> BandMates AI
+                <div className="flex items-center">
+                    <img src="/BandMates.svg" alt="BandMates Logo" className="h-16 w-auto object-contain opacity-80" />
                 </div>
                 <div className="flex gap-6">
                     <a className="text-sm font-medium text-secondary hover:text-primary transition-colors" href="#">Terms</a>
