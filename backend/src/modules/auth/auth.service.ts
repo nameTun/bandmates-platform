@@ -1,47 +1,26 @@
-import { Injectable, ForbiddenException } from '@nestjs/common';
+import { Injectable, ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import { UsersService } from '../users/users.service';
 import { User } from '../users/entities/user.entity';
-import { JwtService } from '@nestjs/jwt';
-import { ConfigService } from '@nestjs/config';
+import { TokenService } from './token.service';
+import * as bcrypt from 'bcryptjs';
+import { RegisterDto } from './dto/register.dto';
+import { LoginDto } from './dto/login.dto';
 
 @Injectable()
 export class AuthService {
     constructor(
         private usersService: UsersService,
-        private jwtService: JwtService,
-        private configService: ConfigService,
+        private tokenService: TokenService,
     ) { }
 
-    // Tạo cặp Access Token và Refresh Token
-    async getTokens(userId: string, email: string) {
-        const [accessToken, refreshToken] = await Promise.all([
-            this.jwtService.signAsync(
-                { sub: userId, email },
-                {
-                    secret: this.configService.get<string>('JWT_SECRET'),
-                    expiresIn: '15m', // Access Token ngắn hạn
-                },
-            ),
-            this.jwtService.signAsync(
-                { sub: userId, email },
-                {
-                    secret: this.configService.get<string>('JWT_REFRESH_SECRET') || this.configService.get<string>('JWT_SECRET'),
-                    expiresIn: '7d', // Refresh Token dài hạn
-                },
-            ),
-        ]);
-
-        return {
-            accessToken,
-            refreshToken,
-        };
-    }
-
-    // Login: Tạo 2 token và lưu Refresh Token vào DB
+    // Login
     async login(user: User) {
-        const tokens = await this.getTokens(user.id, user.email);
+        const tokens = await this.tokenService.getTokens(user);
         await this.updateRefreshToken(user.id, tokens.refreshToken);
-        return tokens;
+
+        // Ensure sensitive fields are never returned to client
+        const { password, currentRefreshToken, ...safeUser } = user;
+        return { tokens, user: safeUser };
     }
 
     // Logout: Xóa Refresh Token trong DB
@@ -62,9 +41,11 @@ export class AuthService {
             throw new ForbiddenException('Access Denied');
         }
 
-        const tokens = await this.getTokens(user.id, user.email);
+        const tokens = await this.tokenService.getTokens(user);
         await this.updateRefreshToken(user.id, tokens.refreshToken);
-        return tokens;
+
+        const { password, currentRefreshToken, ...safeUser } = user;
+        return { tokens, user: safeUser };
     }
 
     async updateRefreshToken(userId: string, refreshToken: string) {
@@ -95,5 +76,38 @@ export class AuthService {
             name: details.name,
             facebookId: details.facebookId,
         });
+    }
+
+    async registerLocal(dto: RegisterDto) {
+        const existingUser = await this.usersService.findOneByEmail(dto.email);
+        if (existingUser) {
+            throw new ForbiddenException('Email này đã được sử dụng!');
+        }
+
+        const hashedPassword = await bcrypt.hash(dto.password, 10);
+
+        const user = await this.usersService.create({
+            email: dto.email,
+            name: dto.name,
+            password: hashedPassword,
+        });
+
+        return this.login(user); // returns { accessToken, refreshToken } and sets refreshToken in DB
+    }
+
+    async loginLocal(dto: LoginDto) {
+        // Need to explicitly request password for verification
+        const user = await this.usersService.findOneByEmailWithPassword(dto.email);
+
+        if (!user || !user.password) {
+            throw new UnauthorizedException('Email hoặc password không đúng!');
+        }
+
+        const isMatch = await bcrypt.compare(dto.password, user.password);
+        if (!isMatch) {
+            throw new UnauthorizedException('Email hoặc password không đúng!');
+        }
+
+        return this.login(user);
     }
 }

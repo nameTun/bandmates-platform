@@ -1,14 +1,63 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { ArrowRight, Zap, BarChart, Sparkles, Facebook } from 'lucide-react';
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { ArrowRight, Zap, BarChart, Sparkles, Facebook, Eye, EyeOff } from 'lucide-react';
+import { notification } from 'antd';
+import api from '../../../lib/api';
+import { useAuthStore } from '../store/useAuthStore';
 
 const RegisterPage: React.FC = () => {
+    const navigate = useNavigate();
+    const { setAuth } = useAuthStore();
+    const [loading, setLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [formData, setFormData] = useState({
+        fullName: '',
+        email: '',
+        password: '',
+        confirmPassword: ''
+    });
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setFormData({ ...formData, [e.target.name]: e.target.value });
+    };
+
     const handleGoogleLogin = () => {
         window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/auth/google`;
     };
 
     const handleFacebookLogin = () => {
         window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/auth/facebook`;
+    };
+
+    const onSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (formData.password !== formData.confirmPassword) {
+            notification.error({ message: 'Passwords do not match' });
+            return;
+        }
+        
+        try {
+            setLoading(true);
+            const res = await api.post('/auth/register', {
+                name: formData.fullName,
+                email: formData.email,
+                password: formData.password
+            });
+            
+            if (res.data && res.data.accessToken && res.data.user) {
+                setAuth(res.data.accessToken, res.data.user);
+                notification.success({ message: 'Registration successful!' });
+                navigate('/', { replace: true });
+            }
+        } catch (error: any) {
+            notification.error({ 
+                message: 'Registration failed', 
+                description: error.response?.data?.message || 'Something went wrong'
+            });
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -58,36 +107,46 @@ const RegisterPage: React.FC = () => {
                         <h3 className="text-2xl font-bold text-on-surface tracking-tight">Create Account</h3>
                     </div>
 
-                    <form className="space-y-3.5 flex-1" onSubmit={(e) => e.preventDefault()}>
+                    <form className="space-y-3.5 flex-1" onSubmit={onSubmit}>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
                             <div className="col-span-1 md:col-span-2 space-y-1">
-                                <label className="text-[11px] font-bold uppercase tracking-wider text-secondary ml-1" htmlFor="full-name">Full Name</label>
-                                <input className="w-full px-4 py-2.5 rounded-xl border border-outline bg-white/80 backdrop-blur-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none text-on-surface text-sm shadow-sm hover:border-primary/50" id="full-name" name="full-name" placeholder="John Doe" type="text" />
+                                <label className="text-[11px] font-bold uppercase tracking-wider text-secondary ml-1" htmlFor="fullName">Full Name</label>
+                                <input required value={formData.fullName} onChange={handleChange} className="w-full px-4 py-2.5 rounded-xl border border-outline bg-white/80 backdrop-blur-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none text-on-surface text-sm shadow-sm hover:border-primary/50" id="fullName" name="fullName" placeholder="John Doe" type="text" />
                             </div>
                             <div className="col-span-1 md:col-span-2 space-y-1">
                                 <label className="text-[11px] font-bold uppercase tracking-wider text-secondary ml-1" htmlFor="email">Email Address</label>
-                                <input className="w-full px-4 py-2.5 rounded-xl border border-outline bg-white/80 backdrop-blur-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none text-on-surface text-sm shadow-sm hover:border-primary/50" id="email" name="email" placeholder="name@example.com" type="email" />
+                                <input required value={formData.email} onChange={handleChange} className="w-full px-4 py-2.5 rounded-xl border border-outline bg-white/80 backdrop-blur-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none text-on-surface text-sm shadow-sm hover:border-primary/50" id="email" name="email" placeholder="name@example.com" type="email" />
                             </div>
                             <div className="space-y-1">
                                 <label className="text-[11px] font-bold uppercase tracking-wider text-secondary ml-1" htmlFor="password">Password</label>
-                                <input className="w-full px-4 py-2.5 rounded-xl border border-outline bg-white/80 backdrop-blur-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none text-on-surface text-sm shadow-sm hover:border-primary/50" id="password" name="password" placeholder="••••••••" type="password" />
+                                <div className="relative">
+                                    <input required value={formData.password} onChange={handleChange} minLength={6} className="w-full px-4 py-2.5 pr-10 rounded-xl border border-outline bg-white/80 backdrop-blur-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none text-on-surface text-sm shadow-sm hover:border-primary/50" id="password" name="password" placeholder="••••••••" type={showPassword ? "text" : "password"} />
+                                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-secondary hover:text-primary transition-colors focus:outline-none flex items-center justify-center">
+                                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                    </button>
+                                </div>
                             </div>
                             <div className="space-y-1">
-                                <label className="text-[11px] font-bold uppercase tracking-wider text-secondary ml-1" htmlFor="confirm-password">Confirm Password</label>
-                                <input className="w-full px-4 py-2.5 rounded-xl border border-outline bg-white/80 backdrop-blur-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none text-on-surface text-sm shadow-sm hover:border-primary/50" id="confirm-password" name="confirm-password" placeholder="••••••••" type="password" />
+                                <label className="text-[11px] font-bold uppercase tracking-wider text-secondary ml-1" htmlFor="confirmPassword">Confirm Password</label>
+                                <div className="relative">
+                                    <input required value={formData.confirmPassword} onChange={handleChange} minLength={6} className="w-full px-4 py-2.5 pr-10 rounded-xl border border-outline bg-white/80 backdrop-blur-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none text-on-surface text-sm shadow-sm hover:border-primary/50" id="confirmPassword" name="confirmPassword" placeholder="••••••••" type={showConfirmPassword ? "text" : "password"} />
+                                    <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-secondary hover:text-primary transition-colors focus:outline-none flex items-center justify-center">
+                                        {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
                         <div className="flex items-center gap-2 py-1">
-                            <input className="w-3.5 h-3.5 text-primary border-outline rounded focus:ring-primary cursor-pointer transition-colors" id="terms" type="checkbox" />
+                            <input required className="w-3.5 h-3.5 text-primary border-outline rounded focus:ring-primary cursor-pointer transition-colors" id="terms" type="checkbox" />
                             <label className="text-[11px] text-secondary leading-none select-none cursor-pointer" htmlFor="terms">
                                 I agree to the <a className="text-primary font-bold hover:underline" href="#">Terms</a> & <a className="text-primary font-bold hover:underline" href="#">Privacy</a>.
                             </label>
                         </div>
 
-                        <button className="w-full bg-primary text-white font-bold py-2.5 rounded-xl shadow-[0_8px_16px_-6px_rgba(72,72,229,0.4)] hover:shadow-[0_12px_20px_-6px_rgba(72,72,229,0.5)] hover:-translate-y-0.5 active:translate-y-0 transition-all flex justify-center items-center gap-2 text-sm" type="submit">
-                            Sign Up
-                            <ArrowRight size={16} />
+                        <button disabled={loading} className="w-full bg-primary text-white font-bold py-2.5 rounded-xl shadow-[0_8px_16px_-6px_rgba(72,72,229,0.4)] hover:shadow-[0_12px_20px_-6px_rgba(72,72,229,0.5)] hover:-translate-y-0.5 active:translate-y-0 transition-all flex justify-center items-center gap-2 text-sm disabled:opacity-70" type="submit">
+                            {loading ? 'Processing...' : 'Sign Up'}
+                            {!loading && <ArrowRight size={16} />}
                         </button>
 
                         <div className="relative py-2.5">

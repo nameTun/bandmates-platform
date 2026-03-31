@@ -1,24 +1,28 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import api from '../../../lib/api';
 import { Spin, notification } from 'antd';
 import { LoadingOutlined } from '@ant-design/icons';
-import { Sparkles, CheckCircle, Info, Facebook, ArrowRight } from 'lucide-react';
+import { Sparkles, CheckCircle, Info, Facebook, ArrowRight, Eye, EyeOff } from 'lucide-react';
 
 const LoginPage: React.FC = () => {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const { setAuth } = useAuthStore();
     const status = searchParams.get('status');
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
 
     useEffect(() => {
         const verifyLogin = async () => {
             if (status === 'success') {
                 try {
-                    const response = await api.get('/auth/profile');
-                    if (response.data) {
-                        setAuth(response.data);
+                    const response = await api.post('/auth/refresh');
+                    if (response.data && response.data.accessToken && response.data.user) {
+                        setAuth(response.data.accessToken, response.data.user);
                         notification.success({ message: 'Login successfully!', placement: 'topRight' });
                         navigate('/', { replace: true });
                     }
@@ -39,6 +43,28 @@ const LoginPage: React.FC = () => {
 
     const handleFacebookLogin = () => {
         window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/auth/facebook`;
+    };
+
+    const onSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            setLoading(true);
+            const res = await api.post('/auth/login', { email, password });
+            console.log(res);
+            if (res.data && res.data.accessToken && res.data.user) {
+                setAuth(res.data.accessToken, res.data.user);
+                notification.success({ message: 'Login successfully!', placement: 'topRight' });
+                navigate('/', { replace: true });
+            }
+        } catch (error: any) {
+            notification.error({ 
+                message: 'Login failed', 
+                description: error.response?.data?.message || 'Invalid email or password',
+                placement: 'topRight'
+            });
+        } finally {
+            setLoading(false);
+        }
     };
 
     if (status === 'success') {
@@ -119,17 +145,22 @@ const LoginPage: React.FC = () => {
                         <h3 className="text-2xl font-bold text-on-surface tracking-tight">Sign In</h3>
                     </div>
 
-                    <form className="space-y-4 flex-1" onSubmit={(e) => e.preventDefault()}>
+                    <form className="space-y-4 flex-1" onSubmit={onSubmit}>
                         <div className="space-y-1.5">
                             <label className="text-[11px] font-bold uppercase tracking-wider text-secondary ml-1" htmlFor="email">Email address</label>
-                            <input className="w-full px-4 py-3 rounded-xl border border-outline bg-white/80 backdrop-blur-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none text-on-surface text-sm shadow-sm hover:border-primary/50" id="email" name="email" placeholder="name@company.com" type="email" />
+                            <input required value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-outline bg-white/80 backdrop-blur-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none text-on-surface text-sm shadow-sm hover:border-primary/50" id="email" name="email" placeholder="name@company.com" type="email" />
                         </div>
                         <div className="space-y-1.5">
                             <div className="flex justify-between items-center px-1 mb-1">
                                 <label className="text-[11px] font-bold uppercase tracking-wider text-secondary" htmlFor="password">Password</label>
                                 <a className="text-[11px] font-bold text-primary hover:text-on-primary-fixed-variant transition-colors" href="#">Forgot password?</a>
                             </div>
-                            <input className="w-full px-4 py-3 rounded-xl border border-outline bg-white/80 backdrop-blur-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none text-on-surface text-sm shadow-sm hover:border-primary/50" id="password" name="password" placeholder="••••••••" type="password" />
+                            <div className="relative">
+                                <input required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-4 py-3 pr-10 rounded-xl border border-outline bg-white/80 backdrop-blur-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none text-on-surface text-sm shadow-sm hover:border-primary/50" id="password" name="password" placeholder="••••••••" type={showPassword ? "text" : "password"} />
+                                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-secondary hover:text-primary transition-colors focus:outline-none flex items-center justify-center">
+                                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                </button>
+                            </div>
                         </div>
                         
                         <div className="flex items-center gap-2 py-1">
@@ -137,9 +168,9 @@ const LoginPage: React.FC = () => {
                             <label className="text-[11px] text-secondary leading-none select-none cursor-pointer" htmlFor="remember">Remember me for 30 days</label>
                         </div>
 
-                        <button className="w-full bg-primary text-white font-bold mt-2 py-3.5 rounded-xl shadow-[0_8px_16px_-6px_rgba(72,72,229,0.4)] hover:shadow-[0_12px_20px_-6px_rgba(72,72,229,0.5)] hover:-translate-y-0.5 active:translate-y-0 transition-all flex justify-center items-center gap-2 text-sm" type="submit">
-                            Sign In
-                            <ArrowRight size={16} />
+                        <button disabled={loading} className="w-full bg-primary text-white font-bold mt-2 py-3.5 rounded-xl shadow-[0_8px_16px_-6px_rgba(72,72,229,0.4)] hover:shadow-[0_12px_20px_-6px_rgba(72,72,229,0.5)] hover:-translate-y-0.5 active:translate-y-0 transition-all flex justify-center items-center gap-2 text-sm disabled:opacity-70" type="submit">
+                            {loading ? 'Processing...' : 'Sign In'}
+                            {!loading && <ArrowRight size={16} />}
                         </button>
 
                         <div className="relative py-4">

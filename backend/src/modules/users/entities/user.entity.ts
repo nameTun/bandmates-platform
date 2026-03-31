@@ -14,7 +14,8 @@ export class User {
     email: string;
 
     // @Column({ nullable: true }): Mật khẩu có thể null nếu user đăng nhập bằng Google (OAuth).
-    @Column({ nullable: true })
+    // select: false đảm bảo không trả về password trong query thông thường.
+    @Column({ nullable: true, select: false })
     password: string;
 
     // Lưu Google ID để nhận diện user khi đăng nhập bằng Google.

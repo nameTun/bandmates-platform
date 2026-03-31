@@ -1,12 +1,14 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom';
-import { Avatar, Dropdown } from 'antd';
+import { Avatar, Dropdown, Layout } from 'antd';
 import { UserOutlined, LogoutOutlined } from '@ant-design/icons';
 import { useAuthStore } from './features/auth/store/useAuthStore';
 import LoginPage from './features/auth/pages/LoginPage';
 import RegisterPage from './features/auth/pages/RegisterPage';
 import ScoringPage from './features/scoring/pages/ScoringPage';
 import api from './lib/api';
+
+const { Footer } = Layout;
 
 const AppHeader: React.FC = () => {
   const { user, isAuthenticated, logout } = useAuthStore();
@@ -60,7 +62,7 @@ const AppHeader: React.FC = () => {
 const App: React.FC = () => {
   return (
     <Router>
-      <div className="min-h-screen flex flex-col bg-background font-body text-on-background">
+      <Layout className="flex flex-col bg-background font-body text-on-background" style={{ minHeight: '100vh' }}>
         <AppHeader />
         <main className="flex-1 flex flex-col">
           <Routes>
@@ -72,10 +74,10 @@ const App: React.FC = () => {
         </main>
         
         {/* Global Footer */}
-        <footer className="w-full bg-surface border-t border-outline mt-auto">
+        <Footer className="w-full bg-surface border-t border-outline mt-auto !py-4 px-0">
             <div className="flex flex-col md:flex-row justify-between items-center px-8 gap-4 max-w-7xl mx-auto">
                 <div className="flex items-center">
-                    <img src="/BandMates.svg" alt="BandMates Logo" className="h-16 w-auto object-contain opacity-80" />
+                    <img src="/BandMates.svg" alt="BandMates Logo" className="h-8 w-auto object-contain opacity-80" />
                 </div>
                 <div className="flex gap-6">
                     <a className="text-sm font-medium text-secondary hover:text-primary transition-colors" href="#">Terms</a>
@@ -83,10 +85,10 @@ const App: React.FC = () => {
                     <a className="text-sm font-medium text-secondary hover:text-primary transition-colors" href="#">Contact</a>
                     <a className="text-sm font-medium text-secondary hover:text-primary transition-colors" href="#">Support</a>
                 </div>
-                <div className="text-sm font-medium text-secondary">© 2024 BandMates AI. All rights reserved.</div>
+                <div className="text-sm font-medium text-secondary">© 2025 BandMates AI. All rights reserved.</div>
             </div>
-        </footer>
-      </div>
+        </Footer>
+      </Layout>
     </Router>
   );
 };
