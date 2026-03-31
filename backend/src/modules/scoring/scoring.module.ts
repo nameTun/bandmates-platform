@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { JwtModule } from '@nestjs/jwt';
 import { GuestLimit } from './entities/guest-limit.entity';
 import { ExamAttempt } from './entities/exam-attempt.entity';
 
@@ -12,13 +11,6 @@ import { GeminiService } from './gemini.service';
     imports: [
         TypeOrmModule.forFeature([GuestLimit, ExamAttempt]),
         ConfigModule,
-        JwtModule.registerAsync({
-            imports: [ConfigModule],
-            inject: [ConfigService],
-            useFactory: async (configService: ConfigService) => ({
-                secret: configService.get<string>('JWT_SECRET'),
-            }),
-        }),
     ],
     controllers: [ScoringController],
     providers: [GeminiService],

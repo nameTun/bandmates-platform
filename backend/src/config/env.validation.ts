@@ -8,6 +8,7 @@ enum Environment {
 }
 
 class EnvironmentVariables {
+
     @IsEnum(Environment)
     NODE_ENV: Environment;
 
