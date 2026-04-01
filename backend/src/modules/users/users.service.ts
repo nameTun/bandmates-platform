@@ -14,27 +14,36 @@ export class UsersService {
         private usersRepository: Repository<User>,
     ) { }
 
-    async create(userData: Partial<User>): Promise<User> {
+    async createUser(userData: Partial<User>): Promise<User> {
         const newUser = this.usersRepository.create(userData); // Tạo object User từ data (chưa lưu)
         return this.usersRepository.save(newUser); // Lưu vào DB
     }
 
-    async findOneByEmail(email: string): Promise<User | null> {
+    async findUserByEmail(email: string): Promise<User | null> {
         return this.usersRepository.findOne({ where: { email } });
     }
 
-    async findOneByEmailWithPassword(email: string): Promise<User | null> {
-        return this.usersRepository.findOne({ 
+    async findUserByEmailWithPassword(email: string): Promise<User | null> {
+        return this.usersRepository.findOne({
             where: { email },
             select: ['id', 'email', 'name', 'password', 'role'] // Explicitly select password
         });
     }
 
-    async findOneById(id: string): Promise<User | null> {
+    async findUserById(id: string): Promise<User | null> {
         return this.usersRepository.findOne({ where: { id } });
     }
 
-    async update(id: string, updateData: Partial<User>): Promise<void> {
+    // Dùng riêng cho luồng Refresh Token - cần đọc cột refreshToken bị ẩn (select: false)
+    async findUserByIdWithRefreshToken(id: string): Promise<User | null> {
+        return this.usersRepository
+            .createQueryBuilder('user')
+            .where('user.id = :id', { id })
+            .addSelect('user.refreshToken') // Chủ động bật cột bị ẩn lên
+            .getOne();
+    }
+
+    async updateUser(id: string, updateData: Partial<User>): Promise<void> {
         await this.usersRepository.update(id, updateData);
     }
 }

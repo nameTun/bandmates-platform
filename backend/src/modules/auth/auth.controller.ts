@@ -5,7 +5,7 @@ import type { Response, Request } from 'express';
 import { JwtService } from '@nestjs/jwt';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
-import { setAuthCookies, clearAuthCookies } from '../../common/utils/cookie.util';
+import { setCookies, clearCookie } from '../../common/utils/cookie.util';
 
 @Controller('auth')
 export class AuthController {
@@ -25,7 +25,7 @@ export class AuthController {
         const { tokens } = await this.authService.login(req.user);
 
         // Set Refresh Token as HttpOnly Cookie
-        setAuthCookies(res, tokens.refreshToken);
+        setCookies(res, tokens.refreshToken);
 
         // Redirect to Frontend
         return res.redirect(`http://localhost:5173/login?status=success`);
@@ -40,7 +40,7 @@ export class AuthController {
     async facebookAuthRedirect(@Req() req: any, @Res() res: Response) {
         const { tokens } = await this.authService.login(req.user);
 
-        setAuthCookies(res, tokens.refreshToken);
+        setCookies(res, tokens.refreshToken);
 
         return res.redirect(`http://localhost:5173/login?status=success`);
     }
@@ -54,15 +54,24 @@ export class AuthController {
 
         let payload;
         try {
-            payload = this.jwtService.verify(refreshToken, { secret: process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET });
+            payload = this.jwtService.verify(
+                refreshToken,
+                {
+                    secret: process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET
+                });
         } catch (e) {
             throw new UnauthorizedException('Invalid refresh token');
         }
 
-        const { tokens, user } = await this.authService.refreshTokens(payload.sub, refreshToken);
+        if (!payload || !payload.userId) {
+            throw new UnauthorizedException('Invalid refresh token payload');
+        }
+
+        // 3. Tiến hành cấp lại token mới
+        const { tokens, user } = await this.authService.refreshTokens(payload.userId, refreshToken);
 
         // Rotate Refresh Token
-        setAuthCookies(res, tokens.refreshToken);
+        setCookies(res, tokens.refreshToken);
 
         return { accessToken: tokens.accessToken, user };
     }
@@ -70,25 +79,25 @@ export class AuthController {
     @Post('logout')
     @UseGuards(AuthGuard('jwt'))
     async logout(@Req() req: any, @Res({ passthrough: true }) res: Response) {
-        await this.authService.logout(req.user.id);
-        clearAuthCookies(res);
+        await this.authService.logoutUser(req.user.id);
+        clearCookie(res);
         return { message: 'Logged out' };
     }
 
     @Post('register')
     async register(@Body() dto: RegisterDto, @Res({ passthrough: true }) res: Response) {
-        const { tokens, user } = await this.authService.registerLocal(dto);
+        const { tokens, user } = await this.authService.registerUser(dto);
 
-        setAuthCookies(res, tokens.refreshToken);
+        setCookies(res, tokens.refreshToken);
 
         return { accessToken: tokens.accessToken, user };
     }
 
     @Post('login')
     async login(@Body() dto: LoginDto, @Res({ passthrough: true }) res: Response) {
-        const { tokens, user } = await this.authService.loginLocal(dto);
+        const { tokens, user } = await this.authService.loginUser(dto);
 
-        setAuthCookies(res, tokens.refreshToken);
+        setCookies(res, tokens.refreshToken);
 
         return { accessToken: tokens.accessToken, user };
     }

@@ -1,6 +1,5 @@
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
-import { AuthService } from '@/features/auth/services/auth.service';
 import { useAuthStore } from '@/features/auth/store/useAuthStore';
 
 // Khởi tạo axios instance
@@ -46,27 +45,34 @@ api.interceptors.response.use(
         const originalRequest = error.config;
 
         if (error.response) {
-            // Xử lý lỗi 401: Unauthorized (Token hết hạn)
-            // Chỉ retry nếu chưa retry lần nào (_retry flag)
-            if (error.response.status === 401 && !originalRequest._retry) {
+            // Xử lý lỗi 401: Unauthorized (Access Token hết hạn)
+            // CHỈ retry nếu:
+            //   1. Chưa retry lần nào (_retry flag)
+            //   2. KHÔNG phải request từ chính các endpoint Auth
+            //      (login/register sai pass → 401 là đúng, đừng can thiệp!)
+            const isAuthEndpoint = ['/auth/login', '/auth/register', '/auth/refresh']
+                .some(path => originalRequest.url?.includes(path));
+
+            if (error.response.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
                 originalRequest._retry = true;
 
                 try {
-                    // Gọi API refresh token (Cookie sẽ tự động được gửi đi)
-                    // Lưu ý: Dùng instance mới hoặc instance hiện tại nhưng cẩn thận loop
-                    // Ở đây dùng chính api này vì endpoint refresh không yêu cầu Auth Header valid
-                    const rs = await AuthService.refresh();
+                    // Dùng axios thuần (KHÔNG dùng AuthService) để tránh Circular Dependency!
+                    const rs = await axios.post(
+                        `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/auth/refresh`,
+                        {},
+                        { withCredentials: true }
+                    );
+                    const { accessToken, user } = rs.data;
 
-                    const { accessToken } = rs.data;
-
-                    // Cập nhật token vào Store
-                    useAuthStore.getState().setAuth(accessToken);
+                    // Cập nhật cả token lẫn user vào Store
+                    useAuthStore.getState().setAuth(accessToken, user);
 
                     // Cập nhật header cho request cũ và retry
                     originalRequest.headers['Authorization'] = `Bearer ${accessToken}`;
                     return api(originalRequest);
                 } catch (_error) {
-                    // Refresh thất bại (Token hết hạn hẳn hoặc không hợp lệ) -> Logout
+                    // Refresh thất bại (token hết hạn hẳn) → Logout
                     useAuthStore.getState().logout();
                     return Promise.reject(_error);
                 }
