@@ -13,13 +13,13 @@ export class TokenService {
     async getTokens(user: User) {
         // Access Token Payload: Minimal info, relies on explicit user object
         const accessTokenPayload = {
-            sub: user.id,
+            userId: user.id,
             role: user.role, // Included if role-based access is implemented on UI
         };
 
         // Refresh Token Payload: Minimal info for security
         const refreshTokenPayload = {
-            sub: user.id, role: user.role
+            userId: user.id, role: user.role
         };
 
         const [accessToken, refreshToken] = await Promise.all([

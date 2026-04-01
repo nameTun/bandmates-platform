@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
-import { useAuthStore } from '../store/useAuthStore';
-import api from '../../../lib/api';
+import { useAuthStore } from '@/features/auth/store/useAuthStore';
+import { AuthService } from '@/features/auth/services/auth.service';
 import { Spin, notification } from 'antd';
 import { LoadingOutlined } from '@ant-design/icons';
 import { Sparkles, CheckCircle, Info, Facebook, ArrowRight, Eye, EyeOff } from 'lucide-react';
@@ -20,9 +20,9 @@ const LoginPage: React.FC = () => {
         const verifyLogin = async () => {
             if (status === 'success') {
                 try {
-                    const response = await api.post('/auth/refresh');
-                    if (response.data && response.data.accessToken && response.data.user) {
-                        setAuth(response.data.accessToken, response.data.user);
+                    const data = await AuthService.refresh();
+                    if (data && data.accessToken && data.user) {
+                        setAuth(data.accessToken, data.user);
                         notification.success({ message: 'Login successfully!', placement: 'topRight' });
                         navigate('/', { replace: true });
                     }
@@ -49,10 +49,10 @@ const LoginPage: React.FC = () => {
         e.preventDefault();
         try {
             setLoading(true);
-            const res = await api.post('/auth/login', { email, password });
-            console.log(res);
-            if (res.data && res.data.accessToken && res.data.user) {
-                setAuth(res.data.accessToken, res.data.user);
+            const data = await AuthService.login({ email, password });
+            console.log(data);
+            if (data && data.accessToken && data.user) {
+                setAuth(data.accessToken, data.user);
                 notification.success({ message: 'Login successfully!', placement: 'topRight' });
                 navigate('/', { replace: true });
             }

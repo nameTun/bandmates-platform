@@ -33,7 +33,7 @@ export class User {
     // select: false nghĩa là cột này sẽ KHÔNG được trả về trong các câu query thông thường 
     // (ví dụ findOne, find). Giúp tránh lộ hash token ra ngoài API.
     @Column({ type: 'varchar', nullable: true, select: false })
-    currentRefreshToken: string | null;
+    refreshToken: string | null;
 
     // @Column({ default: 'user' }): Phân quyền User (admin, user) - Phục vụ tính năng sau này.
     @Column({ default: 'user' })

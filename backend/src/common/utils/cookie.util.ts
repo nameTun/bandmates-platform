@@ -1,6 +1,6 @@
 import { Response } from 'express';
 
-export const setAuthCookies = (res: Response, refreshToken: string) => {
+export const setCookies = (res: Response, refreshToken: string) => {
     res.cookie('refreshToken', refreshToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
@@ -9,6 +9,6 @@ export const setAuthCookies = (res: Response, refreshToken: string) => {
     });
 };
 
-export const clearAuthCookies = (res: Response) => {
+export const clearCookie = (res: Response) => {
     res.clearCookie('refreshToken');
 };
