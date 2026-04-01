@@ -2,11 +2,11 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom';
 import { Avatar, Dropdown, Layout } from 'antd';
 import { UserOutlined, LogoutOutlined } from '@ant-design/icons';
-import { useAuthStore } from './features/auth/store/useAuthStore';
-import LoginPage from './features/auth/pages/LoginPage';
-import RegisterPage from './features/auth/pages/RegisterPage';
-import ScoringPage from './features/scoring/pages/ScoringPage';
-import api from './lib/api';
+import { useAuthStore } from '@/features/auth/store/useAuthStore';
+import LoginPage from '@/features/auth/pages/LoginPage';
+import RegisterPage from '@/features/auth/pages/RegisterPage';
+import ScoringPage from '@/features/scoring/pages/ScoringPage';
+import { AuthService } from '@/features/auth/services/auth.service';
 
 const { Footer } = Layout;
 
@@ -16,7 +16,7 @@ const AppHeader: React.FC = () => {
 
   const handleLogout = async () => {
     try {
-      await api.post('/auth/logout');
+      await AuthService.logout();
     } catch (e) {
       console.error("Logout error", e);
     }
@@ -40,7 +40,7 @@ const AppHeader: React.FC = () => {
             <Dropdown menu={{ items: menuItems }} placement="bottomRight">
               <div className="flex items-center gap-3 cursor-pointer hover:bg-surface-variant px-3 py-1.5 rounded-xl transition-colors border border-transparent hover:border-outline">
                 <Avatar src={undefined} icon={<UserOutlined />} className="bg-primary flex items-center justify-center" />
-                <span className="font-semibold text-sm text-on-surface hidden md:inline">{user.name || user.email}</span>
+                <span className="font-semibold text-sm text-on-surface hidden md:inline">{user.name}</span>
               </div>
             </Dropdown>
           ) : (

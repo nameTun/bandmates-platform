@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, Zap, BarChart, Sparkles, Facebook, Eye, EyeOff } from 'lucide-react';
 import { notification } from 'antd';
-import api from '../../../lib/api';
-import { useAuthStore } from '../store/useAuthStore';
+import { AuthService } from '@/features/auth/services/auth.service';
+import { useAuthStore } from '@/features/auth/store/useAuthStore';
 
 const RegisterPage: React.FC = () => {
     const navigate = useNavigate();
@@ -39,14 +39,14 @@ const RegisterPage: React.FC = () => {
         
         try {
             setLoading(true);
-            const res = await api.post('/auth/register', {
+            const data = await AuthService.register({
                 name: formData.fullName,
                 email: formData.email,
                 password: formData.password
             });
             
-            if (res.data && res.data.accessToken && res.data.user) {
-                setAuth(res.data.accessToken, res.data.user);
+            if (data && data.accessToken && data.user) {
+                setAuth(data.accessToken, data.user);
                 notification.success({ message: 'Registration successful!' });
                 navigate('/', { replace: true });
             }

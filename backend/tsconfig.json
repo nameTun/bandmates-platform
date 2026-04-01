@@ -16,9 +16,9 @@
     "baseUrl": "./",
     "incremental": true,
     "skipLibCheck": true,
-    "strictNullChecks": true,
-    "forceConsistentCasingInFileNames": true,
-    "noImplicitAny": true,
+    "strictNullChecks": true,//check null || undefined
+    "forceConsistentCasingInFileNames": true, // check file name, not differentiate case
+    "noImplicitAny": true,// check define variable
     "strictBindCallApply": true,
     "noFallthroughCasesInSwitch": true
   }

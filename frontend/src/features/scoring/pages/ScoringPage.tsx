@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Button, Input, Card, Typography, List, Tag, notification, Progress } from 'antd';
 import { SendOutlined, CheckCircleOutlined, WarningOutlined } from '@ant-design/icons';
-import api from '../../../lib/api';
-import { useAuthStore } from '../../auth/store/useAuthStore';
+import { ScoringService } from '@/features/scoring/services/scoring.service';
+import { useAuthStore } from '@/features/auth/store/useAuthStore';
 import { useNavigate } from 'react-router-dom';
 
 const { Title, Paragraph, Text } = Typography;
@@ -35,8 +35,8 @@ const ScoringPage: React.FC = () => {
         setResult(null);
 
         try {
-            const response = await api.post('/scoring/check', { text });
-            setResult(response.data.data);
+            const data = await ScoringService.checkIelts(text);
+            setResult(data.data);
             notification.success({ message: 'Analysis Complete!', description: 'Check your results below.' });
         } catch (error: any) {
             if (error.response && error.response.status === 429) {

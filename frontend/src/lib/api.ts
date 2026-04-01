@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
-import { useAuthStore } from '../features/auth/store/useAuthStore';
+import { AuthService } from '@/features/auth/services/auth.service';
+import { useAuthStore } from '@/features/auth/store/useAuthStore';
 
 // Khởi tạo axios instance
 const api = axios.create({
@@ -54,7 +55,7 @@ api.interceptors.response.use(
                     // Gọi API refresh token (Cookie sẽ tự động được gửi đi)
                     // Lưu ý: Dùng instance mới hoặc instance hiện tại nhưng cẩn thận loop
                     // Ở đây dùng chính api này vì endpoint refresh không yêu cầu Auth Header valid
-                    const rs = await api.post('/auth/refresh');
+                    const rs = await AuthService.refresh();
 
                     const { accessToken } = rs.data;
 
