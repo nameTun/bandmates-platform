@@ -39,6 +39,14 @@ export class User {
     @Column({ default: 'user' })
     role: string;
 
+    // Mục tiêu Band điểm mà User muốn đạt được (ví dụ: 6.5, 7.0, 7.5).
+    @Column({ type: 'decimal', precision: 3, scale: 1, nullable: true })
+    targetBand: number;
+
+    // Ngày thi IELTS dự kiến — giúp hệ thống tính countdown và đề xuất kế hoạch ôn luyện.
+    @Column({ type: 'date', nullable: true })
+    targetDate: Date;
+
     // @CreateDateColumn: Tự động lưu thời gian tạo record.
     @CreateDateColumn()
     createdAt: Date;

@@ -3,13 +3,14 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { GuestLimit } from './entities/guest-limit.entity';
 import { ExamAttempt } from './entities/exam-attempt.entity';
+import { ScoringCriteria } from './entities/scoring-criteria.entity';
 
 import { ScoringController } from './scoring.controller';
 import { GeminiService } from './gemini.service';
 
 @Module({
     imports: [
-        TypeOrmModule.forFeature([GuestLimit, ExamAttempt]),
+        TypeOrmModule.forFeature([GuestLimit, ExamAttempt, ScoringCriteria]),
         ConfigModule,
     ],
     controllers: [ScoringController],

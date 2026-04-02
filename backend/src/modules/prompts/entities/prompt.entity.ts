@@ -24,6 +24,15 @@ export class Prompt {
     @Column({ default: true })
     isActive: boolean;
 
+    @Column({ type: 'varchar', length: 255, nullable: true })
+    imageUrl: string;
+
+    @Column({ type: 'text', nullable: true })
+    modelAnswer: string;
+
+    @Column({ type: 'text', nullable: true })
+    hints: string;
+
     @ManyToOne(() => Topic, topic => topic.prompts, { eager: true, onDelete: 'CASCADE' })
     @JoinColumn({ name: 'topicId' })
     topic: Topic;
