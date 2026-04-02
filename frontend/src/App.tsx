@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Spin } from 'antd';
 import { LoadingOutlined } from '@ant-design/icons';
@@ -13,6 +13,11 @@ import HistoryPage from '@/features/history/pages/HistoryPage';
 import GuestLayout from '@/components/layout/GuestLayout';
 import AuthenticatedLayout from '@/components/layout/AuthenticatedLayout';
 import { useAuth } from '@/features/auth/hooks/useAuth';
+
+/* ── Admin Pages (Lazy Loaded) ── */
+const AdminLayout = lazy(() => import('@/features/admin/components/AdminLayout'));
+const AdminDashboard = lazy(() => import('@/features/admin/pages/AdminDashboard'));
+const PromptManagement = lazy(() => import('@/features/admin/pages/PromptManagement'));
 
 /**
  * App Root — Dual Layout Routing
@@ -47,6 +52,20 @@ const App: React.FC = () => {
               <Route path="/vocabulary" element={<VocabularyPage />} />
               <Route path="/history" element={<HistoryPage />} />
             </Route>
+
+            {/* ── Admin: Dark Layout (Lazy Loaded) ── */}
+            <Route
+              path="/admin"
+              element={
+                <Suspense fallback={<div className="flex items-center justify-center min-h-screen bg-slate-950"><Spin indicator={<LoadingOutlined style={{ fontSize: 32, color: '#f97316' }} spin />} /></div>}>
+                  <AdminLayout />
+                </Suspense>
+              }
+            >
+              <Route index element={<AdminDashboard />} />
+              <Route path="prompts" element={<PromptManagement />} />
+            </Route>
+
             {/* Redirect auth pages to dashboard khi đã login */}
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/login" element={<Navigate to="/dashboard" replace />} />
