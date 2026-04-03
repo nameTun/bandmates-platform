@@ -44,7 +44,13 @@ const LoginPage: React.FC = () => {
           if (data?.accessToken && data?.user) {
             setAuth(data.accessToken, data.user);
             notification.success({ message: 'Đăng nhập thành công!', placement: 'topRight' });
-            navigate('/', { replace: true });
+            
+            // Chuyển hướng thông minh dựa trên Role
+            if (data.user.role === 'admin') {
+              navigate('/admin', { replace: true });
+            } else {
+              navigate('/dashboard', { replace: true });
+            }
           }
         } catch {
           notification.error({ message: 'Không thể xác thực', placement: 'topRight' });
@@ -73,7 +79,13 @@ const LoginPage: React.FC = () => {
       if (data?.accessToken && data?.user) {
         setAuth(data.accessToken, data.user);
         notification.success({ message: 'Đăng nhập thành công!', placement: 'topRight' });
-        navigate('/', { replace: true });
+        
+        // Chuyển hướng thông minh dựa trên Role
+        if (data.user.role === 'admin') {
+          navigate('/admin', { replace: true });
+        } else {
+          navigate('/dashboard', { replace: true });
+        }
       }
     } catch (error: any) {
       notification.error({

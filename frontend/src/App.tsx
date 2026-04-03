@@ -13,26 +13,31 @@ import HistoryPage from '@/features/history/pages/HistoryPage';
 import GuestLayout from '@/components/layout/GuestLayout';
 import AuthenticatedLayout from '@/components/layout/AuthenticatedLayout';
 import { useAuth } from '@/features/auth/hooks/useAuth';
+import AdminRoute from '@/features/auth/components/AdminRoute';
 
 /* ── Admin Pages (Lazy Loaded) ── */
+// Lazy giúp tối ưu hóa hiệu năng, chỉ tải khi cần thiết, nếu route /admin thì mới load code admin
 const AdminLayout = lazy(() => import('@/features/admin/components/AdminLayout'));
 const AdminDashboard = lazy(() => import('@/features/admin/pages/AdminDashboard'));
 const PromptManagement = lazy(() => import('@/features/admin/pages/PromptManagement'));
 
 /**
- * App Root — Dual Layout Routing
- *
- * Guest:         GuestLayout (Navbar + Footer)  → HomePage, Login, Register, Practice, Vocabulary
- * Authenticated: AuthenticatedLayout (Sidebar)  → Practice, Vocabulary, History
- *
- * Trang /practice và /vocabulary cho phép cả Guest và Auth truy cập,
- * nhưng hiển thị layout khác nhau tùy trạng thái đăng nhập.
+ * SmartRedirect - Chuyển hướng người dùng dựa trên vai trò (Role)
  */
-const App: React.FC = () => {
-  const { isRestoring } = useAuth();
-  const { isAuthenticated } = useAuthStore();
+const SmartRedirect: React.FC = () => {
+  const { isAuthenticated, user } = useAuthStore();
+  
+  if (!isAuthenticated) return <Navigate to="/" replace />;
+  return user?.role === 'admin' 
+    ? <Navigate to="/admin" replace /> 
+    : <Navigate to="/dashboard" replace />;
+};
 
-  if (isRestoring) {
+const App: React.FC = () => {
+  const { isLoading } = useAuth();
+  const { isAuthenticated, user } = useAuthStore();
+
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-white">
         <Spin indicator={<LoadingOutlined style={{ fontSize: 32, color: '#4f46e5' }} spin />} />
@@ -43,44 +48,47 @@ const App: React.FC = () => {
   return (
     <Router>
       <Routes>
-        {isAuthenticated ? (
-          /* ── Authenticated: Sidebar Layout ── */
-          <>
-            <Route element={<AuthenticatedLayout />}>
-              <Route path="/dashboard" element={<DashboardPage />} />
-              <Route path="/practice" element={<ScoringPage />} />
-              <Route path="/vocabulary" element={<VocabularyPage />} />
-              <Route path="/history" element={<HistoryPage />} />
-            </Route>
 
-            {/* ── Admin: Dark Layout (Lazy Loaded) ── */}
-            <Route
-              path="/admin"
-              element={
-                <Suspense fallback={<div className="flex items-center justify-center min-h-screen bg-slate-950"><Spin indicator={<LoadingOutlined style={{ fontSize: 32, color: '#f97316' }} spin />} /></div>}>
-                  <AdminLayout />
-                </Suspense>
-              }
-            >
-              <Route index element={<AdminDashboard />} />
-              <Route path="prompts" element={<PromptManagement />} />
-            </Route>
+        {/* ── 1. Routes chung (Cả Guest và User ) ── */}
+        <Route element={isAuthenticated && user?.role !== 'admin' ? <AuthenticatedLayout /> : <GuestLayout />}>
+          <Route path="/" element={isAuthenticated ? <SmartRedirect /> : <HomePage />} />
+          <Route path="/practice" element={<ScoringPage />} />
+          <Route path="/vocabulary" element={<VocabularyPage />} />
+          <Route 
+            path="/login" 
+            element={isAuthenticated ? <SmartRedirect /> : <LoginPage />} 
+          />
+          <Route 
+            path="/register" 
+            element={isAuthenticated ? <SmartRedirect /> : <RegisterPage />} 
+          />
+        </Route>
 
-            {/* Redirect auth pages to dashboard khi đã login */}
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route path="/login" element={<Navigate to="/dashboard" replace />} />
-            <Route path="/register" element={<Navigate to="/dashboard" replace />} />
-          </>
-        ) : (
-          /* ── Guest: Navbar + Footer Layout ── */
-          <Route element={<GuestLayout />}>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-            <Route path="/practice" element={<ScoringPage />} />
-            <Route path="/vocabulary" element={<VocabularyPage />} />
+        {/* ── 2. Routes riêng cho User đã đăng nhập  ── */}
+        {isAuthenticated && user?.role !== 'admin' && (
+          <Route element={<AuthenticatedLayout />}>
+            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/history" element={<HistoryPage />} />
           </Route>
         )}
+
+        {/* ── 3. Routes riêng cho Admin ── */}
+        <Route element={<AdminRoute />}>
+          <Route
+            path="/admin"
+            element={
+              <Suspense fallback={<div className="flex items-center justify-center min-h-screen bg-slate-950"><Spin indicator={<LoadingOutlined style={{ fontSize: 32, color: '#f97316' }} spin />} /></div>}>
+                <AdminLayout />
+              </Suspense>
+            }
+          >
+            <Route index element={<AdminDashboard />} />
+            <Route path="prompts" element={<PromptManagement />} />
+          </Route>
+        </Route>
+
+        {/* Fallback Catch-all */}
+        <Route path="*" element={<SmartRedirect />} />
       </Routes>
     </Router>
   );

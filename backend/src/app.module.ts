@@ -4,6 +4,7 @@ import { DatabaseModule } from './database/database.module';
 import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { ScoringModule } from './modules/scoring/scoring.module';
+import { PromptsModule } from './modules/prompts/prompts.module';
 import databaseConfig from './config/database.config';
 import { validate } from './config/env.validation';
 
@@ -20,6 +21,7 @@ import { validate } from './config/env.validation';
     UsersModule,
     AuthModule,
     ScoringModule,
+    PromptsModule,
   ],
   controllers: [],
   providers: [],

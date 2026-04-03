@@ -23,7 +23,7 @@ const PromptManagement: React.FC = () => {
 
   const filtered = mockPrompts.filter(p => {
     const matchSearch = p.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                        p.topic.toLowerCase().includes(searchQuery.toLowerCase());
+      p.topic.toLowerCase().includes(searchQuery.toLowerCase());
     const matchTask = filterTask === 'all' || p.taskType === filterTask;
     return matchSearch && matchTask;
   });
@@ -145,11 +145,10 @@ const PromptManagement: React.FC = () => {
               <button
                 key={f.key}
                 onClick={() => setFilterTask(f.key)}
-                className={`px-3.5 py-2 text-xs font-semibold rounded-xl transition-all ${
-                  filterTask === f.key
+                className={`px-3.5 py-2 text-xs font-semibold rounded-xl transition-all ${filterTask === f.key
                     ? 'bg-orange-500/10 text-orange-400 border border-orange-500/30'
                     : 'bg-slate-900 text-slate-500 border border-slate-800 hover:border-slate-700 hover:text-slate-300'
-                }`}
+                  }`}
               >
                 {f.label}
               </button>
@@ -175,9 +174,8 @@ const PromptManagement: React.FC = () => {
             return (
               <div
                 key={prompt.id}
-                className={`grid grid-cols-12 items-center px-6 py-4 hover:bg-slate-800/40 transition-colors ${
-                  i < filtered.length - 1 ? 'border-b border-slate-800/30' : ''
-                }`}
+                className={`grid grid-cols-12 items-center px-6 py-4 hover:bg-slate-800/40 transition-colors ${i < filtered.length - 1 ? 'border-b border-slate-800/30' : ''
+                  }`}
               >
                 <div className="col-span-1 text-xs text-slate-600 font-mono">{i + 1}</div>
                 <div className="col-span-1">
@@ -220,11 +218,10 @@ const PromptManagement: React.FC = () => {
             {[1, 2, 3].map(p => (
               <button
                 key={p}
-                className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${
-                  p === 1
+                className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${p === 1
                     ? 'bg-orange-500/10 text-orange-400 border border-orange-500/30'
                     : 'text-slate-600 hover:bg-slate-800 hover:text-slate-300'
-                }`}
+                  }`}
               >
                 {p}
               </button>

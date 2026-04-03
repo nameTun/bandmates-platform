@@ -76,7 +76,9 @@ const RegisterPage: React.FC = () => {
       if (data?.accessToken && data?.user) {
         setAuth(data.accessToken, data.user);
         notification.success({ message: 'Đăng ký thành công!' });
-        navigate('/', { replace: true });
+        
+        // Chuyển hướng về Dashboard sau khi đăng ký thành công
+        navigate('/dashboard', { replace: true });
       }
     } catch (error: any) {
       notification.error({

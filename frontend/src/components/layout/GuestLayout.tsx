@@ -13,7 +13,10 @@ const GuestLayout: React.FC = () => {
   const navigate = useNavigate();
 
   const handleLogout = async () => {
-    try { await AuthService.logout(); } catch (e) { console.error(e); }
+    try { 
+      await AuthService.logout(); 
+    } catch (e) 
+    { console.error(e); }
     logout();
     navigate('/');
   };

@@ -8,11 +8,11 @@ import { useAuthStore } from '@/features/auth/store/useAuthStore';
  *   - Còn hạn  → gọi /auth/refresh → khôi phục session vào Zustand
  *   - Hết hạn  → bỏ qua, để Guest mode
  * 
- * Trả về isRestoring để App biết khi nào cần hiển thị màn hình loading.
+ * Trả về isLoading để App biết khi nào cần hiển thị màn hình loading.
  */
 export const useAuth = () => {
     const { setAuth } = useAuthStore();
-    const [isRestoring, setIsRestoring] = useState(true);
+    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
         const restoreSession = async () => {
@@ -24,12 +24,12 @@ export const useAuth = () => {
             } catch {
                 // Cookie hết hạn hoặc chưa login → bỏ qua
             } finally {
-                setIsRestoring(false);
+                setIsLoading(false);
             }
         };
 
         restoreSession();
     }, [setAuth]);
 
-    return { isRestoring };
+    return { isLoading };
 };

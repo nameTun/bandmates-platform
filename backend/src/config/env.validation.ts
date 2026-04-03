@@ -39,7 +39,7 @@ export function validate(config: Record<string, unknown>) {
     const validatedConfig = plainToInstance(
         EnvironmentVariables,
         config,
-        { enableImplicitConversion: true },
+        { enableImplicitConversion: true },//tự động biến chuỗi thành số nếu có thể
     );
     const errors = validateSync(validatedConfig, { skipMissingProperties: false });
 
