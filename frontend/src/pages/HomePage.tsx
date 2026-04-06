@@ -270,20 +270,20 @@ const HomePage: React.FC = () => {
                   className="group relative px-8 py-4 bg-indigo-500 hover:bg-indigo-400 text-white font-bold text-base rounded-xl shadow-2xl shadow-indigo-500/30 hover:shadow-indigo-400/50 transition-all active:scale-95 overflow-hidden"
                 >
                   <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-                  <span className="relative">Bắt đầu miễn phí</span>
+                  <span className="relative">Đăng ký trả nghiệm</span>
                 </Link>
                 <Link
                   to="/practice"
-                  className="px-8 py-4 bg-white/10 hover:bg-white/15 text-white font-semibold text-base rounded-xl border border-white/20 hover:border-white/30 transition-all backdrop-blur-sm hover:shadow-lg hover:shadow-white/5"
+                  className="px-8 py-4 bg-white/10 text-white font-semibold text-base rounded-xl border border-white/20 hover:border-white/30 hover:bg-red-400 transition-all backdrop-blur-sm hover:shadow-lg hover:shadow-white/5"
                 >
-                  Thử ngay (Khách)
+                  Thử ngay miễn phí
                 </Link>
               </>
             )}
           </div>
 
-          <p className="text-slate-500 text-sm mt-8">
-            Miễn phí 3 lần chấm / ngày cho Khách · Không cần thẻ tín dụng
+          <p className="text-slate-500 text-md mt-8">
+            Miễn phí 1 lần chấm bài tự động không cần đăng nhập.
           </p>
         </div>
       </MouseGlow>

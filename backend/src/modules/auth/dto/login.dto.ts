@@ -1,5 +1,6 @@
 import { IsEmail, IsNotEmpty, IsString, MaxLength, MinLength } from 'class-validator';
 import { Transform } from 'class-transformer';
+
 export class LoginDto {
     @IsNotEmpty({ message: 'Email không được để trống' })
         @IsEmail({}, { message: 'Email không đúng định dạng' })

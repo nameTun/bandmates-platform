@@ -16,6 +16,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     async validate(payload: any) {
         // Payload là nội dung đã decoded từ JWT token.
         // Chúng ta trả về object user để NestJS gắn vào request object (req.user).
-        return { id: payload.userId, email: payload.email, googleId: payload.googleId };
+        return { 
+            id: payload.userId, 
+            role: payload.role 
+        };
     }
 }

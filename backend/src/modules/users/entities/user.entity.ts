@@ -1,5 +1,10 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 
+export enum UserRole {
+  ADMIN = 'admin',
+  USER = 'user',
+}
+
 // @Entity: Đánh dấu class này tương ứng với một bảng trong cơ sở dữ liệu.
 // Chúng ta đặt tên bảng là 'users' để rõ ràng.
 @Entity('users')
@@ -35,9 +40,9 @@ export class User {
     @Column({ type: 'varchar', nullable: true, select: false })
     refreshToken: string | null;
 
-    // @Column({ default: 'user' }): Phân quyền User (admin, user) - Phục vụ tính năng sau này.
-    @Column({ default: 'user' })
-    role: string;
+    // @Column({ default: UserRole.USER }): Phân quyền User dùng enum để quản lý tập trung.
+    @Column({ type: 'enum', enum: UserRole, default: UserRole.USER })
+    role: UserRole;
 
     // Mục tiêu Band điểm mà User muốn đạt được (ví dụ: 6.5, 7.0, 7.5).
     @Column({ type: 'decimal', precision: 3, scale: 1, nullable: true })
