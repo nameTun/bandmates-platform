@@ -1,11 +1,8 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { Topic } from './topic.entity';
+import { PromptCategory } from './prompt-category.entity';
 
-export enum TaskType {
-    TASK_1_ACADEMIC = 'task_1_academic',
-    TASK_1_GENERAL = 'task_1_general',
-    TASK_2 = 'task_2',
-}
+import { TaskType } from '../../../common/enums/task-type.enum';
 
 @Entity('prompts')
 export class Prompt {
@@ -17,6 +14,10 @@ export class Prompt {
 
     @Column({ type: 'enum', enum: TaskType, default: TaskType.TASK_2 })
     taskType: TaskType;
+
+    @ManyToOne(() => PromptCategory, category => category.prompts, { eager: true, onDelete: 'SET NULL' })
+    @JoinColumn({ name: 'categoryId' })
+    category: PromptCategory; // Liên kết động đến bảng Category
 
     @Column({ type: 'decimal', precision: 3, scale: 1, nullable: true })
     targetBand: number;

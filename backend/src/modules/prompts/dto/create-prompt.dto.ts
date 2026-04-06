@@ -1,5 +1,5 @@
 import { IsEnum, IsNotEmpty, IsOptional, IsString, IsUrl } from 'class-validator';
-import { TaskType } from '../entities/prompt.entity';
+import { TaskType } from '../../../common/enums/task-type.enum';
 
 export class CreatePromptDto {
   @IsEnum(TaskType)

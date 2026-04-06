@@ -1,5 +1,5 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, Unique } from 'typeorm';
-import { TaskType } from '../../prompts/entities/prompt.entity';
+import { TaskType } from '../../../common/enums/task-type.enum';
 
 // Bảng lưu trữ hướng dẫn chấm điểm cho AI.
 // Mỗi bản ghi chứa nội dung hướng dẫn cho 1 tiêu chí (TA/CC/LR/GRA) của 1 loại Task.
