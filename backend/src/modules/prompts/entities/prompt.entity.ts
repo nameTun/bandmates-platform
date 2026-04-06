@@ -1,11 +1,7 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { Topic } from './topic.entity';
 
-export enum TaskType {
-    TASK_1_ACADEMIC = 'task_1_academic',
-    TASK_1_GENERAL = 'task_1_general',
-    TASK_2 = 'task_2',
-}
+import { TaskType, PromptSubType } from './prompt.types';
 
 @Entity('prompts')
 export class Prompt {
@@ -17,6 +13,9 @@ export class Prompt {
 
     @Column({ type: 'enum', enum: TaskType, default: TaskType.TASK_2 })
     taskType: TaskType;
+
+    @Column({ type: 'varchar', length: 50, nullable: true })
+    subType: string; // Lưu dạng bài cụ thể (Dùng string để linh hoạt hơn)
 
     @Column({ type: 'decimal', precision: 3, scale: 1, nullable: true })
     targetBand: number;
