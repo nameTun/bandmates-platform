@@ -1,37 +1,10 @@
-import React, { useState } from 'react';
-import { Tabs } from 'antd'; // Tạm giữ Tabs của antd, nhưng sẽ đè style css cực mạnh
-
-/* ── MOCK DATA ── */
-const mockAcademicCategories = [
-  { id: '1', name: 'Line Graph', description: 'Biểu đồ đường xu hướng qua thời gian.', isActive: true },
-  { id: '2', name: 'Bar Chart', description: 'Biểu đồ cột so sánh các số liệu.', isActive: true },
-  { id: '3', name: 'Pie Chart', description: 'Biểu đồ tròn thể hiện tỷ lệ phần trăm.', isActive: true },
-  { id: '4', name: 'Table', description: 'Bảng số liệu chi tiết.', isActive: true },
-  { id: '5', name: 'Mixed', description: 'Sự kết hợp giữa 2 loại biểu đồ (vừa line vừa bar).', isActive: true },
-  { id: '6', name: 'Process', description: 'Quy trình sản xuất hoặc chu trình tự nhiên.', isActive: true },
-  { id: '7', name: 'Map', description: 'Sự thay đổi về địa điểm hoặc quy hoạch.', isActive: true },
-];
-
-const mockGeneralCategories = [
-  { id: 'g1', name: 'Formal Letter', description: 'Thư trang trọng dành cho công việc hoặc khiếu nại.', isActive: true },
-  { id: 'g2', name: 'Semi-formal Letter', description: 'Thư dành cho người quen biết nhưng cần sự chuyên nghiệp.', isActive: true },
-  { id: 'g3', name: 'Informal Letter', description: 'Thư thân mật dành cho bạn bè, người thân.', isActive: true },
-];
-
-const mockTask2Subjects = [
-  { id: 't1', name: 'Education', description: 'Chủ đề giáo dục, trường học, kỹ năng.', isActive: true },
-  { id: 't2', name: 'Environment', description: 'Chủ đề môi trường, năng lượng, biến đổi khí hậu.', isActive: true },
-  { id: 't3', name: 'Technology', description: 'Chủ đề công nghệ, AI, mạng xã hội.', isActive: true },
-  { id: 't4', name: 'Health', description: 'Chủ đề sức khỏe, y tế, lối sống.', isActive: true },
-];
-
-const mockTask2EssayTypes = [
-  { id: 'e1', name: 'Opinion (Agree/Disagree)', description: 'Nêu quan điểm cá nhân đồng ý hay phản đối.', isActive: true },
-  { id: 'e2', name: 'Discussion (Both Views)', description: 'Thảo luận cả 2 mặt của vấn đề.', isActive: true },
-  { id: 'e3', name: 'Problem-Solution', description: 'Phân tích nguyên nhân và đề xuất giải pháp.', isActive: true },
-  { id: 'e4', name: 'Advantages & Disadvantages', description: 'Cân nhắc lợi ích và tác hại.', isActive: true },
-  { id: 'e5', name: 'Two-Part Question', description: 'Trả lời đồng thời hai câu hỏi khác nhau.', isActive: true },
-];
+import React, { useState, useEffect } from 'react';
+import { Tabs, message, Spin } from 'antd';
+import { categoryApi } from '../api/category-api';
+import type { Category } from '../api/category-api';
+import { topicApi } from '../api/topic-api';
+import type { Topic } from '../api/topic-api';
+import { TaskType } from '@/common/enums/task-type.enum';
 
 /* ── UI COMPONENTS ── */
 const PlusIcon = () => (
@@ -55,6 +28,89 @@ const DeleteIcon = () => (
 const TopicManagement: React.FC = () => {
   const [activeTab, setActiveTab] = useState('1');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  
+  // Form State
+  const [formData, setFormData] = useState({ name: '', description: '' });
+
+  // Reset form when modal closes/opens
+  useEffect(() => {
+    if (!isModalOpen) setFormData({ name: '', description: '' });
+  }, [isModalOpen]);
+
+  // States lưu trữ dữ liệu thực
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [topics, setTopics] = useState<Topic[]>([]);
+
+  // Fetch dữ liệu khi mount
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const [catData, topData] = await Promise.all([
+        categoryApi.getCategories(),
+        topicApi.getTopics()
+      ]);
+      setCategories(catData);
+      setTopics(topData);
+    } catch (error) {
+      message.error('Không thể tải dữ liệu. Vui lòng kiểm tra kết nối Backend!');
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreate = async () => {
+    if (!formData.name.trim()) {
+      return message.warning('Vui lòng nhập tên!');
+    }
+
+    try {
+      setSubmitting(true);
+      
+      // Xác định loại dữ liệu cần tạo dựa trên Tab
+      if (activeTab === '3') {
+        // Tạo TOPIC (Chủ đề xã hội Task 2)
+        await topicApi.createTopic({
+          name: formData.name,
+          taskType: TaskType.TASK_2,
+          description: formData.description
+        });
+        message.success('Đã tạo chủ đề mới thành công!');
+      } else {
+        // Tạo CATEGORY (Dạng bài Task 1 hoặc Essay Task 2)
+        let taskType: TaskType = TaskType.TASK_1_ACADEMIC;
+        if (activeTab === '2') taskType = TaskType.TASK_1_GENERAL;
+        if (activeTab === '4') taskType = TaskType.TASK_2;
+
+        await categoryApi.createCategory({
+          name: formData.name,
+          taskType: taskType,
+          description: formData.description
+        });
+        message.success('Đã tạo dạng bài mới thành công!');
+      }
+
+      setIsModalOpen(false);
+      fetchData(); // Tải lại danh sách
+    } catch (error: any) {
+      const errorMsg = error.response?.data?.message || 'Có lỗi xảy ra khi tạo!';
+      message.error(errorMsg);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Phân loại dữ liệu cho từng Tab
+  const academicCategories = categories.filter(c => c.taskType === TaskType.TASK_1_ACADEMIC);
+  const generalCategories = categories.filter(c => c.taskType === TaskType.TASK_1_GENERAL);
+  const task2EssayTypes = categories.filter(c => c.taskType === TaskType.TASK_2);
+  const task2Subjects = topics; // Topics mặc định chỉ dành cho Task 2
 
   // Modern Minimal Table Renderer
   const MinimalTable = ({ data }: { data: any[] }) => (
@@ -65,21 +121,25 @@ const TopicManagement: React.FC = () => {
             <div className="col-span-1 text-center">Trạng thái</div>
             <div className="col-span-2 text-right">Actions</div>
         </div>
-        {data.map((item, i) => (
-            <div key={item.id} className={`grid grid-cols-12 items-center px-6 py-4 hover:bg-[#18181b] transition-colors group ${i < data.length - 1 ? 'border-b border-[#27272a]' : ''}`}>
-                <div className="col-span-3 font-semibold text-[#ededed] text-sm tracking-tight">{item.name}</div>
-                <div className="col-span-6 text-sm text-[#a1a1aa] pr-8">{item.description}</div>
-                <div className="col-span-1 flex justify-center">
-                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${item.isActive ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-[#27272a] text-[#71717a]'}`}>
-                        {item.isActive ? 'Active' : 'Hidden'}
-                    </span>
-                </div>
-                <div className="col-span-2 flex justify-end gap-2 pr-1">
-                   <button className="p-1.5 text-[#71717a] hover:text-white transition-colors" title="Edit"><EditIcon /></button>
-                   <button className="p-1.5 text-[#71717a] hover:text-[#ef4444] transition-colors" title="Delete"><DeleteIcon /></button>
-                </div>
-            </div>
-        ))}
+        {data.length === 0 ? (
+          <div className="px-6 py-12 text-center text-[#52525b] text-sm">Chưa có dữ liệu nào được tạo.</div>
+        ) : (
+          data.map((item, i) => (
+              <div key={item.id} className={`grid grid-cols-12 items-center px-6 py-4 hover:bg-[#18181b] transition-colors group ${i < data.length - 1 ? 'border-b border-[#27272a]' : ''}`}>
+                  <div className="col-span-3 font-semibold text-[#ededed] text-sm tracking-tight">{item.name}</div>
+                  <div className="col-span-6 text-sm text-[#a1a1aa] pr-8">{item.description || 'Không có mô tả'}</div>
+                  <div className="col-span-1 flex justify-center">
+                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${item.isActive ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-[#27272a] text-[#71717a]'}`}>
+                          {item.isActive ? 'Active' : 'Hidden'}
+                      </span>
+                  </div>
+                  <div className="col-span-2 flex justify-end gap-2 pr-1">
+                     <button className="p-1.5 text-[#71717a] hover:text-white transition-colors" title="Edit"><EditIcon /></button>
+                     <button className="p-1.5 text-[#71717a] hover:text-[#ef4444] transition-colors" title="Delete"><DeleteIcon /></button>
+                  </div>
+              </div>
+          ))
+        )}
       </div>
   );
 
@@ -111,28 +171,32 @@ const TopicManagement: React.FC = () => {
         </div>
 
         {/* Main Content Area */}
-        <div className="border border-[#27272a] rounded-xl bg-[#0f0f0f] shadow-lg">
+        <div className="border border-[#27272a] rounded-xl bg-[#0f0f0f] shadow-lg overflow-hidden">
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-24 gap-4">
+              <Spin size="large" />
+              <p className="text-[#71717a] text-sm animate-pulse">Đang kết nối Database...</p>
+            </div>
+          ) : (
             <Tabs
                 activeKey={activeTab}
                 onChange={setActiveTab}
                 className="sleek-tabs"
                 items={[
-                    { key: '1', label: 'T1 Academic (Dạng bài)', children: <div className="p-6"><MinimalTable data={mockAcademicCategories} /></div> },
-                    { key: '2', label: 'T1 General (Loại thư)', children: <div className="p-6"><MinimalTable data={mockGeneralCategories} /></div> },
-                    { key: '3', label: 'T2 Subjects (Chủ đề)', children: <div className="p-6"><MinimalTable data={mockTask2Subjects} /></div> },
-                    { key: '4', label: 'T2 Essays (Dạng bài)', children: <div className="p-6"><MinimalTable data={mockTask2EssayTypes} /></div> },
+                    { key: '1', label: 'T1 Academic (Dạng bài)', children: <div className="p-6"><MinimalTable data={academicCategories} /></div> },
+                    { key: '2', label: 'T1 General (Loại thư)', children: <div className="p-6"><MinimalTable data={generalCategories} /></div> },
+                    { key: '3', label: 'T2 Subjects (Chủ đề)', children: <div className="p-6"><MinimalTable data={task2Subjects} /></div> },
+                    { key: '4', label: 'T2 Essays (Dạng bài)', children: <div className="p-6"><MinimalTable data={task2EssayTypes} /></div> },
                 ]}
             />
+          )}
         </div>
       </div>
 
-      {/* --- CREATE MODAL --- */}
+      {/* --- CREATE MODAL --- (Tạm thời giữ nguyên form UI cho đến bước tiếp theo) */}
       {isModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-0">
-             {/* Backdrop */}
              <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsModalOpen(false)}></div>
-             
-             {/* Modal Content */}
              <div className="relative bg-[#0f0f0f] border border-[#27272a] rounded-2xl w-full max-w-md shadow-[0_20px_50px_rgba(0,0,0,0.7)] animate-in fade-in zoom-in-95 duration-200">
                 <div className="px-6 py-5 border-b border-[#27272a] flex justify-between items-center">
                     <h3 className="text-base font-semibold text-white tracking-tight">
@@ -146,16 +210,41 @@ const TopicManagement: React.FC = () => {
                     <div className="flex flex-col gap-4 mb-6">
                         <div className="flex flex-col gap-1.5">
                             <label className="text-[11px] font-medium text-[#71717a] uppercase tracking-wider">Tên hiển thị</label>
-                            <input type="text" placeholder="Ví dụ: Process, Map, Health..." className="w-full bg-[#18181b] border border-[#27272a] text-[#ededed] text-sm rounded-lg px-3.5 py-2.5 outline-none hover:border-[#3f3f46] focus:border-[#d4d4d8] focus:ring-1 focus:ring-[#d4d4d8] transition-all placeholder:text-[#52525b]" />
+                            <input 
+                                type="text" 
+                                value={formData.name}
+                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
+                                placeholder="Ví dụ: Process, Map, Health..." 
+                                className="w-full bg-[#18181b] border border-[#27272a] text-[#ededed] text-sm rounded-lg px-3.5 py-2.5 outline-none hover:border-[#3f3f46] focus:border-[#d4d4d8] focus:ring-1 focus:ring-[#d4d4d8] transition-all placeholder:text-[#52525b]" 
+                            />
                         </div>
                         <div className="flex flex-col gap-1.5">
                             <label className="text-[11px] font-medium text-[#71717a] uppercase tracking-wider">Mô tả dành cho Admin</label>
-                            <textarea rows={3} placeholder="Mô tả công dụng của dạng bài này..." className="w-full bg-[#18181b] border border-[#27272a] text-[#ededed] text-sm rounded-lg px-3.5 py-2.5 outline-none hover:border-[#3f3f46] focus:border-[#d4d4d8] focus:ring-1 focus:ring-[#d4d4d8] transition-all resize-none placeholder:text-[#52525b]" />
+                            <textarea 
+                                rows={3} 
+                                value={formData.description}
+                                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                placeholder="Mô tả công dụng của dạng bài này..." 
+                                className="w-full bg-[#18181b] border border-[#27272a] text-[#ededed] text-sm rounded-lg px-3.5 py-2.5 outline-none hover:border-[#3f3f46] focus:border-[#d4d4d8] focus:ring-1 focus:ring-[#d4d4d8] transition-all resize-none placeholder:text-[#52525b]" 
+                            />
                         </div>
                     </div>
                     <div className="flex justify-end gap-3">
-                        <button onClick={() => setIsModalOpen(false)} className="px-5 py-2.5 bg-transparent text-[#a1a1aa] text-sm font-medium rounded-lg hover:bg-[#18181b] hover:text-[#ededed] transition-colors">Hủy</button>
-                        <button className="px-5 py-2.5 bg-white text-black text-sm font-medium rounded-lg hover:bg-[#ededed] transition-colors">Tạo ngay</button>
+                        <button 
+                            onClick={() => setIsModalOpen(false)} 
+                            disabled={submitting}
+                            className="px-5 py-2.5 bg-transparent text-[#a1a1aa] text-sm font-medium rounded-lg hover:bg-[#18181b] hover:text-[#ededed] transition-colors disabled:opacity-50"
+                        >
+                            Hủy
+                        </button>
+                        <button 
+                            onClick={handleCreate}
+                            disabled={submitting}
+                            className="px-5 py-2.5 bg-white text-black text-sm font-medium rounded-lg hover:bg-[#ededed] transition-colors disabled:opacity-50 flex items-center gap-2"
+                        >
+                            {submitting ? <Spin size="small" /> : 'Tạo ngay'}
+                        </button>
                     </div>
                 </div>
              </div>
