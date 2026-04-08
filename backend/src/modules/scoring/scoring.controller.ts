@@ -17,7 +17,11 @@ export class ScoringController {
     @Post('check')
     @UseGuards(GuestGuard)
     async checkEnglish(@Body() dto: CheckTextDto, @Req() req: any) {
-        // 1. Gọi AI để chấm điểm
+        // Tự động đếm số từ (Word Count)
+        const wordCount = dto.text.trim().split(/\s+/).length;
+        const timeSpent = dto.timeSpent || 0;
+
+        // Gọi AI để chấm điểm
         let aiResult;
         try {
             aiResult = await this.geminiService.checkEnglish(dto.text);
@@ -25,9 +29,11 @@ export class ScoringController {
             throw new HttpException('AI Service currently unavailable', HttpStatus.SERVICE_UNAVAILABLE);
         }
 
-        // 2. Lưu lịch sử vào database
+        // Lưu lịch sử vào database
         const attempt = this.examRepository.create({
             originalText: dto.text,
+            wordCount: wordCount,
+            timeSpent: timeSpent,
             aiResponse: aiResult,
         });
 
@@ -41,7 +47,7 @@ export class ScoringController {
 
         await this.examRepository.save(attempt);
 
-        // 3. Trả về kết quả cho Frontend
+        // Trả về kết quả cho Frontend
         return {
             success: true,
             data: aiResult,
