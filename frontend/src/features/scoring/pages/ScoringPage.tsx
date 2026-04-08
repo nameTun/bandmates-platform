@@ -240,7 +240,19 @@ const WritingEditor: React.FC<{
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AIResponse | null>(null);
   const [activeTab, setActiveTab] = useState<'mistakes' | 'feedback' | 'improved'>('mistakes');
+  const [timeSpent, setTimeSpent] = useState(0);
   const { isAuthenticated } = useAuthStore();
+
+  useEffect(() => {
+    // Only increment timer if we haven't received a result yet
+    if (result) return;
+    
+    const interval = setInterval(() => {
+      setTimeSpent(prev => prev + 1);
+    }, 1000);
+    
+    return () => clearInterval(interval);
+  }, [result]);
 
   const isTask1 = promptObj.taskType !== TaskType.TASK_2;
   const minWords = isTask1 ? 150 : 250;
@@ -254,7 +266,7 @@ const WritingEditor: React.FC<{
     setLoading(true);
     setResult(null);
     try {
-      const data = await ScoringService.checkIelts(text);
+      const data = await ScoringService.checkIelts(text, promptObj.id, timeSpent);
       setResult(data.data);
       setActiveTab('mistakes');
     } catch { /* handled */ }

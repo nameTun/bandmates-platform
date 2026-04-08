@@ -50,13 +50,20 @@ export class ScoringController {
             throw new HttpException('AI Service currently unavailable', HttpStatus.SERVICE_UNAVAILABLE);
         }
 
-        // Lưu lịch sử vào database
+        // Lưu lịch sử vào database cùng với các điểm thành phần
         const attempt = this.examRepository.create({
             originalText: dto.text,
             wordCount: wordCount,
             timeSpent: timeSpent,
             aiResponse: aiResult,
             prompt: promptEntity,
+            
+            // Mapping điểm
+            overallScore: aiResult?.overallScore || null,
+            scoreTA: aiResult?.scoreTA || null,
+            scoreCC: aiResult?.scoreCC || null,
+            scoreLR: aiResult?.scoreLR || null,
+            scoreGRA: aiResult?.scoreGRA || null,
         });
 
         // Nếu đã login
