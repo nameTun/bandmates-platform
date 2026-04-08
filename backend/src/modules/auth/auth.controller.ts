@@ -1,11 +1,13 @@
-import { Controller, Get, Req, Res, UseGuards, Post, UnauthorizedException, Body } from '@nestjs/common';
+import { Controller, Get, Res, UseGuards, Post, UnauthorizedException, Body } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { AuthService } from './auth.service';
-import type { Response, Request } from 'express';
+import type { Response } from 'express';
 import { JwtService } from '@nestjs/jwt';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { setCookies, clearCookie } from '../../common/utils/cookie.util';
+import { GetUser } from '../../common/decorators/get-user.decorator';
+import { Cookies } from '../../common/decorators/cookies.decorator';
 
 @Controller('auth')
 export class AuthController {
@@ -16,13 +18,13 @@ export class AuthController {
 
     @Get('google')
     @UseGuards(AuthGuard('google'))
-    async googleAuth(@Req() req: any) { }
+    async googleAuth() { }
 
     @Get('google/callback')
     @UseGuards(AuthGuard('google'))
-    async googleAuthRedirect(@Req() req: any, @Res() res: Response) {
+    async googleAuthRedirect(@GetUser() user: any, @Res() res: Response) {
         // Login -> Get Tokens
-        const { tokens } = await this.authService.login(req.user);
+        const { tokens } = await this.authService.login(user);
 
         // Set Refresh Token as HttpOnly Cookie
         setCookies(res, tokens.refreshToken);
@@ -33,12 +35,12 @@ export class AuthController {
 
     @Get('facebook')
     @UseGuards(AuthGuard('facebook'))
-    async facebookAuth(@Req() req: any) { }
+    async facebookAuth() { }
 
     @Get('facebook/callback')
     @UseGuards(AuthGuard('facebook'))
-    async facebookAuthRedirect(@Req() req: any, @Res() res: Response) {
-        const { tokens } = await this.authService.login(req.user);
+    async facebookAuthRedirect(@GetUser() user: any, @Res() res: Response) {
+        const { tokens } = await this.authService.login(user);
 
         setCookies(res, tokens.refreshToken);
 
@@ -46,8 +48,10 @@ export class AuthController {
     }
 
     @Post('refresh')
-    async refresh(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
-        const refreshToken = req.cookies['refreshToken'];
+    async refresh(
+        @Cookies('refreshToken') refreshToken: string, 
+        @Res({ passthrough: true }) res: Response
+    ) {
         if (!refreshToken) {
             throw new UnauthorizedException('No refresh token');
         }
@@ -78,8 +82,8 @@ export class AuthController {
 
     @Post('logout')
     @UseGuards(AuthGuard('jwt'))
-    async logout(@Req() req: any, @Res({ passthrough: true }) res: Response) {
-        await this.authService.logoutUser(req.user.id);
+    async logout(@GetUser('id') userId: string, @Res({ passthrough: true }) res: Response) {
+        await this.authService.logoutUser(userId);
         clearCookie(res);
         return { message: 'Logged out' };
     }

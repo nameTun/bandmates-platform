@@ -7,6 +7,9 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { UserRole } from '../users/entities/user.entity';
 import { OptionalJwtAuthGuard } from '../../common/guards/optional-jwt-auth.guard';
 
+import { GetUser } from '../../common/decorators/get-user.decorator';
+import { User } from '../users/entities/user.entity';
+
 @Controller('prompts')
 export class PromptsController {
   constructor(private readonly promptsService: PromptsService) {}
@@ -22,8 +25,8 @@ export class PromptsController {
   // API lấy danh sách đề bài - Phục vụ hiển thị trên Dashboard Admin và Practice Library
   @Get()
   @UseGuards(OptionalJwtAuthGuard)
-  async findAll(@Req() req: any) {
-    return this.promptsService.findAll(req.user);
+  async findAll(@GetUser() user: User | null) {
+    return this.promptsService.findAll(user);
   }
 
   // API lấy chi tiết 1 đề bài

@@ -8,9 +8,11 @@ import { ScoringCriteria } from './entities/scoring-criteria.entity';
 import { ScoringController } from './scoring.controller';
 import { GeminiService } from './gemini.service';
 
+import { Prompt } from '../prompts/entities/prompt.entity';
+
 @Module({
     imports: [
-        TypeOrmModule.forFeature([GuestLimit, ExamAttempt, ScoringCriteria]),
+        TypeOrmModule.forFeature([GuestLimit, ExamAttempt, ScoringCriteria, Prompt]),
         ConfigModule,
     ],
     controllers: [ScoringController],
