@@ -8,14 +8,13 @@ export class GeminiService {
     private model: any;
 
     constructor(private configService: ConfigService) {
-        const apiKey = this.configService.get<string>('GEMINI_API_KEY') || '';
-        this.genAI = new GoogleGenerativeAI(apiKey);
-
-        // Sử dụng model Gemini 1.5 Flash (nhanh và rẻ) hoặc Pro.
-        // config responseMimeType: 'application/json' để ép Gemini trả về JSON.
+        const apiKey = this.configService.get<string>('GEMINI_API_KEY');
+        console.log("--- Gemini Service Init ---");
+        console.log("API Key loaded:", apiKey ? "YES (starts with " + apiKey.substring(0, 5) + "...)" : "NO");
+        
+        this.genAI = new GoogleGenerativeAI(apiKey || '');
         this.model = this.genAI.getGenerativeModel({
-            model: 'gemini-1.5-flash',
-            generationConfig: { responseMimeType: "application/json" }
+            model: 'gemini-flash-latest',
         });
     }
 
@@ -56,12 +55,12 @@ export class GeminiService {
           "gra": "detailed feedback for Grammar"
         },
         "corrections": [
-          {
-            "original": "error segment",
-            "corrected": "fixed segment",
-            "explanation": "why",
-            "type": "grammar" | "vocabulary" | "punctuation"
-          }
+            {
+                "original": "error segment",
+                "corrected": "fixed segment",
+                "explanation": "why",
+                "type": "grammar" | "vocabulary" | "punctuation"
+            }
         ],
         "betterVersion": "Band 9 sample answer"
       }
@@ -69,15 +68,27 @@ export class GeminiService {
 
         const result = await this.model.generateContent(ieltsPrompt);
         const response = await result.response;
+        
+        // check phản hồi
+        if (!response || !response.candidates || response.candidates.length === 0) {
+            console.error('Gemini Error: No candidates returned', response);
+            throw new Error('AI không thể phản hồi bài viết này (có thể do vi phạm chính sách an toàn).');
+        }
+
         const textResponse = response.text();
+        console.log("--- GEMINI DEBUG ---");
+        console.log("Raw AI Response:", textResponse);
 
         try {
             // Clean response string just in case AI adds markdown blocks
             const cleanJson = textResponse.replace(/```json|```/g, '').trim();
-            return JSON.parse(cleanJson);
+            const parsed = JSON.parse(cleanJson);
+            console.log("Parsed JSON Success!");
+            return parsed;
         } catch (e) {
-            console.error('Gemini JSON Parse Error:', textResponse);
-            throw new Error('AI returned invalid JSON format');
+            console.error('Gemini JSON Parse Error:', e.message);
+            console.error('Invalid Content:', textResponse);
+            throw new Error('AI trả về định dạng dữ liệu không hợp lệ. Vui lòng thử lại.');
         }
     }
 }

@@ -47,7 +47,11 @@ export class ScoringController {
         try {
             aiResult = await this.geminiService.checkEnglish(dto.text, promptContent);
         } catch (error) {
-            throw new HttpException('AI Service currently unavailable', HttpStatus.SERVICE_UNAVAILABLE);
+            console.error('Scoring Error:', error); // Log lỗi chi tiết để debug
+            throw new HttpException(
+                `AI Service Error: ${error.message || 'Service unavailable'}`, 
+                HttpStatus.SERVICE_UNAVAILABLE
+            );
         }
 
         // Lưu lịch sử vào database cùng với các điểm thành phần
@@ -66,15 +70,28 @@ export class ScoringController {
             scoreGRA: aiResult?.scoreGRA || null,
         });
 
-        // Nếu đã login
-        if (user) {
-            attempt.user = user; 
-        } else {
-            // Nếu là Guest, lưu visitorId
+        // Lấy User từ Payload JWT (Lưu ý: Payload dùng 'userId', Entity dùng 'id')
+        if (user && (user as any).userId) {
+            // Cách an toàn nhất để gán Relation trong TypeORM khi chỉ có ID
+            attempt.user = { id: (user as any).userId } as any;
+        } else if (visitorId) {
             attempt.visitorId = visitorId;
         }
 
-        await this.examRepository.save(attempt);
+        console.log("--- ATTEMPT DATA TO SAVE ---", {
+            userId: attempt.user?.id,
+            visitorId: attempt.visitorId,
+            overallScore: attempt.overallScore,
+            status: attempt.status
+        });
+
+        try {
+            await this.examRepository.save(attempt);
+            console.log("ExamAttempt saved successfully with ID:", attempt.id);
+        } catch (dbError) {
+            console.error("Database Save Error:", dbError);
+            throw new HttpException('Lỗi lưu kết quả vào Database', HttpStatus.INTERNAL_SERVER_ERROR);
+        }
 
         // Trả về kết quả cho Frontend
         return {

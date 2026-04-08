@@ -16,27 +16,29 @@ export class GuestGuard implements CanActivate {
         const request = context.switchToHttp().getRequest();
         const headers = request.headers;
 
-        // 1. Kiểm tra xem người dùng có đăng nhập hay không (có JWT hợp lệ)
+        // Kiểm tra xem người dùng có đăng nhập hay không (có JWT hợp lệ)
         const authHeader = headers['authorization'];
         if (authHeader) {
             try {
                 const token = authHeader.split(' ')[1];
                 const user = this.jwtService.verify(token);
+                console.log("user đang đăng nhập là: ", user);
                 request.user = user; // Gắn info user vào request để dùng sau nếu cần
                 return true; // Nếu là User đã login -> Bỏ qua rate limit này.
             } catch (err) {
+                console.error("GuestGuard JWT Verify Error:", err.message);
                 // Token lỗi -> Coi như là Guest
             }
         }
-
-        // 2. Nếu là Guest (chưa login hoặc token lỗi) -> Kiểm tra Visitor ID
+        console.log("user đang đăng nhập là một vị khách " );
+        // Nếu là Guest (chưa login hoặc token lỗi) -> Kiểm tra Visitor ID
         const visitorId = headers['x-visitor-id'];
         if (!visitorId) {
             // Bắt buộc phải có Visitor ID nếu không login
             throw new HttpException('Visitor ID is required for guests', HttpStatus.BAD_REQUEST);
         }
 
-        // 3. Kiểm tra giới hạn trong Database MySQL
+        // Kiểm tra giới hạn trong Database MySQL
         let guestLimit = await this.guestLimitRepository.findOne({ where: { visitorId } });
 
         // Lấy ngày hiện tại (chỉ lấy phần ngày, bỏ giờ phút giây để so sánh)

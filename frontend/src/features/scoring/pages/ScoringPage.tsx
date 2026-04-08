@@ -15,8 +15,18 @@ interface Correction {
 }
 
 interface AIResponse {
-  score: number;
-  feedback: string;
+  scoreTA: number;
+  scoreCC: number;
+  scoreLR: number;
+  scoreGRA: number;
+  overallScore: number;
+  feedback: {
+    general: string;
+    ta: string;
+    cc: string;
+    lr: string;
+    gra: string;
+  };
   corrections: Correction[];
   betterVersion: string;
 }
@@ -275,7 +285,7 @@ const WritingEditor: React.FC<{
 
   const scoreColor = (s: number) => s >= 7 ? 'text-emerald-500' : s >= 5 ? 'text-amber-500' : 'text-red-500';
   const scoreRingColor = (s: number) => s >= 7 ? '#10b981' : s >= 5 ? '#f59e0b' : '#ef4444';
-  const scorePercent = result ? (result.score / 9) * 100 : 0;
+  const scorePercent = result ? (result.overallScore / 9) * 100 : 0;
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-50">
@@ -386,16 +396,36 @@ const WritingEditor: React.FC<{
         ) : (
           <>
             {/* Score */}
-            <div className="py-8 border-b border-slate-100 flex flex-col items-center bg-slate-50/50">
-              <div className="relative w-32 h-32 mb-2 drop-shadow-sm">
-                <svg className="w-32 h-32 -rotate-90" viewBox="0 0 120 120">
-                  <circle cx="60" cy="60" r="54" fill="none" stroke="#f1f5f9" strokeWidth="8" />
-                  <circle cx="60" cy="60" r="54" fill="none" stroke={scoreRingColor(result.score)} strokeWidth="8" strokeLinecap="round" strokeDasharray={`${scorePercent * 3.39} 339`} className="transition-all duration-1000 ease-out" />
-                </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className={`text-[40px] font-black tracking-tighter leading-none ${scoreColor(result.score)}`}>{result.score}</span>
-                  <span className="text-[10px] text-slate-400 uppercase font-bold tracking-widest mt-1">Band Score</span>
+            <div className="py-6 border-b border-slate-100 flex flex-col items-center bg-slate-50/50">
+              <div className="flex flex-col items-center w-full px-6">
+                
+                <div className="flex flex-row items-center justify-between w-full mb-4">
+                  <div className="relative w-28 h-28 drop-shadow-sm flex-shrink-0">
+                    <svg className="w-28 h-28 -rotate-90" viewBox="0 0 120 120">
+                      <circle cx="60" cy="60" r="54" fill="none" stroke="#e2e8f0" strokeWidth="8" />
+                      <circle cx="60" cy="60" r="54" fill="none" stroke={scoreRingColor(result.overallScore)} strokeWidth="8" strokeLinecap="round" strokeDasharray={`${scorePercent * 3.39} 339`} className="transition-all duration-1000 ease-out" />
+                    </svg>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                      <span className={`text-[36px] font-black tracking-tighter leading-none ${scoreColor(result.overallScore)}`}>{result.overallScore}</span>
+                      <span className="text-[9px] text-slate-400 uppercase font-black tracking-widest mt-1">Overall</span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 pl-6">
+                    {[
+                      { label: 'Task Response', score: result.scoreTA },
+                      { label: 'Coherence', score: result.scoreCC },
+                      { label: 'Lexical', score: result.scoreLR },
+                      { label: 'Grammar', score: result.scoreGRA },
+                    ].map((item, idx) => (
+                      <div key={idx} className="bg-white px-3 py-2 rounded-xl border border-b-[3px] border-slate-200 shadow-sm text-center flex flex-col justify-center transform hover:-translate-y-0.5 transition-transform cursor-default">
+                        <div className={`text-lg font-black leading-none ${scoreColor(item.score)}`}>{item.score}</div>
+                        <div className="text-[9px] uppercase font-bold text-slate-400 mt-1 line-clamp-1">{item.label}</div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
+
               </div>
             </div>
 
@@ -450,11 +480,33 @@ const WritingEditor: React.FC<{
                 </div>
               )}
               {activeTab === 'feedback' && (
-                <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-                  <h4 className="text-[11px] font-extrabold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                    Nhận xét từ Giám khảo AI
-                  </h4>
-                  <p className="text-[15px] text-slate-700 leading-8 whitespace-pre-line font-medium">{result.feedback}</p>
+                <div className="flex flex-col gap-4">
+                  {/* General Feedback */}
+                  <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500" />
+                    <h4 className="text-[11px] font-extrabold text-slate-400 uppercase tracking-widest mb-3">
+                      Nhận xét chung
+                    </h4>
+                    <p className="text-[14px] text-slate-700 leading-relaxed font-medium">{result.feedback.general}</p>
+                  </div>
+
+                  {/* 4 Criteria Detailed Feedback */}
+                  <div className="grid grid-cols-1 gap-3 mt-1">
+                    {[
+                      { title: 'Task Achievement/Response', key: 'ta', content: result.feedback.ta, color: 'emerald' },
+                      { title: 'Coherence and Cohesion', key: 'cc', content: result.feedback.cc, color: 'amber' },
+                      { title: 'Lexical Resource', key: 'lr', content: result.feedback.lr, color: 'indigo' },
+                      { title: 'Grammar and Accuracy', key: 'gra', content: result.feedback.gra, color: 'red' },
+                    ].map((crit, idx) => (
+                      <div key={idx} className={`bg-${crit.color}-50/50 rounded-xl p-4 border border-${crit.color}-100`}>
+                        <h4 className={`text-[11px] font-extrabold uppercase tracking-wider mb-2 text-${crit.color}-700 flex items-center gap-1.5`}>
+                          <div className={`w-1.5 h-1.5 rounded-full bg-${crit.color}-500`} />
+                          {crit.title}
+                        </h4>
+                        <p className="text-[13px] text-slate-700 leading-relaxed font-medium pl-3 border-l-2 border-white">{crit.content}</p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
               {activeTab === 'improved' && (
