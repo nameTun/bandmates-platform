@@ -1,4 +1,4 @@
-import { CanActivate, ExecutionContext, HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { CanActivate, ExecutionContext, HttpException, HttpStatus, Injectable, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
@@ -27,7 +27,8 @@ export class GuestGuard implements CanActivate {
                 return true; // Nếu là User đã login -> Bỏ qua rate limit này.
             } catch (err) {
                 console.error("GuestGuard JWT Verify Error:", err.message);
-                // Token lỗi -> Coi như là Guest
+                // Nếu người dùng có gửi token nhưng token lỗi/hết hạn -> Bắt buộc phải 401 để Frontend refresh
+                throw new UnauthorizedException('Token đã hết hạn hoặc không hợp lệ. Vui lòng refresh.');
             }
         }
         console.log("user đang đăng nhập là một vị khách " );
