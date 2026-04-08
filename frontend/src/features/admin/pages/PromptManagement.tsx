@@ -51,6 +51,8 @@ const PromptManagement: React.FC = () => {
   const [selectedTopicId, setSelectedTopicId] = useState('');
   const [content, setContent] = useState('');
   const [imageUrl, setImageUrl] = useState('');
+  const [isFreeSample, setIsFreeSample] = useState(false);
+
 
   // Fetch data on mount
   useEffect(() => {
@@ -97,7 +99,8 @@ const PromptManagement: React.FC = () => {
         categoryId: selectedCategoryId,
         topicId: selectedTaskType === TaskType.TASK_2 ? selectedTopicId : undefined,
         content: content,
-        imageUrl: selectedTaskType !== TaskType.TASK_2 ? imageUrl : undefined
+        imageUrl: selectedTaskType !== TaskType.TASK_2 ? imageUrl : undefined,
+        isFreeSample: isFreeSample
       };
 
       await promptApi.createPrompt(payload);
@@ -109,6 +112,7 @@ const PromptManagement: React.FC = () => {
       setImageUrl('');
       setSelectedCategoryId('');
       setSelectedTopicId('');
+      setIsFreeSample(false);
       fetchInitialData();
     } catch (error: any) {
       const errorMsg = error.response?.data?.message || 'Có lỗi xảy ra khi tạo đề!';
@@ -153,7 +157,7 @@ const PromptManagement: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-5">
               {/* Task Type */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-[11px] font-medium text-[#71717a] uppercase tracking-wider">Loại bài thi</label>
+                <label className="text-[13px] font-medium text-[#71717a] uppercase tracking-wider">Loại bài thi</label>
                 <select 
                   value={selectedTaskType}
                   onChange={(e) => {
@@ -171,7 +175,7 @@ const PromptManagement: React.FC = () => {
 
               {/* Category (Dynamic) */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-[11px] font-medium text-[#71717a] uppercase tracking-wider">Dạng bài</label>
+                <label className="text-[13px] font-medium text-[#71717a] uppercase tracking-wider">Dạng bài</label>
                 <select 
                   value={selectedCategoryId}
                   onChange={(e) => setSelectedCategoryId(e.target.value)}
@@ -187,7 +191,7 @@ const PromptManagement: React.FC = () => {
               {/* Topic (Only for Task 2) */}
               {selectedTaskType === TaskType.TASK_2 && (
                 <div className="flex flex-col gap-1.5 animate-in fade-in duration-300">
-                  <label className="text-[11px] font-medium text-[#71717a] uppercase tracking-wider">Chủ đề xã hội</label>
+                  <label className="text-[13px] font-medium text-[#71717a] uppercase tracking-wider">Chủ đề xã hội</label>
                   <select 
                     value={selectedTopicId}
                     onChange={(e) => setSelectedTopicId(e.target.value)}
@@ -203,7 +207,7 @@ const PromptManagement: React.FC = () => {
             </div>
 
             <div className="flex flex-col gap-1.5 mb-5">
-              <label className="text-[11px] font-medium text-[#71717a] uppercase tracking-wider">Nội dung đề bài chi tiết</label>
+              <label className="text-[13px] font-medium text-[#71717a] uppercase tracking-wider">Nội dung đề bài chi tiết</label>
               <textarea
                 rows={4}
                 value={content}
@@ -216,7 +220,7 @@ const PromptManagement: React.FC = () => {
             {/* Link Image ONLY for Task 1 */}
             {selectedTaskType !== TaskType.TASK_2 && (
               <div className="flex flex-col gap-1.5 mb-6 animate-in fade-in duration-300">
-                <label className="text-[11px] font-medium text-[#71717a] uppercase tracking-wider flex items-center gap-2">
+                <label className="text-[13px] font-medium text-[#71717a] uppercase tracking-wider flex items-center gap-2">
                   <span>Link hình ảnh biểu đồ</span>
                   <span className="bg-[#27272a] text-[#a1a1aa] px-1.5 py-0.5 rounded-[4px] text-[9px] uppercase">Bắt buộc</span>
                 </label>
@@ -229,6 +233,28 @@ const PromptManagement: React.FC = () => {
                 />
               </div>
             )}
+
+            {/* Free Sample Toggle */}
+            <div className="flex items-center gap-3 mb-8 bg-[#18181b]/50 border border-[#27272a] p-4 rounded-xl">
+              <button
+                type="button"
+                onClick={() => setIsFreeSample(!isFreeSample)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
+                  isFreeSample ? 'bg-orange-500' : 'bg-[#27272a]'
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    isFreeSample ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+              <div className="flex flex-col">
+                <span className="text-base font-medium text-white">Đặt làm đề thi mẫu (Free Sample)</span>
+                <span className="text-[12px] text-[#71717a]">Bài mẫu cho Guest thực hành 1 lần.</span>
+              </div>
+            </div>
+
 
             {/* Actions */}
             <div className="flex items-center gap-3 pt-2 border-t border-[#27272a] mt-6">
@@ -316,7 +342,14 @@ const PromptManagement: React.FC = () => {
                       <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${tt.color}`}>
                         {tt.text}
                       </span>
-                      <span className="text-xs font-medium text-[#ededed]">{prompt.category?.name || 'Unknown'}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-medium text-[#ededed]">{prompt.category?.name || 'Unknown'}</span>
+                        {prompt.isFreeSample && (
+                          <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 bg-green-500/10 text-green-400 border border-green-500/20 rounded">
+                            Free
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <div className="col-span-2">
                       {prompt.topic ? (

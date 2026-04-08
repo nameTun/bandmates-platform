@@ -13,6 +13,7 @@ export type Prompt = {
   modelAnswer?: string;
   hints?: string;
   isActive: boolean;
+  isFreeSample: boolean;
   createdAt: string;
 }
 
@@ -24,6 +25,7 @@ export type CreatePromptDto = {
   imageUrl?: string;
   modelAnswer?: string;
   hints?: string;
+  isFreeSample?: boolean;
 }
 
 export const promptApi = {

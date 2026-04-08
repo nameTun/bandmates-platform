@@ -47,9 +47,12 @@ export class PromptsService {
     return this.promptsRepository.save(prompt);
   }
 
-  // Lấy danh sách đề thi (phục vụ Admin Dashboard)
-  async findAll(): Promise<Prompt[]> {
+  // Lấy danh sách đề thi (phục vụ Admin Dashboard và Practice Library)
+  async findAll(user?: any): Promise<Prompt[]> {
+    const whereCondition = user ? {} : { isFreeSample: true };
+
     return this.promptsRepository.find({
+      where: whereCondition,
       relations: ['category', 'topic'],
       order: { createdAt: 'DESC' },
     });

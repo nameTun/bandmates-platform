@@ -1,10 +1,14 @@
-import { Controller, Get, Post, Body, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, UseGuards, Req } from '@nestjs/common';
 import { PromptsService } from './prompts.service';
 import { CreatePromptDto } from './dto/create-prompt.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { UserRole } from '../users/entities/user.entity';
+import { OptionalJwtAuthGuard } from '../../common/guards/optional-jwt-auth.guard';
+
+import { GetUser } from '../../common/decorators/get-user.decorator';
+import { User } from '../users/entities/user.entity';
 
 @Controller('prompts')
 export class PromptsController {
@@ -18,12 +22,11 @@ export class PromptsController {
     return this.promptsService.create(createPromptDto);
   }
 
-  // API lấy danh sách đề bài - Phục vụ hiển thị trên Dashboard Admin
+  // API lấy danh sách đề bài - Phục vụ hiển thị trên Dashboard Admin và Practice Library
   @Get()
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN)
-  async findAll() {
-    return this.promptsService.findAll();
+  @UseGuards(OptionalJwtAuthGuard)
+  async findAll(@GetUser() user: User | null) {
+    return this.promptsService.findAll(user);
   }
 
   // API lấy chi tiết 1 đề bài

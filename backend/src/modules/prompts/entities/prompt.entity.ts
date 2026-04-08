@@ -24,6 +24,9 @@ export class Prompt {
     @Column({ default: true })
     isActive: boolean;
 
+    @Column({ default: false })
+    isFreeSample: boolean;
+
     @Column({ type: 'varchar', length: 255, nullable: true })
     imageUrl: string;
 
