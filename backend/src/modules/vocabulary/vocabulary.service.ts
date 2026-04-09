@@ -74,6 +74,58 @@ export class VocabularyService {
         };
     }
 
+    /**
+     * Toggle trạng thái lưu vào Sổ tay (Notebook).
+     * Nếu từ chưa có trong lịch sử → tạo mới và đánh dấu isSaved = true.
+     * Nếu đã có → đổi ngược trạng thái isSaved.
+     */
+    async toggleSaved(word: string, userId: string): Promise<any> {
+        const cleanWord = word.trim().toLowerCase();
+
+        let entry = await this.vocabularyRepository.findOne({
+            where: { word: cleanWord, user: { id: userId } },
+        });
+
+        if (!entry) {
+            entry = await this.vocabularyRepository.save({
+                word: cleanWord,
+                isSaved: true,
+                user: { id: userId },
+            });
+        } else {
+            entry.isSaved = !entry.isSaved;
+            await this.vocabularyRepository.save(entry);
+        }
+
+        return { word: cleanWord, isSaved: entry.isSaved };
+    }
+
+    /**
+     * Lấy danh sách lịch sử tra cứu của User (có phân trang).
+     * Có thể lọc chỉ các từ đã lưu vào Sổ tay bằng savedOnly=true.
+     */
+    async getHistory(userId: string, page = 1, limit = 20, savedOnly = false): Promise<any> {
+        const skip = (page - 1) * limit;
+
+        const where: any = { user: { id: userId } };
+        if (savedOnly) where.isSaved = true;
+
+        const [data, total] = await this.vocabularyRepository.findAndCount({
+            where,
+            order: { searchedAt: 'DESC' },
+            skip,
+            take: limit,
+            select: ['id', 'word', 'phonetic', 'isSaved', 'searchedAt'],
+        });
+
+        return {
+            data,
+            total,
+            page,
+            totalPages: Math.ceil(total / limit),
+        };
+    }
+
     private async getDictionaryData(word: string) {
         try {
             const response = await lastValueFrom(
