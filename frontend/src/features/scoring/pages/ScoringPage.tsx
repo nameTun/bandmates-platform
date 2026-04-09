@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { HistoryService } from '@/features/history/services/history.service';
 import { ScoringService } from '@/features/scoring/services/scoring.service';
 import { useAuthStore } from '@/features/auth/store/useAuthStore';
 import { practiceApi } from '@/features/practice/api/practice-api';
@@ -245,24 +247,25 @@ const PracticeLibrary: React.FC<{ onSelect: (prompt: Prompt) => void }> = ({ onS
 const WritingEditor: React.FC<{
   promptObj: Prompt;
   onBack: () => void;
-}> = ({ promptObj, onBack }) => {
-  const [text, setText] = useState('');
+  reviewAttempt?: any;
+}> = ({ promptObj, onBack, reviewAttempt }) => {
+  const [text, setText] = useState(reviewAttempt?.originalText || '');
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<AIResponse | null>(null);
+  const [result, setResult] = useState<AIResponse | null>(reviewAttempt?.aiResponse || null);
   const [activeTab, setActiveTab] = useState<'mistakes' | 'feedback' | 'improved'>('mistakes');
-  const [timeSpent, setTimeSpent] = useState(0);
+  const [timeSpent, setTimeSpent] = useState(reviewAttempt?.timeSpent || 0);
   const { isAuthenticated } = useAuthStore();
 
   useEffect(() => {
     // Only increment timer if we haven't received a result yet
-    if (result) return;
+    if (reviewAttempt || result) return;
     
     const interval = setInterval(() => {
-      setTimeSpent(prev => prev + 1);
+      setTimeSpent((prev: number) => prev + 1);
     }, 1000);
     
     return () => clearInterval(interval);
-  }, [result]);
+  }, [result, reviewAttempt]);
 
   const isTask1 = promptObj.taskType !== TaskType.TASK_2;
   const minWords = isTask1 ? 150 : 250;
@@ -341,40 +344,43 @@ const WritingEditor: React.FC<{
               </span>
             </div>
             <textarea
-              className="flex-1 w-full flex-grow resize-none border-none p-6 focus:ring-0 focus:outline-none bg-transparent text-[15px] leading-8 text-slate-800 placeholder:text-slate-300 min-h-[350px]"
-              placeholder="Bắt đầu gõ bài luận của bạn tại đây... Hãy thư giãn và làm tốt nhất có thể nhé!"
               value={text}
-              onChange={e => setText(e.target.value)}
+              readOnly={!!reviewAttempt}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="Bắt đầu viết bài của bạn tại đây..."
+              className="flex-1 w-full p-8 text-[15px] leading-relaxed text-slate-800 bg-white border-0 rounded-2xl shadow-sm focus:ring-0 resize-none outline-none"
             />
           </div>
 
           {/* Floating Action */}
-          <div className="sticky bottom-6 flex justify-center mt-6 z-10 pointer-events-none">
-            <div className="pointer-events-auto shadow-[0_10px_40px_-10px_rgba(79,70,229,0.3)] rounded-2xl bg-white p-1.5 flex gap-2 border border-indigo-100">
-              <button
-                onClick={handleAnalyze}
-                disabled={!text.trim() || text.length < 10 || loading}
-                className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed text-white px-8 py-3.5 rounded-xl font-bold flex items-center gap-2 transition-all active:scale-95 text-sm uppercase tracking-wide"
-              >
-                {loading ? (
-                  <>
-                    <svg className="w-5 h-5 animate-spin" viewBox="0 0 24 24" fill="none">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                    </svg>
-                    Đang phân tích...
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                    </svg>
-                    Chấm điểm AI
-                  </>
-                )}
-              </button>
+          {!reviewAttempt && (
+            <div className="sticky bottom-6 flex justify-center mt-6 z-10 pointer-events-none">
+              <div className="pointer-events-auto shadow-[0_10px_40px_-10px_rgba(79,70,229,0.3)] rounded-2xl bg-white p-1.5 flex gap-2 border border-indigo-100">
+                <button
+                  onClick={handleAnalyze}
+                  disabled={!text.trim() || text.length < 10 || loading}
+                  className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed text-white px-8 py-3.5 rounded-xl font-bold flex items-center gap-2 transition-all active:scale-95 text-sm uppercase tracking-wide"
+                >
+                  {loading ? (
+                    <>
+                      <svg className="w-5 h-5 animate-spin" viewBox="0 0 24 24" fill="none">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                      Đang phân tích...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                      </svg>
+                      Chấm điểm AI
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
-          </div>
+          )}
           <div className="h-10" />
         </div>
       </div>
@@ -531,7 +537,48 @@ const WritingEditor: React.FC<{
 /* ──────────── MAIN PAGE COMPONENT ──────────── */
 
 const ScoringPage: React.FC = () => {
+  const { id: attemptId } = useParams<{ id?: string }>();
+  const navigate = useNavigate();
+
   const [selectedTask, setSelectedTask] = useState<Prompt | null>(null);
+  const [reviewAttempt, setReviewAttempt] = useState<any | null>(null);
+  const [loadingReview, setLoadingReview] = useState(false);
+
+  useEffect(() => {
+    if (attemptId) {
+      const fetchAttempt = async () => {
+        setLoadingReview(true);
+        try {
+          const data = await HistoryService.getAttemptDetail(attemptId);
+          setReviewAttempt(data);
+          setSelectedTask(data.prompt || { content: 'Bài viết tự do không dùng đề mẫu.', taskType: TaskType.TASK_2 });
+        } catch (error) {
+          console.error(error);
+          navigate('/history');
+        } finally {
+          setLoadingReview(false);
+        }
+      };
+      fetchAttempt();
+    }
+  }, [attemptId, navigate]);
+
+  if (attemptId) {
+    if (loadingReview || !reviewAttempt) {
+      return (
+        <div className="flex items-center justify-center min-h-screen bg-slate-50">
+          <Spin size="large" />
+        </div>
+      );
+    }
+    return (
+      <WritingEditor
+        promptObj={selectedTask as any}
+        onBack={() => navigate('/history')}
+        reviewAttempt={reviewAttempt}
+      />
+    );
+  }
 
   if (!selectedTask) {
     return <PracticeLibrary onSelect={setSelectedTask} />;

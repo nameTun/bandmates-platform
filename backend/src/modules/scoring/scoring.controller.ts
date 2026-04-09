@@ -1,7 +1,8 @@
-import { Controller, Post, Body, UseGuards, HttpStatus, HttpException } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, HttpStatus, HttpException, Get, Param, ForbiddenException, NotFoundException, Query, Delete } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { GuestGuard } from '../../common/guards/guest.guard';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { GeminiService } from './gemini.service';
 import { CheckTextDto } from './dto/check-text.dto';
 import { ExamAttempt } from './entities/exam-attempt.entity';
@@ -70,10 +71,14 @@ export class ScoringController {
             scoreGRA: aiResult?.scoreGRA || null,
         });
 
-        // Lấy User từ Payload JWT (Lưu ý: Payload dùng 'userId', Entity dùng 'id')
-        if (user && (user as any).userId) {
+        // Lấy User từ Payload JWT
+        // (Vẫn giữ logic linh hoạt để check cả .id và .userId cho an tâm tuyệt đối)
+        const realUserId = user?.id || (user as any)?.userId;
+        
+
+        if (realUserId) {
             // Cách an toàn nhất để gán Relation trong TypeORM khi chỉ có ID
-            attempt.user = { id: (user as any).userId } as any;
+            attempt.user = { id: realUserId } as any;
         } else if (visitorId) {
             attempt.visitorId = visitorId;
         }
@@ -98,6 +103,99 @@ export class ScoringController {
             success: true,
             data: aiResult,
             attemptId: attempt.id
+        };
+    }
+
+    @Get('my-history')
+    @UseGuards(JwtAuthGuard)
+    async getMyHistory(
+        @GetUser() user: User,
+        @Query('page') page: number = 1,
+        @Query('limit') limit: number = 10,
+        @Query('taskType') taskType?: string,
+    ) {
+        const userId = (user as any).userId || user.id;
+        if (!userId) {
+            throw new ForbiddenException('User ID not found');
+        }
+
+        const skip = (page - 1) * limit;
+        
+        const [data, total] = await this.examRepository.findAndCount({
+            where: { 
+                user: { id: userId },
+                ...(taskType ? { prompt: { taskType: taskType as any } } : {})
+            },
+            relations: ['prompt', 'prompt.category', 'prompt.topic'],
+            order: { createdAt: 'DESC' },
+            take: limit,
+            skip: skip,
+        });
+
+        return {
+            success: true,
+            data,
+            meta: {
+                total,
+                page: Number(page),
+                limit: Number(limit),
+                totalPages: Math.ceil(total / limit),
+            }
+        };
+    }
+
+    @Get('attempt/:id')
+    @UseGuards(JwtAuthGuard)
+    async getAttemptDetail(@Param('id') id: string, @GetUser() user: User) {
+        const userId = (user as any).userId || user.id;
+
+        const attempt = await this.examRepository.findOne({
+            where: { id },
+            relations: ['user', 'prompt', 'prompt.category', 'prompt.topic'],
+        });
+
+        if (!attempt) {
+            throw new NotFoundException('Không tìm thấy bài làm');
+        }
+
+        // Kiểm tra quyền sở hữu (Chỉ chủ sở hữu bài viết mới được xem)
+        if (!attempt.user || attempt.user.id !== userId) {
+            throw new ForbiddenException('Bạn không có quyền xem bài làm này');
+        }
+
+        // Giấu thông tin user nhạy cảm trước khi trả về
+        delete (attempt as any).user;
+
+        return {
+            success: true,
+            data: attempt,
+        };
+    }
+
+    @Delete('attempt/:id')
+    @UseGuards(JwtAuthGuard)
+    async deleteAttempt(@Param('id') id: string, @GetUser() user: User) {
+        const userId = (user as any).userId || user.id;
+
+        const attempt = await this.examRepository.findOne({
+            where: { id },
+            relations: ['user'],
+        });
+
+        if (!attempt) {
+            throw new NotFoundException('Không tìm thấy bài làm để xóa');
+        }
+
+        // Kiểm tra quyền sở hữu bài viết
+        if (!attempt.user || attempt.user.id !== userId) {
+            throw new ForbiddenException('Bạn không có quyền xóa bài làm này');
+        }
+
+        await this.examRepository.remove(attempt);
+
+        return {
+            success: true,
+            message: 'Đã xóa bài làm thành công',
         };
     }
 }

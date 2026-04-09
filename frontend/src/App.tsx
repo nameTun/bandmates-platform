@@ -71,6 +71,7 @@ const App: React.FC = () => {
           <Route element={<AuthenticatedLayout />}>
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/history" element={<HistoryPage />} />
+            <Route path="/history/:id" element={<ScoringPage />} />
           </Route>
         )}
 
