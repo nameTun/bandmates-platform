@@ -1,15 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { HistoryService } from '../services/history.service';
+import { Spin } from 'antd';
+import { LoadingOutlined } from '@ant-design/icons';
+import { format } from 'date-fns';
+import { vi } from 'date-fns/locale';
+import { useNavigate } from 'react-router-dom';
+import { TaskType } from '@/common/enums/task-type.enum';
+import { Pagination, Modal, message } from 'antd';
 
-/* ──── Mock Data ──── */
+interface Essay {
+  id: string;
+  task: string;
+  topic: string;
+  band: number;
+  date: string;
+  wordCount: number;
+  prompt: string;
+  scores: { tr: number; cc: number; lr: number; gra: number };
+}
 
-const mockEssays = [
-  { id: 1, task: 'Task 2', topic: 'Environment & Climate Change', band: 7.0, date: '2 Tháng 4, 2026', wordCount: 287, prompt: 'Some people believe that climate change is the most pressing issue...', scores: { tr: 7, cc: 7, lr: 7, gra: 7 } },
-  { id: 2, task: 'Task 1', topic: 'Line Graph — Internet Usage', band: 6.5, date: '1 Tháng 4, 2026', wordCount: 168, prompt: 'The chart below shows the percentage of households with internet access...', scores: { tr: 7, cc: 6, lr: 7, gra: 6 } },
-  { id: 3, task: 'Task 2', topic: 'Technology & Education', band: 7.5, date: '31 Tháng 3, 2026', wordCount: 312, prompt: 'Technology is increasingly being used in the classroom. Discuss the advantages...', scores: { tr: 8, cc: 7, lr: 8, gra: 7 } },
-  { id: 4, task: 'Task 1', topic: 'Pie Chart — Energy Sources', band: 6.0, date: '30 Tháng 3, 2026', wordCount: 155, prompt: 'The pie charts below compare the sources of electricity in two countries...', scores: { tr: 6, cc: 6, lr: 6, gra: 6 } },
-  { id: 5, task: 'Task 2', topic: 'Health & Lifestyle', band: 6.5, date: '29 Tháng 3, 2026', wordCount: 264, prompt: 'In many developed countries, people lead increasingly sedentary lifestyles...', scores: { tr: 7, cc: 6, lr: 7, gra: 6 } },
-  { id: 6, task: 'Task 2', topic: 'Society & Urbanization', band: 7.0, date: '28 Tháng 3, 2026', wordCount: 290, prompt: 'More and more people are moving to cities. What problems does this cause...', scores: { tr: 7, cc: 7, lr: 7, gra: 7 } },
-];
+/* ──── Mock Data (Words Only) ──── */
 
 const mockWords = [
   { word: 'significant', phonetic: '/sɪɡˈnɪfɪkənt/', type: 'adj', date: '2 Tháng 4, 2026' },
@@ -49,9 +59,98 @@ const typeColor: Record<string, string> = {
 
 /* ──── Components ──── */
 
+/* ──── Components ──── */
+
 const HistoryPage: React.FC = () => {
+  const navigate = useNavigate();
   const [tab, setTab] = useState<'essays' | 'words'>('essays');
-  const [expandedEssay, setExpandedEssay] = useState<number | null>(null);
+  const [expandedEssay, setExpandedEssay] = useState<string | null>(null);
+  const [essays, setEssays] = useState<Essay[]>([]);
+  const [loading, setLoading] = useState(true);
+  
+  // Pagination & Filter States
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [taskFilter, setTaskFilter] = useState<string>('all');
+
+  useEffect(() => {
+    const fetchHistory = async () => {
+      setLoading(true);
+      try {
+        const queryParams: any = { 
+          page: currentPage, 
+          limit: 10 
+        };
+        if (taskFilter !== 'all') {
+          queryParams.taskType = taskFilter;
+        }
+
+        const response = await HistoryService.getMyHistory(queryParams);
+        const rawHistory = response.data || [];
+        
+        // Metadata
+        if (response.meta) {
+          setTotalItems(response.meta.total);
+        }
+
+        const mappedEssays: Essay[] = rawHistory.map((item: any) => ({
+          id: item.id,
+          task: item.prompt ? (item.prompt.taskType === TaskType.TASK_2 ? 'Task 2' : 'Task 1') : 'Tự do',
+          topic: item.prompt?.topic?.name || item.prompt?.category?.name || 'Tự chọn',
+          band: Number(item.overallScore || 0),
+          date: format(new Date(item.createdAt), 'd MMMM, yyyy', { locale: vi }),
+          wordCount: item.wordCount || 0,
+          prompt: item.prompt?.content || 'Bài viết tự do không dùng đề mẫu.',
+          scores: {
+            tr: Number(item.scoreTA || 0),
+            cc: Number(item.scoreCC || 0),
+            lr: Number(item.scoreLR || 0),
+            gra: Number(item.scoreGRA || 0),
+          }
+        }));
+        setEssays(mappedEssays);
+      } catch (err) {
+        console.error('Failed to fetch history', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchHistory();
+  }, [currentPage, taskFilter]);
+
+  const handleDelete = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation(); // Ngăn sự kiện click lan ra làm đóng/mở essay card
+    
+    Modal.confirm({
+      title: 'Xóa bài làm?',
+      content: 'Bạn có chắc chắn muốn xóa bài làm này không? Hành động này không thể hoàn tác.',
+      okText: 'Xóa ngay',
+      okType: 'danger',
+      cancelText: 'Hủy',
+      onOk: async () => {
+        try {
+          await HistoryService.deleteAttempt(id);
+          message.success('Đã xóa bài làm thành công!');
+          // Refresh list
+          setCurrentPage(1); // Quay về trang 1 cho chắc chắn
+          setTaskFilter('all'); // Reset filter
+        } catch (err) {
+          message.error('Không thể xóa bài làm. Vui lòng thử lại.');
+          console.error(err);
+        }
+      },
+    });
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleFilterChange = (filter: string) => {
+    setTaskFilter(filter);
+    setCurrentPage(1); // Reset về trang 1 khi đổi bộ lọc
+  };
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -71,7 +170,7 @@ const HistoryPage: React.FC = () => {
                   tab === 'essays' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'
                 }`}
               >
-                Bài viết ({mockEssays.length})
+                Bài viết ({essays.length})
               </button>
               <button
                 onClick={() => setTab('words')}
@@ -88,12 +187,34 @@ const HistoryPage: React.FC = () => {
         {/* ═══ ESSAYS TAB ═══ */}
         {tab === 'essays' && (
           <>
-            {/* Stats summary */}
-            <div className="grid grid-cols-3 gap-4 mb-6">
+            {/* Filter row */}
+            <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
               {[
-                { label: 'Tổng bài', value: mockEssays.length, icon: '📝' },
-                { label: 'Band TB', value: (mockEssays.reduce((a, e) => a + e.band, 0) / mockEssays.length).toFixed(1), icon: '📊' },
-                { label: 'Band cao nhất', value: Math.max(...mockEssays.map(e => e.band)).toFixed(1), icon: '🏆' },
+                { label: 'Tất cả', value: 'all' },
+                { label: 'Task 1 Academic', value: TaskType.TASK_1_ACADEMIC },
+                { label: 'Task 1 General', value: TaskType.TASK_1_GENERAL },
+                { label: 'Task 2', value: TaskType.TASK_2 },
+              ].map(f => (
+                <button
+                  key={f.value}
+                  onClick={() => handleFilterChange(f.value)}
+                  className={`px-5 py-2 rounded-xl text-xs font-bold transition-all border whitespace-nowrap ${
+                    taskFilter === f.value 
+                      ? 'bg-indigo-600 border-indigo-600 text-white shadow-md shadow-indigo-200' 
+                      : 'bg-white border-slate-200 text-slate-500 hover:border-indigo-300 hover:text-indigo-600'
+                  }`}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Stats summary */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              {[
+                { label: 'Tổng bài', value: essays.length, icon: '📝' },
+                { label: 'Band TB', value: essays.length > 0 ? (essays.reduce((a, e) => a + e.band, 0) / essays.length).toFixed(1) : '0.0', icon: '📊' },
+                { label: 'Band cao nhất', value: essays.length > 0 ? Math.max(...essays.map(e => e.band)).toFixed(1) : '0.0', icon: '🏆' },
               ].map(s => (
                 <div key={s.label} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex items-center gap-3">
                   <span className="text-2xl">{s.icon}</span>
@@ -106,8 +227,20 @@ const HistoryPage: React.FC = () => {
             </div>
 
             {/* Essay list */}
-            <div className="space-y-3">
-              {mockEssays.map(essay => {
+            {loading ? (
+              <div className="py-20 flex justify-center items-center">
+                <Spin indicator={<LoadingOutlined style={{ fontSize: 32, color: '#4f46e5' }} spin />} />
+              </div>
+            ) : essays.length === 0 ? (
+              <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center shadow-sm">
+                <div className="text-5xl mb-4">✍️</div>
+                <h3 className="text-xl font-bold text-slate-800 mb-2">Bạn chưa làm bài nào</h3>
+                <p className="text-slate-500 mb-6">Hãy bắt đầu hành trình luyện IELTS của bạn bằng một bài thi mẫu nhé!</p>
+                <a href="/practice" className="bg-indigo-600 text-white px-6 py-2.5 rounded-lg font-bold shadow-sm hover:bg-indigo-700 transition">Bắt đầu luyện tập</a>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {essays.map(essay => {
                 const isExpanded = expandedEssay === essay.id;
                 return (
                   <div
@@ -144,6 +277,17 @@ const HistoryPage: React.FC = () => {
                         {essay.band.toFixed(1)}
                       </span>
 
+                      {/* Delete icon */}
+                      <button 
+                        onClick={(e) => handleDelete(e, essay.id)}
+                        className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all flex-shrink-0"
+                        title="Xóa bài làm"
+                      >
+                        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+
                       {/* Chevron */}
                       <svg className={`w-5 h-5 text-slate-400 transition-transform duration-300 flex-shrink-0 ${isExpanded ? 'rotate-180' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
@@ -175,7 +319,10 @@ const HistoryPage: React.FC = () => {
 
                         {/* Actions */}
                         <div className="flex gap-3">
-                          <button className="flex-1 px-4 py-2.5 bg-indigo-500 hover:bg-indigo-600 text-white font-bold text-sm rounded-xl transition-colors flex items-center justify-center gap-2 shadow-sm">
+                          <button 
+                            onClick={() => navigate(`/history/${essay.id}`)}
+                            className="flex-1 px-4 py-2.5 bg-indigo-500 hover:bg-indigo-600 text-white font-bold text-sm rounded-xl transition-colors flex items-center justify-center gap-2 shadow-sm"
+                          >
                             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                               <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                               <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
@@ -195,6 +342,21 @@ const HistoryPage: React.FC = () => {
                 );
               })}
             </div>
+            )}
+
+            {/* Pagination UI */}
+            {!loading && totalItems > 10 && (
+              <div className="mt-10 flex justify-center">
+                <Pagination 
+                  current={currentPage}
+                  total={totalItems}
+                  pageSize={10}
+                  onChange={handlePageChange}
+                  showSizeChanger={false}
+                  className="custom-pagination"
+                />
+              </div>
+            )}
           </>
         )}
 

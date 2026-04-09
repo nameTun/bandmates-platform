@@ -21,9 +21,10 @@ export class GuestGuard implements CanActivate {
         if (authHeader) {
             try {
                 const token = authHeader.split(' ')[1];
-                const user = this.jwtService.verify(token);
-                console.log("user đang đăng nhập là: ", user);
-                request.user = user; // Gắn info user vào request để dùng sau nếu cần
+                const payload = this.jwtService.verify(token);
+                console.log("user đang đăng nhập là: ", payload);
+                // Đồng nhất cấu trúc với JwtStrategy
+                request.user = { id: payload.userId, role: payload.role }; 
                 return true; // Nếu là User đã login -> Bỏ qua rate limit này.
             } catch (err) {
                 console.error("GuestGuard JWT Verify Error:", err.message);
