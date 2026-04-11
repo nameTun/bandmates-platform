@@ -1,10 +1,11 @@
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, MoreThanOrEqual } from 'typeorm';
 import { HttpService } from '@nestjs/axios';
 import { lastValueFrom } from 'rxjs';
 import { translate } from '@vitalets/google-translate-api';
 import { VocabularyHistory } from './entities/vocabulary-history.entity';
+import { AIUsageLog } from './entities/ai-usage-log.entity';
 import { GeminiService } from '../scoring/gemini.service';
 import { VOCABULARY_API } from './vocabulary.constants';
 
@@ -14,6 +15,8 @@ export class VocabularyService {
     constructor(
         @InjectRepository(VocabularyHistory)
         private readonly vocabularyRepository: Repository<VocabularyHistory>,
+        @InjectRepository(AIUsageLog)
+        private readonly aiUsageRepository: Repository<AIUsageLog>,
         private readonly httpService: HttpService,
         private readonly geminiService: GeminiService,
     ) { }
@@ -85,7 +88,8 @@ export class VocabularyService {
      * [NÂNG CẤP] Làm giàu dữ liệu Họ từ bằng AI.
      * Chọn ra 1 từ tiêu biểu nhất cho mỗi loại (n, v, adj, adv) và tạo ví dụ IELTS.
      */
-    async getFamilyAINotes(word: string): Promise<any> {
+    async getFamilyAINotes(word: string, userId?: string, ip?: string, visitorId?: string): Promise<any> {
+        await this.checkAndRecordUsage(userId, ip, visitorId, 'ENRICH');
         const cleanWord = word.trim().toLowerCase();
         const familyWords = await this.extractWordFamily(cleanWord);
         
@@ -134,7 +138,8 @@ export class VocabularyService {
         }
     }
 
-    async getAINotes(word: string): Promise<any> {
+    async getAINotes(word: string, userId?: string, ip?: string, visitorId?: string): Promise<any> {
+        await this.checkAndRecordUsage(userId, ip, visitorId, 'ANALYSIS');
         const cleanWord = word.trim().toLowerCase();
         const aiData = await this.getIELTSAnalysis(cleanWord);
         // Đảm bảo aiData là object trước khi spread
@@ -176,6 +181,50 @@ export class VocabularyService {
         });
 
         return { data, total, page, totalPages: Math.ceil(total / limit) };
+    }
+
+    /**
+     * KIỂM TRA HẠN NGẠCH AI (User: 10, Guest: 5)
+     * Cơ chế Double Check: Chặn theo cả VisitorId HOẶC IP đối với Guest.
+     */
+    private async checkAndRecordUsage(userId?: string, ip?: string, visitorId?: string, action?: string) {
+        const startOfDay = new Date();
+        startOfDay.setHours(0, 0, 0, 0);
+
+        const limit = userId ? 10 : 5;
+        let count = 0;
+
+        if (userId) {
+            // Đếm theo User ID đã đăng nhập
+            count = await this.aiUsageRepository.count({
+                where: { userId, createdAt: MoreThanOrEqual(startOfDay) }
+            });
+        } else {
+            // Đếm theo VisitorId HOẶC IP cho Guest (Double Check)
+            const queryBuilder = this.aiUsageRepository.createQueryBuilder('usage');
+            count = await queryBuilder
+                .where('usage.createdAt >= :startOfDay', { startOfDay })
+                .andWhere('(usage.visitorId = :visitorId OR usage.ipAddress = :ipAddress)', { 
+                    visitorId: visitorId || 'unknown', 
+                    ipAddress: ip || 'unknown' 
+                })
+                .getCount();
+        }
+
+        if (count >= limit) {
+            throw new HttpException(
+                `Bạn đã hết lượt sử dụng AI hôm nay (${count}/${limit} lượt). Vui lòng quay lại vào ngày mai!`,
+                HttpStatus.TOO_MANY_REQUESTS,
+            );
+        }
+
+        // Lưu log đồng thời các định danh để "bủa lưới" tra cứu sau này
+        await this.aiUsageRepository.save({
+            userId,
+            visitorId,
+            ipAddress: ip,
+            action: action || 'UNKNOWN',
+        });
     }
 
     private async getDictionaryData(word: string) {

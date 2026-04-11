@@ -209,8 +209,12 @@ const VocabularyPage: React.FC = () => {
             const res = await vocabularyApi.getAINotes(result.word);
             setAiNotes(res.data);
             saveToCache(result.word, { aiNotes: res.data, isExpanded: true });
-        } catch {
-            setAiError('Dịch vụ AI đang quá tải. Vui lòng thử lại sau.');
+        } catch (error: any) {
+            if (error.response?.status === 429) {
+                setAiError(error.response.data.message);
+            } else {
+                setAiError('Dịch vụ AI đang quá tải. Vui lòng thử lại sau.');
+            }
             setAiNotes(null);
         } finally {
             setAiLoading(false);
@@ -232,8 +236,12 @@ const VocabularyPage: React.FC = () => {
                 setResult(updatedResult);
                 saveToCache(result.word, { result: updatedResult });
             }
-        } catch {
-            setAiError('Không thể làm giàu họ từ lúc này. Thử lại sau.');
+        } catch (error: any) {
+            if (error.response?.status === 429) {
+                setAiError(error.response.data.message);
+            } else {
+                setAiError('Không thể làm giàu họ từ lúc này. Thử lại sau.');
+            }
             setEnrichedFamilyData(null);
         } finally {
             setFamilyAiLoading(false);

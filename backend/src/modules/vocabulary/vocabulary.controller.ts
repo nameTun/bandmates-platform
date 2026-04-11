@@ -1,8 +1,9 @@
-import { Controller, Get, Post, Query, UseGuards, Body } from '@nestjs/common';
+import { Controller, Get, Post, Query, UseGuards, Body, Ip } from '@nestjs/common';
 import { VocabularyService } from './vocabulary.service';
 import { OptionalJwtAuthGuard } from '../../common/guards/optional-jwt-auth.guard';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { GetUser } from '../../common/decorators/get-user.decorator';
+import { VisitorId } from '../../common/decorators/visitor-id.decorator';
 import { User } from '../users/entities/user.entity';
 
 @Controller('vocabulary')
@@ -18,8 +19,14 @@ export class VocabularyController {
 
     /** [SLOW — gọi sau] Phân tích ngữ pháp từ AI */
     @Get('ai-notes')
-    async getAINotes(@Query('word') word: string) {
-        return this.vocabularyService.getAINotes(word);
+    @UseGuards(OptionalJwtAuthGuard)
+    async getAINotes(
+        @Query('word') word: string, 
+        @Ip() ip: string, 
+        @VisitorId() visitorId: string,
+        @GetUser() user: User | null
+    ) {
+        return this.vocabularyService.getAINotes(word, user?.id, ip, visitorId);
     }
 
     /** [TEST] Kiểm tra kết nối Controller */
@@ -30,9 +37,15 @@ export class VocabularyController {
 
     /** [NÂNG CẤP] Phân tích Họ từ chuyên sâu bằng AI */
     @Get('enrich')
-    async getFamilyAINotes(@Query('word') word: string) {
-        console.log('--- AI Enrichment Triggered for:', word);
-        return this.vocabularyService.getFamilyAINotes(word);
+    @UseGuards(OptionalJwtAuthGuard)
+    async getFamilyAINotes(
+        @Query('word') word: string, 
+        @Ip() ip: string, 
+        @VisitorId() visitorId: string,
+        @GetUser() user: User | null
+    ) {
+        console.log('--- AI Enrichment Triggered for:', word, 'by', user?.id || visitorId || ip);
+        return this.vocabularyService.getFamilyAINotes(word, user?.id, ip, visitorId);
     }
 
     /** Toggle lưu/bỏ lưu từ vào Sổ tay — Chỉ User đăng nhập */
