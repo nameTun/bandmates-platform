@@ -17,6 +17,6 @@ import { Prompt } from '../prompts/entities/prompt.entity';
     ],
     controllers: [ScoringController],
     providers: [GeminiService],
-    exports: [TypeOrmModule], // Export để có thể dùng repository ở nơi khác nếu cần
+    exports: [TypeOrmModule, GeminiService],
 })
 export class ScoringModule { }

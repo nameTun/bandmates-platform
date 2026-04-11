@@ -9,15 +9,33 @@ export class GeminiService {
 
     constructor(private configService: ConfigService) {
         const apiKey = this.configService.get<string>('GEMINI_API_KEY');
-        console.log("--- Gemini Service Init ---");
-        console.log("API Key loaded:", apiKey ? "YES (starts with " + apiKey.substring(0, 5) + "...)" : "NO");
-        
         this.genAI = new GoogleGenerativeAI(apiKey || '');
         this.model = this.genAI.getGenerativeModel({
-            model: 'gemini-flash-latest',
+            model: 'gemini-3.1-flash-lite-preview',
         });
     }
 
+    /**
+     * [HELPER] Cơ chế thử lại khi AI bận (503 Service Unavailable)
+     */
+    private async withRetry<T>(fn: () => Promise<T>, retries = 2, delay = 1500): Promise<T> {
+        try {
+            return await fn();
+        } catch (error: any) {
+            // Lỗi 503 là Service Unavailable, thường là tạm thời
+            if (retries > 0 && (error.status === 503 || error.message?.includes('503'))) {
+                console.warn(`Gemini 503 detected, retrying in ${delay}ms... (${retries} left)`);
+                await new Promise(res => setTimeout(res, delay));
+                return this.withRetry(fn, retries - 1, delay * 1.5);
+            }
+            throw error;
+        }
+    }
+
+    /**
+     * [IELTS SCORING] Chấm điểm bài IELTS Writing theo 4 tiêu chí.
+     * Chỉ dùng cho mục đích chấm điểm, KHÔNG dùng cho các tác vụ khác.
+     */
     async checkEnglish(text: string, promptContent?: string): Promise<any> {
         const ieltsPrompt = `
       You are an expert IELTS Writing Examiner with 10+ years of experience. 
@@ -66,29 +84,45 @@ export class GeminiService {
       }
     `;
 
-        const result = await this.model.generateContent(ieltsPrompt);
-        const response = await result.response;
-        
-        // check phản hồi
-        if (!response || !response.candidates || response.candidates.length === 0) {
-            console.error('Gemini Error: No candidates returned', response);
-            throw new Error('AI không thể phản hồi bài viết này (có thể do vi phạm chính sách an toàn).');
-        }
+        return this.withRetry(async () => {
+            const result = await this.model.generateContent(ieltsPrompt);
+            const response = await result.response;
 
-        const textResponse = response.text();
-        console.log("--- GEMINI DEBUG ---");
-        console.log("Raw AI Response:", textResponse);
+            if (!response || !response.candidates || response.candidates.length === 0) {
+                throw new Error('AI không thể phản hồi bài viết này.');
+            }
 
-        try {
-            // Clean response string just in case AI adds markdown blocks
-            const cleanJson = textResponse.replace(/```json|```/g, '').trim();
-            const parsed = JSON.parse(cleanJson);
-            console.log("Parsed JSON Success!");
-            return parsed;
-        } catch (e) {
-            console.error('Gemini JSON Parse Error:', e.message);
-            console.error('Invalid Content:', textResponse);
-            throw new Error('AI trả về định dạng dữ liệu không hợp lệ. Vui lòng thử lại.');
-        }
+            const textResponse = response.text();
+            try {
+                const cleanJson = textResponse.replace(/```json|```/g, '').trim();
+                return JSON.parse(cleanJson);
+            } catch (e: any) {
+                console.error('Gemini JSON Parse Error:', e.message);
+                throw new Error('AI trả về định dạng dữ liệu không hợp lệ.');
+            }
+        });
+    }
+
+    /**
+     * [GENERIC] Gửi bất kỳ prompt tùy ý nào tới Gemini và nhận về JSON.
+     * Dùng cho các tác vụ NGOÀI IELTS scoring: tra từ vựng, tóm tắt, phân tích, v.v.
+     */
+    async generateContent(prompt: string): Promise<any> {
+        return this.withRetry(async () => {
+            const result = await this.model.generateContent(prompt);
+            const response = await result.response;
+
+            if (!response || !response.candidates || response.candidates.length === 0) {
+                throw new Error('AI không thể phản hồi yêu cầu này.');
+            }
+
+            const textResponse = response.text();
+            try {
+                const cleanJson = textResponse.replace(/```json|```/g, '').trim();
+                return JSON.parse(cleanJson);
+            } catch {
+                return { raw: textResponse };
+            }
+        });
     }
 }
