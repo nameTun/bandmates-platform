@@ -16,6 +16,23 @@ export class GeminiService {
     }
 
     /**
+     * [HELPER] Cơ chế thử lại khi AI bận (503 Service Unavailable)
+     */
+    private async withRetry<T>(fn: () => Promise<T>, retries = 2, delay = 1500): Promise<T> {
+        try {
+            return await fn();
+        } catch (error: any) {
+            // Lỗi 503 là Service Unavailable, thường là tạm thời
+            if (retries > 0 && (error.status === 503 || error.message?.includes('503'))) {
+                console.warn(`Gemini 503 detected, retrying in ${delay}ms... (${retries} left)`);
+                await new Promise(res => setTimeout(res, delay));
+                return this.withRetry(fn, retries - 1, delay * 1.5);
+            }
+            throw error;
+        }
+    }
+
+    /**
      * [IELTS SCORING] Chấm điểm bài IELTS Writing theo 4 tiêu chí.
      * Chỉ dùng cho mục đích chấm điểm, KHÔNG dùng cho các tác vụ khác.
      */
@@ -67,22 +84,23 @@ export class GeminiService {
       }
     `;
 
-        const result = await this.model.generateContent(ieltsPrompt);
-        const response = await result.response;
+        return this.withRetry(async () => {
+            const result = await this.model.generateContent(ieltsPrompt);
+            const response = await result.response;
 
-        if (!response || !response.candidates || response.candidates.length === 0) {
-            throw new Error('AI không thể phản hồi bài viết này (có thể do vi phạm chính sách an toàn).');
-        }
+            if (!response || !response.candidates || response.candidates.length === 0) {
+                throw new Error('AI không thể phản hồi bài viết này.');
+            }
 
-        const textResponse = response.text();
-        try {
-            const cleanJson = textResponse.replace(/```json|```/g, '').trim();
-            const parsed = JSON.parse(cleanJson);
-            return parsed;
-        } catch (e) {
-            console.error('Gemini JSON Parse Error:', e.message);
-            throw new Error('AI trả về định dạng dữ liệu không hợp lệ. Vui lòng thử lại.');
-        }
+            const textResponse = response.text();
+            try {
+                const cleanJson = textResponse.replace(/```json|```/g, '').trim();
+                return JSON.parse(cleanJson);
+            } catch (e: any) {
+                console.error('Gemini JSON Parse Error:', e.message);
+                throw new Error('AI trả về định dạng dữ liệu không hợp lệ.');
+            }
+        });
     }
 
     /**
@@ -90,19 +108,21 @@ export class GeminiService {
      * Dùng cho các tác vụ NGOÀI IELTS scoring: tra từ vựng, tóm tắt, phân tích, v.v.
      */
     async generateContent(prompt: string): Promise<any> {
-        const result = await this.model.generateContent(prompt);
-        const response = await result.response;
+        return this.withRetry(async () => {
+            const result = await this.model.generateContent(prompt);
+            const response = await result.response;
 
-        if (!response || !response.candidates || response.candidates.length === 0) {
-            throw new Error('AI không thể phản hồi yêu cầu này.');
-        }
+            if (!response || !response.candidates || response.candidates.length === 0) {
+                throw new Error('AI không thể phản hồi yêu cầu này.');
+            }
 
-        const textResponse = response.text();
-        try {
-            const cleanJson = textResponse.replace(/```json|```/g, '').trim();
-            return JSON.parse(cleanJson);
-        } catch {
-            return { raw: textResponse };
-        }
+            const textResponse = response.text();
+            try {
+                const cleanJson = textResponse.replace(/```json|```/g, '').trim();
+                return JSON.parse(cleanJson);
+            } catch {
+                return { raw: textResponse };
+            }
+        });
     }
 }

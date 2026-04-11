@@ -22,6 +22,19 @@ export class VocabularyController {
         return this.vocabularyService.getAINotes(word);
     }
 
+    /** [TEST] Kiểm tra kết nối Controller */
+    @Get('ping')
+    ping() {
+        return { message: 'Vocabulary Controller is alive!' };
+    }
+
+    /** [NÂNG CẤP] Phân tích Họ từ chuyên sâu bằng AI */
+    @Get('enrich')
+    async getFamilyAINotes(@Query('word') word: string) {
+        console.log('--- AI Enrichment Triggered for:', word);
+        return this.vocabularyService.getFamilyAINotes(word);
+    }
+
     /** Toggle lưu/bỏ lưu từ vào Sổ tay — Chỉ User đăng nhập */
     @Post('save')
     @UseGuards(JwtAuthGuard)
