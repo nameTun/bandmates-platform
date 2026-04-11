@@ -1,4 +1,5 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { vocabularyApi } from '../api/vocabularyApi';
 import type { SearchResult, AINotes } from '../api/vocabularyApi';
 import { useAuthStore } from '@/features/auth/store/useAuthStore';
@@ -79,16 +80,80 @@ const VocabularyPage: React.FC = () => {
     const [isSaved, setIsSaved] = useState(false);
     const [recentWords, setRecentWords] = useState<string[]>([]);
     
-    // UI state for dynamic layout
     const [isExpanded, setIsExpanded] = useState(false); 
     const [familyAiLoading, setFamilyAiLoading] = useState(false);
     const [enrichedFamilyData, setEnrichedFamilyData] = useState<any[] | null>(null);
 
+    const [searchParams, setSearchParams] = useSearchParams();
+    const urlWord = searchParams.get('word');
+
     const audioRef = useRef<HTMLAudioElement | null>(null);
+
+    // ─── PERSISTENCE HELPERS (Full Cache for 10 words) ──────────────────────
+    const CACHE_KEY = 'vocal_hub_v12_cache';
+    
+    const saveToCache = (word: string, updates: any) => {
+        try {
+            const cache = JSON.parse(localStorage.getItem(CACHE_KEY) || '{}');
+            cache[word.toLowerCase()] = {
+                ...(cache[word.toLowerCase()] || {}),
+                ...updates,
+                timestamp: Date.now()
+            };
+            
+            // Giữ tối đa 10 từ gần nhất
+            const keys = Object.keys(cache).sort((a, b) => cache[b].timestamp - cache[a].timestamp);
+            if (keys.length > 10) {
+                const newCache: any = {};
+                keys.slice(0, 10).forEach(k => { newCache[k] = cache[k]; });
+                localStorage.setItem(CACHE_KEY, JSON.stringify(newCache));
+            } else {
+                localStorage.setItem(CACHE_KEY, JSON.stringify(cache));
+            }
+        } catch (e) { console.error('Cache save error', e); }
+    };
+
+    const loadFromCache = (word: string) => {
+        try {
+            const cache = JSON.parse(localStorage.getItem(CACHE_KEY) || '{}');
+            return cache[word.toLowerCase()] || null;
+        } catch { return null; }
+    };
+
+    // ─── INITIALIZATION ──────────────────────────────────────────────────────
+    useEffect(() => {
+        // Khôi phục danh sách từ gần đây từ Cache
+        try {
+            const cache = JSON.parse(localStorage.getItem(CACHE_KEY) || '{}');
+            const keys = Object.keys(cache).sort((a, b) => cache[b].timestamp - cache[a].timestamp);
+            setRecentWords(keys);
+            
+            if (urlWord) {
+                handleSearch(urlWord);
+            } else if (keys.length > 0) {
+                // Nếu không có URL, lấy từ khóa cuối cùng trong cache
+                setSearchParams({ word: keys[0] });
+            }
+        } catch {}
+    }, [urlWord]); 
 
     const handleSearch = useCallback(async (word?: string) => {
         const searchWord = (word || query).trim();
         if (!searchWord) return;
+
+        // BƯỚC 1: Kiểm tra Cache trước
+        const cache = loadFromCache(searchWord);
+        if (cache && cache.result) {
+            setResult(cache.result);
+            setIsSaved(cache.result.isSaved || false);
+            setAiNotes(cache.aiNotes || null);
+            setEnrichedFamilyData(cache.enrichedFamilyData || null);
+            setIsExpanded(cache.isExpanded || false);
+            setQuery(searchWord);
+            setSearchParams({ word: searchWord });
+            setLoading(false);
+            return;
+        }
 
         setLoading(true);
         setError(null);
@@ -105,6 +170,10 @@ const VocabularyPage: React.FC = () => {
             setResult(res.data);
             setIsSaved(res.data.isSaved || false);
             setRecentWords(prev => [searchWord, ...prev.filter(w => w !== searchWord)].slice(0, 10));
+            
+            // Cập nhật URL & Cache
+            setSearchParams({ word: searchWord });
+            saveToCache(searchWord, { result: res.data });
         } catch {
             setError(`Không tìm thấy từ "${searchWord}".`);
         } finally {
@@ -139,6 +208,7 @@ const VocabularyPage: React.FC = () => {
         try {
             const res = await vocabularyApi.getAINotes(result.word);
             setAiNotes(res.data);
+            saveToCache(result.word, { aiNotes: res.data, isExpanded: true });
         } catch {
             setAiError('Dịch vụ AI đang quá tải. Vui lòng thử lại sau.');
             setAiNotes(null);
@@ -155,9 +225,12 @@ const VocabularyPage: React.FC = () => {
             const res = await vocabularyApi.getFamilyAINotes(result.word);
             if (res.data.familyData) {
                 setEnrichedFamilyData(res.data.familyData);
+                saveToCache(result.word, { enrichedFamilyData: res.data.familyData });
             }
             if (res.data.mainTranslation) {
-                setResult(prev => prev ? { ...prev, translation: res.data.mainTranslation } : null);
+                const updatedResult = { ...result, translation: res.data.mainTranslation };
+                setResult(updatedResult);
+                saveToCache(result.word, { result: updatedResult });
             }
         } catch {
             setAiError('Không thể làm giàu họ từ lúc này. Thử lại sau.');
@@ -203,6 +276,26 @@ const VocabularyPage: React.FC = () => {
                         </button>
                     </div>
                 </div>
+
+                {/* ── RECENT SEARCHES CHIPS ── */}
+                {recentWords.length > 0 && (
+                    <div className="mb-8 flex items-center gap-3 overflow-x-auto pb-2 no-scrollbar">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Vừa tra:</span>
+                        {recentWords.slice(0, 8).map(w => (
+                            <button
+                                key={w}
+                                onClick={() => handleSearch(w)}
+                                className={`px-4 py-1.5 rounded-full text-[11px] font-bold transition-all border whitespace-nowrap ${
+                                    result?.word.toLowerCase() === w.toLowerCase()
+                                        ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-200'
+                                        : 'bg-white border-slate-200 text-slate-500 hover:border-indigo-300 hover:text-indigo-600'
+                                }`}
+                            >
+                                {w}
+                            </button>
+                        ))}
+                    </div>
+                )}
 
                 {/* ── LOADING & ERROR ── */}
                 {loading && (
