@@ -80,9 +80,13 @@ export const vocabularyApi = {
 
     /** Toggle lưu/bỏ lưu từ vào Sổ tay */
     toggleSave: (word: string) =>
-        api.post<{ word: string; isSaved: boolean }>('/vocabulary/save', { word }),
+        api.post<{ word: string; isSaved: boolean }>('/vocabulary/toggle-save', { word }),
 
     /** Lấy lịch sử tra cứu */
-    getHistory: (page = 1, limit = 20, savedOnly = false) =>
-        api.get('/vocabulary/history', { params: { page, limit, savedOnly } }),
+    getHistory: (page = 1, limit = 20) =>
+        api.get('/vocabulary/history', { params: { page, limit } }),
+
+    /** Lấy danh sách từ đã lưu (Sổ tay) */
+    getSavedWords: (page = 1, limit = 20) =>
+        api.get('/vocabulary/saved', { params: { page, limit } }),
 };

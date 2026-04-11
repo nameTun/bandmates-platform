@@ -24,6 +24,20 @@ export class VocabularyService {
     async search(word: string, userId?: string): Promise<any> {
         const cleanWord = word.trim().toLowerCase();
 
+        // [SNAPSHOT CHECK] Nếu đã có dữ liệu trong DB, trả về ngay lập tức
+        if (userId) {
+            const history = await this.vocabularyRepository.findOne({
+                where: { user: { id: userId }, word: cleanWord }
+            });
+            if (history && history.dictionaryData) {
+                return { 
+                    ...history.dictionaryData, 
+                    isSaved: history.isSaved,
+                    fromSnapshot: true 
+                };
+            }
+        }
+
         const [dictResult, datamuseResult] = await Promise.allSettled([
             this.getDictionaryData(cleanWord),
             this.getDatamuseData(cleanWord),
@@ -61,8 +75,8 @@ export class VocabularyService {
             word: cleanWord,
             phonetic: dictionaryData.phonetic,
             audio: dictionaryData.audio,
-            translation: '', // Trống, sẽ chờ AI làm giàu
-            meanings: resultMeanings, // Nghĩa thô English
+            translation: '', 
+            meanings: resultMeanings, 
             wordFamily: wordFamilyWords,
             wordFamilyData: basicWordFamilyData, 
             synonyms: (datamuseData?.synonyms?.length ?? 0) > 0
@@ -73,15 +87,17 @@ export class VocabularyService {
                 : dictionaryData.antonyms,
         };
 
+        // [SNAPSHOT] Lưu bản ghi lịch sử ban đầu với dữ liệu từ điển
+        let isSaved = false;
         if (userId) {
-            this.vocabularyRepository.save({
-                word: cleanWord,
+            const history = await this.upsertHistory(userId, cleanWord, {
                 phonetic: finalResult.phonetic,
-                user: { id: userId },
-            }).catch(() => { });
+                dictionaryData: finalResult
+            });
+            isSaved = history?.isSaved || false;
         }
 
-        return finalResult;
+        return { ...finalResult, isSaved };
     }
 
     /**
@@ -89,8 +105,19 @@ export class VocabularyService {
      * Chọn ra 1 từ tiêu biểu nhất cho mỗi loại (n, v, adj, adv) và tạo ví dụ IELTS.
      */
     async getFamilyAINotes(word: string, userId?: string, ip?: string, visitorId?: string): Promise<any> {
-        await this.checkAndRecordUsage(userId, ip, visitorId, 'ENRICH');
         const cleanWord = word.trim().toLowerCase();
+
+        // [SNAPSHOT CHECK] Trả về ngay nếu đã có họ từ AI làm giàu trong DB
+        if (userId) {
+            const history = await this.vocabularyRepository.findOne({
+                where: { user: { id: userId }, word: cleanWord }
+            });
+            if (history && history.familyData) {
+                return { ...history.familyData, fromSnapshot: true };
+            }
+        }
+
+        await this.checkAndRecordUsage(userId, ip, visitorId, 'ENRICH');
         const familyWords = await this.extractWordFamily(cleanWord);
         
         // Chuyển object thành list từ để gửi AI
@@ -122,16 +149,18 @@ export class VocabularyService {
         try {
             const enrichedData = await this.geminiService.generateContent(prompt);
             
-            if (enrichedData && enrichedData.mainTranslation) {
-                return enrichedData; // Trả về object lớn chứa cả 2
-            }
-            
-            // Fallback trường hợp AI trả về raw string
+            let result = enrichedData;
             if (enrichedData && enrichedData.raw) {
                 const cleanJson = enrichedData.raw.replace(/```json|```/g, '').trim();
-                return JSON.parse(cleanJson);
+                result = JSON.parse(cleanJson);
             }
-            return { mainTranslation: '', familyData: [] };
+
+            // [SNAPSHOT] Cập nhật kết quả họ từ mẫu vào DB
+            if (userId && result && result.mainTranslation) {
+                await this.upsertHistory(userId, cleanWord, { familyData: result });
+            }
+
+            return result || { mainTranslation: '', familyData: [] };
         } catch (error) {
             console.error('Gemini Word Family Enrichment Error:', error);
             return { mainTranslation: '', familyData: [] };
@@ -139,48 +168,68 @@ export class VocabularyService {
     }
 
     async getAINotes(word: string, userId?: string, ip?: string, visitorId?: string): Promise<any> {
-        await this.checkAndRecordUsage(userId, ip, visitorId, 'ANALYSIS');
         const cleanWord = word.trim().toLowerCase();
+
+        // [SNAPSHOT CHECK] Trả về ngay nếu đã có phân tích AI trong DB
+        if (userId) {
+            const history = await this.vocabularyRepository.findOne({
+                where: { user: { id: userId }, word: cleanWord }
+            });
+            if (history && history.aiNotes) {
+                return { ...history.aiNotes, fromSnapshot: true };
+            }
+        }
+
+        await this.checkAndRecordUsage(userId, ip, visitorId, 'ANALYSIS');
         const aiData = await this.getIELTSAnalysis(cleanWord);
         // Đảm bảo aiData là object trước khi spread
         const dataObj = typeof aiData === 'string' ? JSON.parse(aiData) : aiData;
-        return { word: cleanWord, ...dataObj };
-    }
+        const result = { word: cleanWord, ...dataObj };
 
-    async toggleSaved(word: string, userId: string): Promise<any> {
-        const cleanWord = word.trim().toLowerCase();
-        let entry = await this.vocabularyRepository.findOne({
-            where: { word: cleanWord, user: { id: userId } },
-        });
-
-        if (!entry) {
-            entry = await this.vocabularyRepository.save({
-                word: cleanWord,
-                isSaved: true,
-                user: { id: userId },
-            });
-        } else {
-            entry.isSaved = !entry.isSaved;
-            await this.vocabularyRepository.save(entry);
+        // [SNAPSHOT] Cập nhật phân tích IELTS vào DB
+        if (userId && result.ieltsBand) {
+            await this.upsertHistory(userId, cleanWord, { aiNotes: result });
         }
 
-        return { word: cleanWord, isSaved: entry.isSaved };
+        return result;
     }
 
-    async getHistory(userId: string, page = 1, limit = 20, savedOnly = false): Promise<any> {
-        const skip = (page - 1) * limit;
-        const where: any = { user: { id: userId } };
-        if (savedOnly) where.isSaved = true;
-
-        const [data, total] = await this.vocabularyRepository.findAndCount({
-            where,
-            order: { searchedAt: 'DESC' },
-            skip,
-            take: limit,
-            select: ['id', 'word', 'phonetic', 'isSaved', 'searchedAt'],
+    async toggleSave(userId: string, word: string) {
+        const cleanWord = word.trim().toLowerCase();
+        const history = await this.vocabularyRepository.findOne({
+            where: { user: { id: userId }, word: cleanWord }
         });
 
-        return { data, total, page, totalPages: Math.ceil(total / limit) };
+        if (!history) {
+            throw new HttpException('Từ vựng chưa có trong lịch sử tra cứu. Hãy tra trước khi lưu.', HttpStatus.NOT_FOUND);
+        }
+
+        history.isSaved = !history.isSaved;
+        await this.vocabularyRepository.save(history);
+
+        return { word: cleanWord, isSaved: history.isSaved };
+    }
+
+    async getHistory(userId: string, page: number = 1, limit: number = 20, isSavedOnly: boolean = false) {
+        const skip = (page - 1) * limit;
+        const [data, total] = await this.vocabularyRepository.findAndCount({
+            where: { 
+                user: { id: userId },
+                ...(isSavedOnly ? { isSaved: true } : {})
+            },
+            order: { searchedAt: 'DESC' },
+            take: limit,
+            skip: skip,
+            // Ở danh mục lịch sử ta chỉ lấy các trường cần thiết để nhẹ data
+            select: ['id', 'word', 'phonetic', 'isSaved', 'searchedAt']
+        });
+
+        return {
+            data,
+            total,
+            page,
+            totalPages: Math.ceil(total / limit)
+        };
     }
 
     /**
@@ -225,6 +274,35 @@ export class VocabularyService {
             ipAddress: ip,
             action: action || 'UNKNOWN',
         });
+    }
+
+    /**
+     * [PERSISTENCE] Cập nhật hoặc lưu mới Snapshot lịch sử tra cứu
+     */
+    private async upsertHistory(userId: string, word: string, data: Partial<VocabularyHistory>) {
+        try {
+            let history = await this.vocabularyRepository.findOne({
+                where: { user: { id: userId }, word: word.toLowerCase() }
+            });
+
+            if (history) {
+                // Cập nhật Snapshot (Object.assign để không ghi đè các trường khác)
+                Object.assign(history, data);
+                history.searchedAt = new Date(); // Update thời gian tra gần nhất
+                return await this.vocabularyRepository.save(history);
+            } else {
+                // Tạo mới record
+                const newHistory = this.vocabularyRepository.create({
+                    user: { id: userId },
+                    word: word.toLowerCase(),
+                    ...data
+                });
+                return await this.vocabularyRepository.save(newHistory);
+            }
+        } catch (error) {
+            console.error('Failed to upsert history:', error);
+            return null;
+        }
     }
 
     private async getDictionaryData(word: string) {

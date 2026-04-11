@@ -16,6 +16,15 @@ export class VocabularyHistory {
     @Column({ default: false })
     isSaved: boolean;
 
+    @Column({ type: 'json', nullable: true })
+    dictionaryData: any;
+
+    @Column({ type: 'json', nullable: true })
+    aiNotes: any;
+
+    @Column({ type: 'json', nullable: true })
+    familyData: any;
+
     @CreateDateColumn()
     searchedAt: Date;
 

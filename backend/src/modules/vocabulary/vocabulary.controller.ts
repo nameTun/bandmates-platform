@@ -49,26 +49,34 @@ export class VocabularyController {
     }
 
     /** Toggle lưu/bỏ lưu từ vào Sổ tay — Chỉ User đăng nhập */
-    @Post('save')
+    @Post('toggle-save')
     @UseGuards(JwtAuthGuard)
-    async toggleSaved(@Body('word') word: string, @GetUser() user: User) {
-        return this.vocabularyService.toggleSaved(word, user.id);
+    async toggleSave(
+        @Body('word') word: string,
+        @GetUser() user: User
+    ) {
+        return this.vocabularyService.toggleSave(user.id, word);
     }
 
-    /** Lịch sử & Sổ tay từ vựng — Chỉ User đăng nhập */
+    /** Lấy lịch sử tra cứu của User - Có phân trang */
     @Get('history')
     @UseGuards(JwtAuthGuard)
     async getHistory(
         @GetUser() user: User,
-        @Query('page') page = '1',
-        @Query('limit') limit = '20',
-        @Query('savedOnly') savedOnly = 'false',
+        @Query('page') page: string = '1',
+        @Query('limit') limit: string = '20'
     ) {
-        return this.vocabularyService.getHistory(
-            user.id,
-            parseInt(page),
-            parseInt(limit),
-            savedOnly === 'true',
-        );
+        return this.vocabularyService.getHistory(user.id, Number(page), Number(limit), false);
+    }
+
+    /** Lấy danh sách từ đã lưu (Sổ tay) */
+    @Get('saved')
+    @UseGuards(JwtAuthGuard)
+    async getSavedWords(
+        @GetUser() user: User,
+        @Query('page') page: string = '1',
+        @Query('limit') limit: string = '20'
+    ) {
+        return this.vocabularyService.getHistory(user.id, Number(page), Number(limit), true);
     }
 }

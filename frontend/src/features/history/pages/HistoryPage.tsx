@@ -7,6 +7,8 @@ import { vi } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
 import { TaskType } from '@/common/enums/task-type.enum';
 import { Pagination, Modal, message } from 'antd';
+import { vocabularyApi } from '../../vocabulary/api/vocabularyApi';
+import type { SearchResult } from '../../vocabulary/api/vocabularyApi';
 
 interface Essay {
   id: string;
@@ -19,20 +21,16 @@ interface Essay {
   scores: { tr: number; cc: number; lr: number; gra: number };
 }
 
-/* ──── Mock Data (Words Only) ──── */
+interface VocabHistoryItem {
+  id: string;
+  word: string;
+  phonetic: string;
+  isSaved: boolean;
+  searchedAt: string;
+  dictionaryData?: SearchResult;
+}
 
-const mockWords = [
-  { word: 'significant', phonetic: '/sɪɡˈnɪfɪkənt/', type: 'adj', date: '2 Tháng 4, 2026' },
-  { word: 'abundant', phonetic: '/əˈbʌndənt/', type: 'adj', date: '2 Tháng 4, 2026' },
-  { word: 'deteriorate', phonetic: '/dɪˈtɪəriəreɪt/', type: 'verb', date: '1 Tháng 4, 2026' },
-  { word: 'exacerbate', phonetic: '/ɪɡˈzæsəbeɪt/', type: 'verb', date: '1 Tháng 4, 2026' },
-  { word: 'mitigate', phonetic: '/ˈmɪtɪɡeɪt/', type: 'verb', date: '31 Tháng 3, 2026' },
-  { word: 'unprecedented', phonetic: '/ʌnˈpresɪdentɪd/', type: 'adj', date: '31 Tháng 3, 2026' },
-  { word: 'resilience', phonetic: '/rɪˈzɪliəns/', type: 'noun', date: '30 Tháng 3, 2026' },
-  { word: 'paradigm', phonetic: '/ˈpærədaɪm/', type: 'noun', date: '30 Tháng 3, 2026' },
-  { word: 'encompass', phonetic: '/ɪnˈkʌmpəs/', type: 'verb', date: '29 Tháng 3, 2026' },
-  { word: 'pragmatic', phonetic: '/præɡˈmætɪk/', type: 'adj', date: '29 Tháng 3, 2026' },
-];
+// Mock data removed in favor of real API
 
 /* ──── Helpers ──── */
 
@@ -66,57 +64,81 @@ const HistoryPage: React.FC = () => {
   const [tab, setTab] = useState<'essays' | 'words'>('essays');
   const [expandedEssay, setExpandedEssay] = useState<string | null>(null);
   const [essays, setEssays] = useState<Essay[]>([]);
+  const [words, setWords] = useState<VocabHistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   
   // Pagination & Filter States
   const [currentPage, setCurrentPage] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
+  
+  const [vocabPage, setVocabPage] = useState(1);
+  const [totalVocab, setTotalVocab] = useState(0);
+  
   const [taskFilter, setTaskFilter] = useState<string>('all');
+  const [isSavedOnly, setIsSavedOnly] = useState(false);
 
   useEffect(() => {
-    const fetchHistory = async () => {
-      setLoading(true);
-      try {
-        const queryParams: any = { 
-          page: currentPage, 
-          limit: 10 
-        };
-        if (taskFilter !== 'all') {
-          queryParams.taskType = taskFilter;
-        }
-
-        const response = await HistoryService.getMyHistory(queryParams);
-        const rawHistory = response.data || [];
-        
-        // Metadata
-        if (response.meta) {
-          setTotalItems(response.meta.total);
-        }
-
-        const mappedEssays: Essay[] = rawHistory.map((item: any) => ({
-          id: item.id,
-          task: item.prompt ? (item.prompt.taskType === TaskType.TASK_2 ? 'Task 2' : 'Task 1') : 'Tự do',
-          topic: item.prompt?.topic?.name || item.prompt?.category?.name || 'Tự chọn',
-          band: Number(item.overallScore || 0),
-          date: format(new Date(item.createdAt), 'd MMMM, yyyy', { locale: vi }),
-          wordCount: item.wordCount || 0,
-          prompt: item.prompt?.content || 'Bài viết tự do không dùng đề mẫu.',
-          scores: {
-            tr: Number(item.scoreTA || 0),
-            cc: Number(item.scoreCC || 0),
-            lr: Number(item.scoreLR || 0),
-            gra: Number(item.scoreGRA || 0),
+    if (tab === 'essays') {
+      const fetchHistory = async () => {
+        setLoading(true);
+        try {
+          const queryParams: any = { 
+            page: currentPage, 
+            limit: 10 
+          };
+          if (taskFilter !== 'all') {
+            queryParams.taskType = taskFilter;
           }
-        }));
-        setEssays(mappedEssays);
-      } catch (err) {
-        console.error('Failed to fetch history', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchHistory();
-  }, [currentPage, taskFilter]);
+
+          const response = await HistoryService.getMyHistory(queryParams);
+          const rawHistory = response.data || [];
+          
+          if (response.meta) {
+            setTotalItems(response.meta.total);
+          }
+
+          const mappedEssays: Essay[] = rawHistory.map((item: any) => ({
+            id: item.id,
+            task: item.prompt ? (item.prompt.taskType === TaskType.TASK_2 ? 'Task 2' : 'Task 1') : 'Tự do',
+            topic: item.prompt?.topic?.name || item.prompt?.category?.name || 'Tự chọn',
+            band: Number(item.overallScore || 0),
+            date: format(new Date(item.createdAt), 'd MMMM, yyyy', { locale: vi }),
+            wordCount: item.wordCount || 0,
+            prompt: item.prompt?.content || 'Bài viết tự do không dùng đề mẫu.',
+            scores: {
+              tr: Number(item.scoreTA || 0),
+              cc: Number(item.scoreCC || 0),
+              lr: Number(item.scoreLR || 0),
+              gra: Number(item.scoreGRA || 0),
+            }
+          }));
+          setEssays(mappedEssays);
+        } catch (err) {
+          console.error('Failed to fetch practice history', err);
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchHistory();
+    } else {
+      const fetchVocabHistory = async () => {
+        setLoading(true);
+        try {
+          const response = isSavedOnly 
+            ? await vocabularyApi.getSavedWords(vocabPage, 12)
+            : await vocabularyApi.getHistory(vocabPage, 12);
+          
+          setWords(response.data.data);
+          setTotalVocab(response.data.total);
+        } catch (err) {
+          console.error('Failed to fetch vocab history', err);
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchVocabHistory();
+    }
+  }, [tab, currentPage, vocabPage, taskFilter, isSavedOnly]);
 
   const handleDelete = (e: React.MouseEvent, id: string) => {
     e.stopPropagation(); // Ngăn sự kiện click lan ra làm đóng/mở essay card
@@ -178,7 +200,7 @@ const HistoryPage: React.FC = () => {
                   tab === 'words' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'
                 }`}
               >
-                Từ vựng ({mockWords.length})
+                Từ vựng ({totalVocab})
               </button>
             </div>
           </div>
@@ -363,12 +385,36 @@ const HistoryPage: React.FC = () => {
         {/* ═══ WORDS TAB ═══ */}
         {tab === 'words' && (
           <>
+            {/* Filter */}
+            <div className="flex items-center gap-2 mb-6">
+              <button
+                onClick={() => { setIsSavedOnly(false); setVocabPage(1); }}
+                className={`px-5 py-2 rounded-xl text-xs font-bold transition-all border ${
+                  !isSavedOnly 
+                    ? 'bg-indigo-600 border-indigo-600 text-white shadow-md' 
+                    : 'bg-white border-slate-200 text-slate-500 hover:border-indigo-300'
+                }`}
+              >
+                Tất cả lịch sử
+              </button>
+              <button
+                onClick={() => { setIsSavedOnly(true); setVocabPage(1); }}
+                className={`px-5 py-2 rounded-xl text-xs font-bold transition-all border ${
+                  isSavedOnly 
+                    ? 'bg-amber-500 border-amber-500 text-white shadow-md' 
+                    : 'bg-white border-slate-200 text-slate-500 hover:border-amber-300'
+                }`}
+              >
+                ⭐ Đã lưu (Sổ tay)
+              </button>
+            </div>
+
             {/* Stats */}
-            <div className="grid grid-cols-3 gap-4 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
               {[
-                { label: 'Tổng từ đã tra', value: mockWords.length, icon: '📚' },
-                { label: 'Hôm nay', value: mockWords.filter(w => w.date.includes('2 Tháng 4')).length, icon: '📅' },
-                { label: 'Loại từ phổ biến', value: 'Adjective', icon: '🏷️' },
+                { label: 'Từ đã tra', value: totalVocab, icon: '📚' },
+                { label: 'Đã lưu sổ tay', value: words.filter(w => w.isSaved).length, icon: '⭐' },
+                { label: 'Hành trình', value: 'Chăm chỉ', icon: '🔥' },
               ].map(s => (
                 <div key={s.label} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex items-center gap-3">
                   <span className="text-2xl">{s.icon}</span>
@@ -380,34 +426,61 @@ const HistoryPage: React.FC = () => {
               ))}
             </div>
 
-            {/* Words grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {mockWords.map((w, i) => (
-                <div
-                  key={i}
-                  className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm hover:shadow-md hover:border-indigo-200 transition-all cursor-pointer group"
-                >
-                  <div className="flex items-start justify-between mb-2">
-                    <div>
-                      <h3 className="text-lg font-extrabold text-slate-900 group-hover:text-indigo-600 transition-colors">{w.word}</h3>
-                      <p className="text-sm text-indigo-500 font-medium">{w.phonetic}</p>
+            {loading ? (
+              <div className="py-20 flex justify-center items-center">
+                <Spin indicator={<LoadingOutlined style={{ fontSize: 32, color: '#4f46e5' }} spin />} />
+              </div>
+            ) : words.length === 0 ? (
+              <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center shadow-sm">
+                <div className="text-5xl mb-4">📖</div>
+                <h3 className="text-xl font-bold text-slate-800 mb-2">Chưa có dữ liệu từ vựng</h3>
+                <p className="text-slate-500 mb-6">Hãy tra cứu những từ mới để bắt đầu xây dựng vốn từ của bạn!</p>
+                <a href="/vocabulary" className="bg-indigo-600 text-white px-6 py-2.5 rounded-lg font-bold shadow-sm hover:bg-indigo-700 transition">Đi tra từ ngay</a>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {words.map((w) => (
+                  <div
+                    key={w.id}
+                    onClick={() => navigate(`/vocabulary?word=${w.word}`)}
+                    className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm hover:shadow-md hover:border-indigo-200 transition-all cursor-pointer group"
+                  >
+                    <div className="flex items-start justify-between mb-2">
+                      <div>
+                        <h3 className="text-lg font-extrabold text-slate-900 group-hover:text-indigo-600 transition-colors uppercase tracking-tight">{w.word}</h3>
+                        <p className="text-xs text-indigo-400 font-medium font-mono">{w.phonetic}</p>
+                      </div>
+                      <div className="flex gap-2">
+                          {w.isSaved && <span className="text-amber-500">⭐</span>}
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-50 text-slate-400 uppercase tracking-widest border border-slate-100">
+                             {w.searchedAt ? format(new Date(w.searchedAt), 'dd/MM') : '--/--'}
+                          </span>
+                      </div>
                     </div>
-                    <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wide ${typeColor[w.type] || 'text-slate-600 bg-slate-50'}`}>
-                      {w.type}
-                    </span>
+                    
+                    <div className="mt-3 flex items-center justify-between">
+                        <span className="text-[10px] text-slate-400 font-medium">Click để xem lại AI Notes</span>
+                        <div className="text-xs font-bold text-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                           Xem chi tiết →
+                        </div>
+                    </div>
                   </div>
-                  <div className="flex items-center justify-between mt-3">
-                    <span className="text-xs text-slate-400">{w.date}</span>
-                    <button className="text-xs font-semibold text-indigo-500 hover:text-indigo-700 opacity-0 group-hover:opacity-100 transition-all flex items-center gap-1">
-                      Tra lại
-                      <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
+
+            {/* Pagination */}
+            {!loading && totalVocab > 12 && (
+              <div className="mt-10 flex justify-center">
+                <Pagination 
+                  current={vocabPage}
+                  total={totalVocab}
+                  pageSize={12}
+                  onChange={(p) => { setVocabPage(p); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                  showSizeChanger={false}
+                />
+              </div>
+            )}
           </>
         )}
 
