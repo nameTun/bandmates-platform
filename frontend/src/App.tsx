@@ -5,7 +5,7 @@ import { LoadingOutlined } from '@ant-design/icons';
 import { useAuthStore } from '@/features/auth/store/useAuthStore';
 import LoginPage from '@/features/auth/pages/LoginPage';
 import RegisterPage from '@/features/auth/pages/RegisterPage';
-import ScoringPage from '@/features/scoring/pages/ScoringPage';
+import PracticePage from '@/features/practice/pages/PracticePage';
 import HomePage from '@/pages/HomePage';
 import DashboardPage from '@/pages/DashboardPage';
 import VocabularyPage from '@/features/vocabulary/pages/VocabularyPage';
@@ -54,7 +54,7 @@ const App: React.FC = () => {
         {/* ── 1. Routes chung (Cả Guest và User ) ── */}
         <Route element={isAuthenticated && user?.role !== 'admin' ? <AuthenticatedLayout /> : <GuestLayout />}>
           <Route path="/" element={isAuthenticated ? <SmartRedirect /> : <HomePage />} />
-          <Route path="/practice" element={<ScoringPage />} />
+          <Route path="/practice" element={<PracticePage />} />
           <Route path="/vocabulary" element={<VocabularyPage />} />
           <Route 
             path="/login" 
@@ -71,7 +71,7 @@ const App: React.FC = () => {
           <Route element={<AuthenticatedLayout />}>
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/history" element={<HistoryPage />} />
-            <Route path="/history/:id" element={<ScoringPage />} />
+            <Route path="/history/:id" element={<PracticePage />} />
           </Route>
         )}
 

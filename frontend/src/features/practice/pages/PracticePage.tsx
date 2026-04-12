@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { historyService } from '@/features/history/services/history.service';
-import { scoringService } from '@/features/scoring/services/scoring.service';
-import type { Prompt, Topic, Category } from '@/features/scoring/services/scoring.service';
+import { practiceService } from '@/features/practice/services/practice.service';
+import type { Prompt, Topic, Category, AIResponse, Correction } from '@/features/practice/services/practice.service';
 import { useAuthStore } from '@/features/auth/store/useAuthStore';
 import { TaskType } from '@/common/enums/task-type.enum';
 import { Spin } from 'antd';
 
 /* ──────────── TYPES ──────────── */
-// Các interface Correction và AIResponse đã được chuyển vào scoring.service.ts
+// Các interface Correction và AIResponse đã được chuyển vào practice.service.ts
 
 
 const typeConfig: Record<string, { label: string; bg: string }> = {
@@ -45,9 +45,9 @@ const PracticeLibrary: React.FC<{ onSelect: (prompt: Prompt) => void }> = ({ onS
     try {
       setLoading(true);
       const [pData, cData, tData] = await Promise.all([
-        scoringService.getPrompts(),
-        scoringService.getCategories(),
-        scoringService.getTopics()
+        practiceService.getPrompts(),
+        practiceService.getCategories(),
+        practiceService.getTopics()
       ]);
       setPrompts(pData);
       setCategories(cData);
@@ -257,7 +257,7 @@ const WritingEditor: React.FC<{
     setLoading(true);
     setResult(null);
     try {
-      const data = await scoringService.checkIelts(text, promptObj.id, timeSpent);
+      const data = await practiceService.checkIelts(text, promptObj.id, timeSpent);
       setResult(data);
       setActiveTab('mistakes');
     } catch { /* handled */ }
@@ -514,7 +514,7 @@ const WritingEditor: React.FC<{
 
 /* ──────────── MAIN PAGE COMPONENT ──────────── */
 
-const ScoringPage: React.FC = () => {
+const PracticePage: React.FC = () => {
   const { id: attemptId } = useParams<{ id?: string }>();
   const navigate = useNavigate();
 
@@ -529,7 +529,7 @@ const ScoringPage: React.FC = () => {
         try {
           const data = await historyService.getAttemptDetail(attemptId);
           setReviewAttempt(data);
-          setSelectedTask(data.prompt || { content: 'Bài viết tự do không dùng đề mẫu.', taskType: TaskType.TASK_2 });
+          setSelectedTask(data.prompt || ({ content: 'Bài viết tự do không dùng đề mẫu.', taskType: TaskType.TASK_2 } as any));
         } catch (error) {
           console.error(error);
           navigate('/history');
@@ -570,4 +570,4 @@ const ScoringPage: React.FC = () => {
   );
 };
 
-export default ScoringPage;
+export default PracticePage;
