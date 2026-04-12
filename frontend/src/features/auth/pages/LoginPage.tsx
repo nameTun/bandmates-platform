@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '@/features/auth/store/useAuthStore';
-import { AuthService } from '@/features/auth/services/auth.service';
+import { authService } from '@/features/auth/services/auth.service';
 import { notification } from 'antd';
 
 /* ── Mouse Glow Effect ── */
@@ -40,7 +40,7 @@ const LoginPage: React.FC = () => {
     const verifyLogin = async () => {
       if (status === 'success') {
         try {
-          const data = await AuthService.refresh();
+          const data = await authService.refresh();
           if (data?.accessToken && data?.user) {
             setAuth(data.accessToken, data.user);
             notification.success({ message: 'Đăng nhập thành công!', placement: 'topRight' });
@@ -75,7 +75,7 @@ const LoginPage: React.FC = () => {
     e.preventDefault();
     try {
       setLoading(true);
-      const data = await AuthService.login({ email, password });
+      const data = await authService.login({ email, password });
       if (data?.accessToken && data?.user) {
         setAuth(data.accessToken, data.user);
         notification.success({ message: 'Đăng nhập thành công!', placement: 'topRight' });

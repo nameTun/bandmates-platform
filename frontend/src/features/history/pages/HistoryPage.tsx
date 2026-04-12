@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { HistoryService } from '../services/history.service';
+import { historyService } from '../services/history.service';
+import type { Essay, VocabHistoryItem } from '../services/history.service';
 import { Spin } from 'antd';
 import { LoadingOutlined } from '@ant-design/icons';
 import { format } from 'date-fns';
@@ -7,30 +8,10 @@ import { vi } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
 import { TaskType } from '@/common/enums/task-type.enum';
 import { Pagination, Modal, message } from 'antd';
-import { vocabularyApi } from '../../vocabulary/api/vocabularyApi';
-import type { SearchResult } from '../../vocabulary/api/vocabularyApi';
-
-interface Essay {
-  id: string;
-  task: string;
-  topic: string;
-  band: number;
-  date: string;
-  wordCount: number;
-  prompt: string;
-  scores: { tr: number; cc: number; lr: number; gra: number };
-}
-
-interface VocabHistoryItem {
-  id: string;
-  word: string;
-  phonetic: string;
-  isSaved: boolean;
-  searchedAt: string;
-  dictionaryData?: SearchResult;
-}
+import { vocabularyService } from '../../vocabulary/services/vocabulary.service';
 
 // Mock data removed in favor of real API
+
 
 /* ──── Helpers ──── */
 
@@ -48,14 +29,8 @@ const criteriaColor = (s: number) => {
   return 'bg-red-400';
 };
 
-const typeColor: Record<string, string> = {
-  adj: 'text-indigo-600 bg-indigo-50',
-  verb: 'text-emerald-600 bg-emerald-50',
-  noun: 'text-amber-600 bg-amber-50',
-  adv: 'text-violet-600 bg-violet-50',
-};
-
 /* ──── Components ──── */
+
 
 /* ──── Components ──── */
 
@@ -90,7 +65,7 @@ const HistoryPage: React.FC = () => {
             queryParams.taskType = taskFilter;
           }
 
-          const response = await HistoryService.getMyHistory(queryParams);
+          const response = await historyService.getMyHistory(queryParams);
           const rawHistory = response.data || [];
           
           if (response.meta) {
@@ -124,12 +99,12 @@ const HistoryPage: React.FC = () => {
       const fetchVocabHistory = async () => {
         setLoading(true);
         try {
-          const response = isSavedOnly 
-            ? await vocabularyApi.getSavedWords(vocabPage, 12)
-            : await vocabularyApi.getHistory(vocabPage, 12);
+          const data = isSavedOnly 
+            ? await vocabularyService.getSavedWords(vocabPage, 12)
+            : await vocabularyService.getHistory(vocabPage, 12);
           
-          setWords(response.data.data);
-          setTotalVocab(response.data.total);
+          setWords(data.data);
+          setTotalVocab(data.total);
         } catch (err) {
           console.error('Failed to fetch vocab history', err);
         } finally {
@@ -151,7 +126,7 @@ const HistoryPage: React.FC = () => {
       cancelText: 'Hủy',
       onOk: async () => {
         try {
-          await HistoryService.deleteAttempt(id);
+          await historyService.deleteAttempt(id);
           message.success('Đã xóa bài làm thành công!');
           // Refresh list
           setCurrentPage(1); // Quay về trang 1 cho chắc chắn

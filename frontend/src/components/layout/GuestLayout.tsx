@@ -1,7 +1,7 @@
 import React from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/features/auth/store/useAuthStore';
-import { AuthService } from '@/features/auth/services/auth.service';
+import { authService } from '@/features/auth/services/auth.service';
 
 /**
  * Layout cho Guest: Navbar (top) + Content + Footer
@@ -14,7 +14,7 @@ const GuestLayout: React.FC = () => {
 
   const handleLogout = async () => {
     try { 
-      await AuthService.logout(); 
+      await authService.logout(); 
     } catch (e) 
     { console.error(e); }
     logout();

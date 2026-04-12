@@ -1,7 +1,7 @@
 import api from '@/lib/api';
 import { TaskType } from '@/common/enums/task-type.enum';
-import type { Category } from './category-api';
-import type { Topic } from './topic-api';
+import type { Category } from './category.service';
+import type { Topic } from './topic.service';
 
 export type Prompt = {
   id: string;
@@ -19,8 +19,8 @@ export type Prompt = {
 
 export type CreatePromptDto = {
   taskType: TaskType;
-  categoryId: string; // Truyền UUID thay vì Tên
-  topicId?: string;   // Truyền UUID (Task 2)
+  categoryId: string;
+  topicId?: string;
   content: string;
   imageUrl?: string;
   modelAnswer?: string;
@@ -28,9 +28,9 @@ export type CreatePromptDto = {
   isFreeSample?: boolean;
 }
 
-export const promptApi = {
+export const promptService = {
   /**
-   * Lấy danh sách tất cả các đề bài dành cho Admin (không phân trang hiện tại)
+   * Lấy danh sách tất cả các đề bài dành cho Admin
    */
   getPrompts: async (): Promise<Prompt[]> => {
     const response = await api.get('/prompts');

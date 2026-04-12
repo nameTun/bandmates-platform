@@ -1,11 +1,11 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { message, Spin } from 'antd';
-import { categoryApi } from '../api/category-api';
-import type { Category } from '../api/category-api';
-import { topicApi } from '../api/topic-api';
-import type { Topic } from '../api/topic-api';
-import { promptApi } from '../api/prompt-api';
-import type { Prompt, CreatePromptDto } from '../api/prompt-api';
+import { categoryService } from '../services/category.service';
+import type { Category } from '../services/category.service';
+import { topicService } from '../services/topic.service';
+import type { Topic } from '../services/topic.service';
+import { promptService } from '../services/prompt.service';
+import type { Prompt, CreatePromptDto } from '../services/prompt.service';
 import { TaskType } from '@/common/enums/task-type.enum';
 
 const taskTypeLabel: Record<string, { text: string; color: string }> = {
@@ -63,9 +63,9 @@ const PromptManagement: React.FC = () => {
     try {
       setLoading(true);
       const [pData, cData, tData] = await Promise.all([
-        promptApi.getPrompts(),
-        categoryApi.getCategories(),
-        topicApi.getTopics()
+        promptService.getPrompts(),
+        categoryService.getCategories(),
+        topicService.getTopics()
       ]);
       setPrompts(pData);
       setCategories(cData);
@@ -103,7 +103,7 @@ const PromptManagement: React.FC = () => {
         isFreeSample: isFreeSample
       };
 
-      await promptApi.createPrompt(payload);
+      await promptService.createPrompt(payload);
       message.success('Đã tạo đề bài mới thành công!');
       
       // Reset form & Refresh

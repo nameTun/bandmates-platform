@@ -1,13 +1,5 @@
 import { create } from 'zustand';
-
-interface User {
-    id: string;
-    email: string;
-    googleId?: string;
-    facebookId?: string;
-    name?: string;
-    role: string
-}
+import type { User } from '../services/auth.service';
 
 interface AuthState {
     accessToken: string | null;

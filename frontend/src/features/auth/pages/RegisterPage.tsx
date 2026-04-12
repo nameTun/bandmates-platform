@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { notification } from 'antd';
-import { AuthService } from '@/features/auth/services/auth.service';
+import { authService } from '@/features/auth/services/auth.service';
 import { useAuthStore } from '@/features/auth/store/useAuthStore';
 
 /* ── Mouse Glow Effect ── */
@@ -70,7 +70,7 @@ const RegisterPage: React.FC = () => {
     }
     try {
       setLoading(true);
-      const data = await AuthService.register({
+      const data = await authService.register({
         name: formData.fullName, email: formData.email, password: formData.password
       });
       if (data?.accessToken && data?.user) {

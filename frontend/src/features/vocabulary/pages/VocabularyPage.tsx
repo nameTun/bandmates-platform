@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { vocabularyApi } from '../api/vocabularyApi';
-import type { SearchResult, AINotes } from '../api/vocabularyApi';
+import { vocabularyService } from '../services/vocabulary.service';
+import type { SearchResult, AINotes } from '../services/vocabulary.service';
 import { useAuthStore } from '@/features/auth/store/useAuthStore';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
@@ -166,14 +166,14 @@ const VocabularyPage: React.FC = () => {
         if (!word) setQuery(searchWord);
 
         try {
-            const res = await vocabularyApi.search(searchWord);
-            setResult(res.data);
-            setIsSaved(res.data.isSaved || false);
+            const data = await vocabularyService.search(searchWord);
+            setResult(data);
+            setIsSaved(data.isSaved || false);
             setRecentWords(prev => [searchWord, ...prev.filter(w => w !== searchWord)].slice(0, 10));
             
             // Cập nhật URL & Cache
             setSearchParams({ word: searchWord });
-            saveToCache(searchWord, { result: res.data });
+            saveToCache(searchWord, { result: data });
         } catch {
             setError(`Không tìm thấy từ "${searchWord}".`);
         } finally {
@@ -195,8 +195,8 @@ const VocabularyPage: React.FC = () => {
     const handleToggleSave = async () => {
         if (!result) return;
         try {
-            const res = await vocabularyApi.toggleSave(result.word);
-            setIsSaved(res.data.isSaved);
+            const data = await vocabularyService.toggleSave(result.word);
+            setIsSaved(data.isSaved);
         } catch { /* Handle error */ }
     };
 
@@ -206,9 +206,9 @@ const VocabularyPage: React.FC = () => {
         setAiLoading(true);
         setAiError(null);
         try {
-            const res = await vocabularyApi.getAINotes(result.word);
-            setAiNotes(res.data);
-            saveToCache(result.word, { aiNotes: res.data, isExpanded: true });
+            const data = await vocabularyService.getAINotes(result.word);
+            setAiNotes(data);
+            saveToCache(result.word, { aiNotes: data, isExpanded: true });
         } catch (error: any) {
             if (error.response?.status === 429) {
                 setAiError(error.response.data.message);
@@ -226,13 +226,13 @@ const VocabularyPage: React.FC = () => {
         setFamilyAiLoading(true);
         setAiError(null);
         try {
-            const res = await vocabularyApi.getFamilyAINotes(result.word);
-            if (res.data.familyData) {
-                setEnrichedFamilyData(res.data.familyData);
-                saveToCache(result.word, { enrichedFamilyData: res.data.familyData });
+            const data = await vocabularyService.getFamilyAINotes(result.word);
+            if (data.familyData) {
+                setEnrichedFamilyData(data.familyData);
+                saveToCache(result.word, { enrichedFamilyData: data.familyData });
             }
-            if (res.data.mainTranslation) {
-                const updatedResult = { ...result, translation: res.data.mainTranslation };
+            if (data.mainTranslation) {
+                const updatedResult = { ...result, translation: data.mainTranslation };
                 setResult(updatedResult);
                 saveToCache(result.word, { result: updatedResult });
             }

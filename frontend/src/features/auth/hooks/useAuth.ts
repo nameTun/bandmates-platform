@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { AuthService } from '@/features/auth/services/auth.service';
+import { authService } from '@/features/auth/services/auth.service';
 import { useAuthStore } from '@/features/auth/store/useAuthStore';
 
 /**
@@ -17,7 +17,7 @@ export const useAuth = () => {
     useEffect(() => {
         const restoreSession = async () => {
             try {
-                const data = await AuthService.refresh();
+                const data = await authService.refresh();
                 if (data?.accessToken && data?.user) {
                     setAuth(data.accessToken, data.user);
                 }

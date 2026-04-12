@@ -57,7 +57,7 @@ api.interceptors.response.use(
                 originalRequest._retry = true;
 
                 try {
-                    // Dùng axios thuần (KHÔNG dùng AuthService) để tránh Circular Dependency!
+                    // Dùng axios thuần (KHÔNG dùng authService) để tránh Circular Dependency!
                     const rs = await axios.post(
                         `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/auth/refresh`,
                         {},

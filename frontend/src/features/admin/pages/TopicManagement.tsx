@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Tabs, message, Spin } from 'antd';
-import { categoryApi } from '../api/category-api';
-import type { Category } from '../api/category-api';
-import { topicApi } from '../api/topic-api';
-import type { Topic } from '../api/topic-api';
+import { categoryService } from '../services/category.service';
+import type { Category } from '../services/category.service';
+import { topicService } from '../services/topic.service';
+import type { Topic } from '../services/topic.service';
 import { TaskType } from '@/common/enums/task-type.enum';
 
 /* ── UI COMPONENTS ── */
@@ -52,8 +52,8 @@ const TopicManagement: React.FC = () => {
     try {
       setLoading(true);
       const [catData, topData] = await Promise.all([
-        categoryApi.getCategories(),
-        topicApi.getTopics()
+        categoryService.getCategories(),
+        topicService.getTopics()
       ]);
       setCategories(catData);
       setTopics(topData);
@@ -76,7 +76,7 @@ const TopicManagement: React.FC = () => {
       // Xác định loại dữ liệu cần tạo dựa trên Tab
       if (activeTab === '3') {
         // Tạo TOPIC (Chủ đề xã hội Task 2)
-        await topicApi.createTopic({
+        await topicService.createTopic({
           name: formData.name,
           taskType: TaskType.TASK_2,
           description: formData.description
@@ -88,7 +88,7 @@ const TopicManagement: React.FC = () => {
         if (activeTab === '2') taskType = TaskType.TASK_1_GENERAL;
         if (activeTab === '4') taskType = TaskType.TASK_2;
 
-        await categoryApi.createCategory({
+        await categoryService.createCategory({
           name: formData.name,
           taskType: taskType,
           description: formData.description

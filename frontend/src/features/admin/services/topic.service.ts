@@ -16,7 +16,7 @@ export type CreateTopicDto = {
   description?: string;
 }
 
-export const topicApi = {
+export const topicService = {
   /**
    * Lấy danh sách tất cả các chủ đề xã hội (Topics - Task 2)
    */

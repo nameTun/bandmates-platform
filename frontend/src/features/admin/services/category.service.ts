@@ -16,7 +16,7 @@ export type CreateCategoryDto = {
   description?: string;
 }
 
-export const categoryApi = {
+export const categoryService = {
   /**
    * Lấy danh sách tất cả các dạng bài (Categories)
    */

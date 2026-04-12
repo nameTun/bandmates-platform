@@ -1,7 +1,7 @@
 import React from 'react';
 import { NavLink, useNavigate, Outlet } from 'react-router-dom';
 import { useAuthStore } from '@/features/auth/store/useAuthStore';
-import { AuthService } from '@/features/auth/services/auth.service';
+import { authService } from '@/features/auth/services/auth.service';
 
 const adminNavItems = [
   {
@@ -57,7 +57,7 @@ const AdminLayout: React.FC = () => {
   const navigate = useNavigate();
 
   const handleLogout = async () => {
-    try { await AuthService.logout(); } catch (e) { console.error(e); }
+    try { await authService.logout(); } catch (e) { console.error(e); }
     logout();
     navigate('/');
   };

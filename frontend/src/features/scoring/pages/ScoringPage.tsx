@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { HistoryService } from '@/features/history/services/history.service';
+import { historyService } from '@/features/history/services/history.service';
 import { ScoringService } from '@/features/scoring/services/scoring.service';
 import { useAuthStore } from '@/features/auth/store/useAuthStore';
 import { practiceApi } from '@/features/practice/api/practice-api';
@@ -549,7 +549,7 @@ const ScoringPage: React.FC = () => {
       const fetchAttempt = async () => {
         setLoadingReview(true);
         try {
-          const data = await HistoryService.getAttemptDetail(attemptId);
+          const data = await historyService.getAttemptDetail(attemptId);
           setReviewAttempt(data);
           setSelectedTask(data.prompt || { content: 'Bài viết tự do không dùng đề mẫu.', taskType: TaskType.TASK_2 });
         } catch (error) {
