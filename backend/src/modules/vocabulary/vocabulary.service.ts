@@ -146,13 +146,7 @@ export class VocabularyService {
         `;
 
         try {
-            const enrichedData = await this.geminiService.generateContent(prompt);
-            
-            let result = enrichedData;
-            if (enrichedData && enrichedData.raw) {
-                const cleanJson = enrichedData.raw.replace(/```json|```/g, '').trim();
-                result = JSON.parse(cleanJson);
-            }
+            const result = await this.geminiService.generateContent(prompt);
 
             // [SNAPSHOT] Cập nhật kết quả họ từ mẫu vào DB
             if (userId && result && result.mainTranslation) {
@@ -181,9 +175,7 @@ export class VocabularyService {
 
         await this.usageLimitService.checkAndRecordUsage(userId, visitorId, ip, UsageAction.ANALYZE_WORD_STRUCTURE);
         const aiData = await this.getIELTSAnalysis(cleanWord);
-        // Đảm bảo aiData là object trước khi spread
-        const dataObj = typeof aiData === 'string' ? JSON.parse(aiData) : aiData;
-        const result = { word: cleanWord, ...dataObj };
+        const result = { word: cleanWord, ...aiData };
 
         // [SNAPSHOT] Cập nhật phân tích IELTS vào DB
         if (userId && result.ieltsBand) {
@@ -360,17 +352,6 @@ export class VocabularyService {
                 }
             `;
             const res = await this.geminiService.generateContent(prompt);
-            
-            // SỬA LỖI: geminiService.generateContent ĐÃ trả về Object
-            if (res && res.ieltsBand) {
-                return res;
-            }
-            
-            // Fallback nếu AI trả về raw string
-            if (res && res.raw) {
-                const cleanJson = res.raw.replace(/```json|```/g, '').trim();
-                return JSON.parse(cleanJson);
-            }
             return res;
         } catch (error) { 
             console.error('IELTS Analysis Error:', error);

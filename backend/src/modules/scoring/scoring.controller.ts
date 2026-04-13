@@ -8,6 +8,7 @@ import { Prompt } from '../prompts/entities/prompt.entity';
 import { GetUser } from '../../common/decorators/get-user.decorator';
 import { VisitorId } from '../../common/decorators/visitor-id.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { OptionalJwtAuthGuard } from '../../common/guards/optional-jwt-auth.guard';
 import { User } from '../users/entities/user.entity';
 import { UsageLimitAiService, UsageAction } from '../usage-limit-ai/usage-limit-ai.service';
 
@@ -23,6 +24,7 @@ export class ScoringController {
     ) { }
 
     @Post('check')
+    @UseGuards(OptionalJwtAuthGuard)
     async checkEnglish(
         @Body() dto: CheckTextDto,
         @GetUser() user: User | null,

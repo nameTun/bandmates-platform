@@ -26,7 +26,6 @@ async function diagnosticGemini() {
     "gemini-2.5-flash-lite",         // [ƯU TIÊN 2] 10 RPM | 20 RPD
     "gemini-3-flash-preview",        // [ƯU TIÊN 3] 5 RPM  | 20 RPD
     "gemini-2.5-flash",              // [ƯU TIÊN 4] 5 RPM  | 20 RPD
-    "gemini-1.5-flash-latest",       // Check thêm bản ổn định 1.5
   ];
 
   for (const modelName of modelsToTest) {
