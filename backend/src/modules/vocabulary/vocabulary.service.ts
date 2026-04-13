@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThanOrEqual } from 'typeorm';
 import { HttpService } from '@nestjs/axios';
 import { lastValueFrom } from 'rxjs';
-import { translate } from '@vitalets/google-translate-api';
+import { UserProfile } from '../user-profiles/entities/user-profile.entity';
 import { VocabularyHistory } from './entities/vocabulary-history.entity';
 import { AiService } from '../ai/ai.service';
 import { UsageLimitAiService, UsageAction } from '../usage-limit-ai/usage-limit-ai.service';
@@ -103,7 +103,7 @@ export class VocabularyService {
      * [NÂNG CẤP] Làm giàu dữ liệu Họ từ bằng AI.
      * Chọn ra 1 từ tiêu biểu nhất cho mỗi loại (n, v, adj, adv) và tạo ví dụ IELTS.
      */
-    async getFamilyAINotes(word: string, userId?: string, ip?: string, visitorId?: string): Promise<any> {
+    async getExampleWordFamilyAi(word: string, userId?: string, ip?: string, visitorId?: string, userProfile?: UserProfile | null): Promise<any> {
         const cleanWord = word.trim().toLowerCase();
 
         // [SNAPSHOT CHECK] Trả về ngay nếu đã có họ từ AI làm giàu trong DB
@@ -129,14 +129,24 @@ export class VocabularyService {
 
         if (allFamilyWords.length === 0) return [];
 
-        const prompt = `
-            Bạn là chuyên gia ngôn ngữ học IELTS. 
-            Nhiệm vụ:
-            1. Dịch từ chính "${cleanWord}" sang tiếng Việt một cách súc tích.
-            2. Với danh sách họ từ [${allFamilyWords.join(', ')}], hãy chọn ra tối đa 6 từ thông dụng nhất trong IELTS.
-            3. Với mỗi từ được chọn, cung cấp: định nghĩa tiếng Việt, 1 ví dụ tiếng Anh học thuật, và dịch ví dụ đó sang tiếng Việt.
+        // [STAGE 4.2] Cá nhân hóa theo người dùng
+        const targetBand = userProfile?.targetBand ? Number(userProfile.targetBand) : 7.0;
+        const studyPurpose = userProfile?.studyPurpose || 'General IELTS Improvement';
 
-            Trả về duy nhất định dạng JSON (array của các object) nhưng bọc trong một object lớn:
+        const prompt = `
+            Bạn là một chuyên gia ngôn ngữ học IELTS chuyên nghiệp. 
+            Nhiệm vụ:
+            1. Dịch từ chính "${cleanWord}" sang Tiếng Việt một cách ngắn gọn.
+            2. Từ danh sách họ từ [${allFamilyWords.join(', ')}], hãy chọn tối đa 6 từ có giá trị sử dụng cao nhất trong bài viết IELTS.
+            3. Với mỗi từ được chọn: 
+               - Cung cấp định nghĩa bằng Tiếng Việt.
+               - Đặt 1 ví dụ Tiếng Anh học thuật (độ khó chuẩn Band ${targetBand}).
+               - ĐẶC BIỆT: Nội dung ví dụ PHẢI sát với bối cảnh mục đích học tập của người dùng là: "${studyPurpose}" (Ví dụ: Nếu mục đích là Work, hãy đặt ví dụ về công sở; nếu là Study Abroad, hãy nói về môi trường học tập).
+               - Dịch ví dụ đó sang Tiếng Việt.
+
+            LƯU Ý: Xưng hô chuyên nghiệp, trung tính. Không xưng hô thân mật quá mức.
+
+            Trả về DUY NHẤT JSON theo cấu trúc:
             {
               "mainTranslation": "nghĩa tiếng Việt từ chính",
               "familyData": [

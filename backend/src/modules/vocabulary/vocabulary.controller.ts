@@ -11,6 +11,7 @@ import { User } from '../users/entities/user.entity';
 export class VocabularyController {
     constructor(
         private readonly vocabularyService: VocabularyService,
+        private readonly userProfilesService: UserProfilesService
     ) {}
 
     /** [FAST] Kết quả chính: phiên âm, nghĩa, ví dụ, đồng nghĩa */
@@ -38,16 +39,25 @@ export class VocabularyController {
         return { message: 'Vocabulary Controller is alive!' };
     }
 
-    /** [NÂNG CẤP] Phân tích Họ từ chuyên sâu bằng AI */
-    @Get('enrich')
+    /** [NÂNG CẤP] Phân tích Họ từ chuyên sâu bằng AI (Cá nhân hóa theo mục tiêu & band điểm) */
+    @Get('word-family-ai')
     @UseGuards(OptionalJwtAuthGuard)
-    async getFamilyAINotes(
-        @Query('word') word: string, 
-        @Ip() ip: string, 
+    async getExampleWordFamilyAi(
+        @Query('word') word: string,
+        @Ip() ip: string,
         @VisitorId() visitorId: string,
         @GetUser() user: User | null
     ) {
-        return this.vocabularyService.getFamilyAINotes(word, user?.id, ip, visitorId);
+        let userProfile = null;
+        if (user && user.id) {
+            try {
+                userProfile = await this.userProfilesService.getProfile(user.id);
+            } catch (e) {
+                // Thầm lặng sử dụng mặc định nếu không có profile
+                console.warn(`[Word-Family] Không lấy được profile cho user ${user.id}, dùng mặc định.`);
+            }
+        }
+        return this.vocabularyService.getExampleWordFamilyAi(word, user?.id, ip, visitorId, userProfile);
     }
 
     /** Toggle lưu/bỏ lưu từ vào Sổ tay — Chỉ User đăng nhập */

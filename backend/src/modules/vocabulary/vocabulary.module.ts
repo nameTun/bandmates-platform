@@ -6,6 +6,7 @@ import { VocabularyService } from './vocabulary.service';
 import { VocabularyHistory } from './entities/vocabulary-history.entity';
 import { AiModule } from '../ai/ai.module';
 import { UsageLimitAiModule } from '../usage-limit-ai/usage-limit-ai.module';
+import { UserProfilesModule } from '../user-profiles/user-profiles.module';
 
 @Module({
     imports: [
@@ -16,6 +17,7 @@ import { UsageLimitAiModule } from '../usage-limit-ai/usage-limit-ai.module';
         }),
         AiModule,
         UsageLimitAiModule,
+        UserProfilesModule,
     ],
     controllers: [VocabularyController],
     providers: [VocabularyService],

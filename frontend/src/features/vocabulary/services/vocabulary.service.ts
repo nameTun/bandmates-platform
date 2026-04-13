@@ -85,7 +85,7 @@ export const vocabularyService = {
 
     /** Phân tích Họ từ chuyên sâu bằng AI */
     getFamilyAINotes: async (word: string): Promise<FamilyAINotesResponse> => {
-        const response = await api.get<FamilyAINotesResponse>(`/vocabulary/enrich?word=${encodeURIComponent(word)}`);
+        const response = await api.get<FamilyAINotesResponse>(`/vocabulary/word-family-ai?word=${encodeURIComponent(word)}`);
         return response.data;
     },
 
