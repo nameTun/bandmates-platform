@@ -9,7 +9,7 @@ export class UserProfilesService {
     constructor(
         @InjectRepository(UserProfile)
         private profileRepository: Repository<UserProfile>,
-    ) {}
+    ) { }
 
     async getProfile(userId: string): Promise<UserProfile> {
         const profile = await this.profileRepository.findOne({ where: { userId } });
@@ -21,18 +21,18 @@ export class UserProfilesService {
 
     async updateProfile(userId: string, updateData: UpdateUserProfileDto): Promise<UserProfile> {
         let profile = await this.profileRepository.findOne({ where: { userId } });
-        
+
         if (!profile) {
             // Dự phòng: Tự tạo nếu chưa có
-            profile = this.profileRepository.create({ 
-                userId, 
-                ...updateData, 
-                isOnboardingCompleted: true 
+            profile = this.profileRepository.create({
+                userId,
+                ...updateData,
+                isOnboardingCompleted: true
             });
         } else {
             // Cập nhật và đổi cờ
             Object.assign(profile, updateData);
-            profile.isOnboardingCompleted = true; 
+            profile.isOnboardingCompleted = true;
         }
 
         return this.profileRepository.save(profile);

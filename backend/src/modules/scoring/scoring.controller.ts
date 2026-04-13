@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards, HttpStatus, HttpException, Get, Param, ForbiddenException, NotFoundException, Query, Delete , Ip} from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, HttpStatus, HttpException, Get, Param, ForbiddenException, NotFoundException, Query, Delete, Ip } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ScoringService } from './scoring.service';
@@ -41,7 +41,7 @@ export class ScoringController {
             UsageAction.PRACTICE_ESSAY,
             user?.role
         );
-    
+
         // Tự động đếm số từ (Word Count)
         const wordCount = dto.text.trim().split(/\s+/).length;
         const timeSpent = dto.timeSpent || 0;
@@ -73,7 +73,7 @@ export class ScoringController {
         } catch (error) {
             console.error('Scoring Error:', error); // Log lỗi chi tiết để debug
             throw new HttpException(
-                `AI Service Error: ${error.message || 'Service unavailable'}`, 
+                `AI Service Error: ${error.message || 'Service unavailable'}`,
                 HttpStatus.SERVICE_UNAVAILABLE
             );
         }
@@ -85,7 +85,7 @@ export class ScoringController {
             timeSpent: timeSpent,
             aiResponse: aiResult,
             prompt: promptEntity,
-            
+
             // Mapping điểm
             overallScore: aiResult?.overallScore || null,
             scoreTA: aiResult?.scoreTA || null,
@@ -97,7 +97,7 @@ export class ScoringController {
         // Lấy User từ Payload JWT
         // (Vẫn giữ logic linh hoạt để check cả .id và .userId cho an tâm tuyệt đối)
         const realUserId = user?.id || (user as any)?.userId;
-        
+
 
         if (realUserId) {
             // Cách an toàn nhất để gán Relation trong TypeORM khi chỉ có ID
@@ -135,9 +135,9 @@ export class ScoringController {
         }
 
         const skip = (page - 1) * limit;
-        
+
         const [data, total] = await this.examRepository.findAndCount({
-            where: { 
+            where: {
                 user: { id: userId },
                 ...(taskType ? { prompt: { taskType: taskType as any } } : {})
             },

@@ -480,25 +480,39 @@ const WritingEditor: React.FC<WritingEditorProps> = ({ promptObj, onBack, onErro
                     <p className="text-[14px] text-slate-700 leading-relaxed font-medium">{result.feedback.general}</p>
                   </div>
 
-                  {/* 4 Criteria Detailed Feedback */}
-                  <div className="grid grid-cols-1 gap-3 mt-1">
-                    {[
-                      { title: 'Task Achievement/Response', key: 'ta', content: result.feedback.ta, color: 'emerald' },
-                      { title: 'Coherence and Cohesion', key: 'cc', content: result.feedback.cc, color: 'amber' },
-                      { title: 'Lexical Resource', key: 'lr', content: result.feedback.lr, color: 'indigo' },
-                      { title: 'Grammar and Accuracy', key: 'gra', content: result.feedback.gra, color: 'red' },
-                    ].map((crit, idx) => (
-                      <div key={idx} className={`bg-${crit.color}-50/50 rounded-xl p-4 border border-${crit.color}-100`}>
-                        <h4 className={`text-[11px] font-extrabold uppercase tracking-wider mb-2 text-${crit.color}-700 flex items-center gap-1.5`}>
-                          <div className={`w-1.5 h-1.5 rounded-full bg-${crit.color}-500`} />
-                          {crit.title}
+                    {/* 4 Criteria Detailed Feedback */}
+                    <div className="grid grid-cols-1 gap-3 mt-1">
+                      {[
+                        { title: 'Task Achievement/Response', key: 'ta', content: result.feedback.ta, color: 'emerald' },
+                        { title: 'Coherence and Cohesion', key: 'cc', content: result.feedback.cc, color: 'amber' },
+                        { title: 'Lexical Resource', key: 'lr', content: result.feedback.lr, color: 'indigo' },
+                        { title: 'Grammar and Accuracy', key: 'gra', content: result.feedback.gra, color: 'red' },
+                      ].map((crit, idx) => (
+                        <div key={idx} className={`bg-${crit.color}-50/50 rounded-xl p-4 border border-${crit.color}-100`}>
+                          <h4 className={`text-[11px] font-extrabold uppercase tracking-wider mb-2 text-${crit.color}-700 flex items-center gap-1.5`}>
+                            <div className={`w-1.5 h-1.5 rounded-full bg-${crit.color}-500`} />
+                            {crit.title}
+                          </h4>
+                          <p className="text-[13px] text-slate-700 leading-relaxed font-medium pl-3 border-l-2 border-white">{crit.content}</p>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* [NEW] Learning Path - Stage 4 */}
+                    {result.feedback.learningPath && (
+                      <div className="bg-gradient-to-r from-indigo-600 to-violet-600 rounded-2xl p-6 text-white shadow-lg shadow-indigo-200 mt-2 relative overflow-hidden group">
+                        <div className="absolute -right-4 -top-4 w-24 h-24 bg-white/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700" />
+                        <h4 className="text-[11px] font-black uppercase tracking-[0.2em] mb-3 flex items-center gap-2 opacity-90">
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                          </svg>
+                          Lộ trình đề xuất cho bạn
                         </h4>
-                        <p className="text-[13px] text-slate-700 leading-relaxed font-medium pl-3 border-l-2 border-white">{crit.content}</p>
+                        <p className="text-[14px] leading-relaxed font-semibold">{result.feedback.learningPath}</p>
                       </div>
-                    ))}
+                    )}
                   </div>
-                </div>
-              )}
+                )}
               {activeTab === 'improved' && (
                 <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl p-6 border border-emerald-100 shadow-sm">
                   <h4 className="text-[11px] font-extrabold text-emerald-700 uppercase tracking-widest mb-4 flex items-center gap-2">

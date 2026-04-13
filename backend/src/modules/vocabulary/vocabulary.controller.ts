@@ -1,5 +1,6 @@
 import { Controller, Get, Post, Query, UseGuards, Body, Ip } from '@nestjs/common';
 import { VocabularyService } from './vocabulary.service';
+import { UserProfilesService } from '../user-profiles/user-profiles.service';
 import { OptionalJwtAuthGuard } from '../../common/guards/optional-jwt-auth.guard';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { GetUser } from '../../common/decorators/get-user.decorator';
@@ -8,7 +9,9 @@ import { User } from '../users/entities/user.entity';
 
 @Controller('vocabulary')
 export class VocabularyController {
-    constructor(private readonly vocabularyService: VocabularyService) {}
+    constructor(
+        private readonly vocabularyService: VocabularyService,
+    ) {}
 
     /** [FAST] Kết quả chính: phiên âm, nghĩa, ví dụ, đồng nghĩa */
     @Get('search')

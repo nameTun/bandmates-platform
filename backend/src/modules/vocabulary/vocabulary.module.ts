@@ -15,7 +15,7 @@ import { UsageLimitAiModule } from '../usage-limit-ai/usage-limit-ai.module';
             maxRedirects: 5,
         }),
         AiModule,
-        UsageLimitAiModule
+        UsageLimitAiModule,
     ],
     controllers: [VocabularyController],
     providers: [VocabularyService],
