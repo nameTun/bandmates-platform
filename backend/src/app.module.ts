@@ -10,6 +10,7 @@ import databaseConfig from './config/database.config';
 import { validate } from './config/env.validation';
 import { UsageLimitAiModule } from './modules/usage-limit-ai/usage-limit-ai.module';
 import { UserProfilesModule } from './modules/user-profiles/user-profiles.module';
+import { AiModule } from './modules/ai/ai.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { UserProfilesModule } from './modules/user-profiles/user-profiles.module
       validate,
     }),
     DatabaseModule,
+    AiModule,
     UsersModule,// for feature/auth
     UserProfilesModule,
     AuthModule,

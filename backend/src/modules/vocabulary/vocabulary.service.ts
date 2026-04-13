@@ -5,7 +5,7 @@ import { HttpService } from '@nestjs/axios';
 import { lastValueFrom } from 'rxjs';
 import { translate } from '@vitalets/google-translate-api';
 import { VocabularyHistory } from './entities/vocabulary-history.entity';
-import { GeminiService } from '../scoring/gemini.service';
+import { AiService } from '../ai/ai.service';
 import { UsageLimitAiService, UsageAction } from '../usage-limit-ai/usage-limit-ai.service';
 import { VOCABULARY_API } from './vocabulary.constants';
 
@@ -16,7 +16,7 @@ export class VocabularyService {
         @InjectRepository(VocabularyHistory)
         private readonly vocabularyRepository: Repository<VocabularyHistory>,
         private readonly httpService: HttpService,
-        private readonly geminiService: GeminiService,
+        private readonly aiService: AiService,
         private readonly usageLimitService: UsageLimitAiService,
     ) { }
 
@@ -146,7 +146,7 @@ export class VocabularyService {
         `;
 
         try {
-            const result = await this.geminiService.generateContent(prompt);
+            const result = await this.aiService.generateContent(prompt);
 
             // [SNAPSHOT] Cập nhật kết quả họ từ mẫu vào DB
             if (userId && result && result.mainTranslation) {
@@ -351,7 +351,7 @@ export class VocabularyService {
                     "bandUpgradeTip": "lời khuyên nâng band"
                 }
             `;
-            const res = await this.geminiService.generateContent(prompt);
+            const res = await this.aiService.generateContent(prompt);
             return res;
         } catch (error) { 
             console.error('IELTS Analysis Error:', error);

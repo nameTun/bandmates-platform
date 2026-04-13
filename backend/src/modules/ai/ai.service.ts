@@ -4,7 +4,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { ConfigService } from '@nestjs/config';
 
 @Injectable()
-export class GeminiService {
+export class AiService {
     private genAI: GoogleGenerativeAI;
 
     constructor(private configService: ConfigService) {
@@ -32,7 +32,7 @@ export class GeminiService {
     /**
      * [CORE] Thực hiện gọi AI với cơ chế Fallback qua danh sách Model.
      */
-    private async generateWithFallback(prompt: string, modelList: string[]): Promise<any> {
+    async generateWithFallback(prompt: string, modelList: string[]): Promise<any> {
         let lastError: any;
 
         for (let i = 0; i < modelList.length; i++) {
@@ -78,61 +78,6 @@ export class GeminiService {
         }
 
         throw lastError || new Error('Tất cả các model AI đều không thể phản hồi.');
-    }
-
-    /**
-     * [IELTS SCORING] Chấm điểm bài IELTS Writing theo 4 tiêu chí.
-     * Sử dụng nhóm model HEAVY.
-     */
-    async checkEnglish(text: string, promptContent?: string, ): Promise<any> {
-        const ieltsPrompt = `
-      You are an expert IELTS Writing Examiner with 10+ years of experience. 
-      Your task is to accurately grade a student's IELTS Writing response based on the official IELTS band descriptors.
-
-      --- CONTEXT ---
-      EXAM QUESTION: "${promptContent || 'IELTS General Writing'}"
-      STUDENT'S SUBMISSION: "${text}"
-
-      --- INSTRUCTIONS ---
-      1. Analyze the student's submission against the 4 IELTS criteria:
-         - Task Achievement/Response (TA/TR)
-         - Coherence and Cohesion (CC)
-         - Lexical Resource (LR)
-         - Grammatical Range and Accuracy (GRA)
-      2. Provide a score from 0 to 9.0 for each criterion (increments of 0.5).
-      3. Calculate the Overall Band Score by averaging the four criteria and rounding to the nearest 0.5 (e.g., 6.25 -> 6.5, 6.75 -> 7.0).
-      4. Provide specific feedback for each criterion.
-      5. Identify specific errors in the text and provide corrections.
-      6. Provide an "improvedVersion" that demonstrates a Band 9 level response.
-
-      --- RESPONSE FORMAT (STRICT JSON) ---
-      Return ONLY a JSON object with this structure:
-      {
-        "scoreTA": number,
-        "scoreCC": number,
-        "scoreLR": number,
-        "scoreGRA": number,
-        "overallScore": number,
-        "feedback": {
-          "general": "string",
-          "ta": "detailed feedback for Task Achievement",
-          "cc": "detailed feedback for Coherence and Cohesion",
-          "lr": "detailed feedback for Lexical Resource",
-          "gra": "detailed feedback for Grammar"
-        },
-        "corrections": [
-            {
-                "original": "error segment",
-                "corrected": "fixed segment",
-                "explanation": "why",
-                "type": "grammar" | "vocabulary" | "punctuation"
-            }
-        ],
-        "betterVersion": "Band 9 sample answer"
-      }
-    `;
-
-        return this.generateWithFallback(ieltsPrompt, AI_MODELS.HEAVY);
     }
 
     /**

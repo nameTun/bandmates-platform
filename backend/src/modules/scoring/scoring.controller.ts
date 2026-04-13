@@ -1,7 +1,8 @@
 import { Controller, Post, Body, UseGuards, HttpStatus, HttpException, Get, Param, ForbiddenException, NotFoundException, Query, Delete , Ip} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { GeminiService } from './gemini.service';
+import { ScoringService } from './scoring.service';
+import { UserProfilesService } from '../user-profiles/user-profiles.service';
 import { CheckTextDto } from './dto/check-text.dto';
 import { ExamAttempt } from './entities/exam-attempt.entity';
 import { Prompt } from '../prompts/entities/prompt.entity';
@@ -15,7 +16,8 @@ import { UsageLimitAiService, UsageAction } from '../usage-limit-ai/usage-limit-
 @Controller('scoring')
 export class ScoringController {
     constructor(
-        private geminiService: GeminiService,
+        private scoringService: ScoringService,
+        private userProfilesService: UserProfilesService,
         @InjectRepository(ExamAttempt)
         private examRepository: Repository<ExamAttempt>,
         @InjectRepository(Prompt)
@@ -54,10 +56,20 @@ export class ScoringController {
             }
         }
 
+        // [STAGE 4] Lấy thông tin Profile để cá nhân hóa AI (nếu user đã đăng nhập)
+        let userProfile = null;
+        if (user && user.id) {
+            try {
+                userProfile = await this.userProfilesService.getProfile(user.id);
+            } catch (e) {
+                console.warn('Không lấy được profile để cá nhân hóa AI, chuyển về mặc định.');
+            }
+        }
+
         // Gọi AI để chấm điểm (Master Prompt)
         let aiResult;
         try {
-            aiResult = await this.geminiService.checkEnglish(dto.text, promptContent);
+            aiResult = await this.scoringService.checkEnglish(dto.text, promptContent, userProfile);
         } catch (error) {
             console.error('Scoring Error:', error); // Log lỗi chi tiết để debug
             throw new HttpException(
