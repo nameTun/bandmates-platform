@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsNumber, IsEnum } from 'class-validator';
+import { IsString, IsOptional, IsNumber, IsEnum, IsArray, ArrayMaxSize } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ExamType, StudyPurpose, WritingFocus } from '../entities/user-profile.entity';
 
@@ -24,8 +24,10 @@ export class UpdateUserProfileDto {
     examType?: ExamType;
 
     @IsOptional()
-    @IsEnum(WritingFocus)
-    weakestSkill?: WritingFocus;
+    @IsArray()
+    @ArrayMaxSize(3)
+    @IsEnum(WritingFocus, { each: true })
+    weakestSkill?: WritingFocus[];
 
     @IsOptional()
     @IsEnum(StudyPurpose)

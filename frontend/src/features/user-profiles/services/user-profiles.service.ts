@@ -11,7 +11,7 @@ export interface UserProfile {
     targetBand: number | null;
     targetDate: string | null;
     examType: ExamType | null;
-    weakestSkill: WritingFocus | null;
+    weakestSkill: WritingFocus[] | null;
     studyPurpose: StudyPurpose | null;
     isOnboardingCompleted: boolean;
 }
@@ -22,7 +22,7 @@ export interface UpdateUserProfileDto {
     targetBand?: number;
     targetDate?: string;
     examType?: ExamType;
-    weakestSkill?: WritingFocus;
+    weakestSkill?: WritingFocus[];
     studyPurpose?: StudyPurpose;
 }
 

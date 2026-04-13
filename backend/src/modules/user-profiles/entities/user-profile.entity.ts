@@ -59,11 +59,11 @@ export class UserProfile {
     @Column({ type: 'enum', enum: ExamType, nullable: true })
     examType: ExamType;
 
-    // Cải tiến: Sử dụng Enum để đồng nhất dữ liệu
-    @Column({ type: 'enum', enum: WritingFocus, nullable: true })
-    weakestSkill: WritingFocus;
+    // Sử dụng JSON để lưu mảng đa lựa chọn (tối đa 3)
+    @Column({ type: 'json', nullable: true })
+    weakestSkill: WritingFocus[];
 
-    // Cải tiến: Sử dụng Enum cho mục đích học tập
+    // Sử dụng Enum cho mục đích học tập
     @Column({ type: 'enum', enum: StudyPurpose, nullable: true })
     studyPurpose: StudyPurpose;
 

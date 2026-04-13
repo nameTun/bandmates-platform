@@ -135,9 +135,9 @@ const OnboardingModal: React.FC = () => {
                     <Form.Item
                         name="weakestSkill"
                         label={<span className="font-medium text-slate-700">Trọng tâm bạn muốn cải thiện nhất?</span>}
-                        rules={[{ required: true, message: 'Vui lòng chọn một mục tiêu!' }]}
+                        rules={[{ required: true, message: 'Vui lòng chọn ít nhất một mục tiêu!' }]}
                     >
-                        <Select placeholder="Chọn vấn đề bạn e ngại nhất">
+                        <Select mode="multiple" maxCount={3} placeholder="Chọn skills bạn muốn cải thiện nhất">
                             {Object.values(WritingFocus).map(v => <Option key={v} value={v}>{v}</Option>)}
                         </Select>
                     </Form.Item>
