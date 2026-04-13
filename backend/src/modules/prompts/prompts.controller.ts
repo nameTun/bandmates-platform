@@ -25,7 +25,7 @@ export class PromptsController {
   // API lấy danh sách đề bài - Phục vụ hiển thị trên Dashboard Admin và Practice Library
   @Get()
   @UseGuards(OptionalJwtAuthGuard)
-  async findAll(@GetUser() user: User | null) {
+  async findAll(@GetUser() user: any) {
     return this.promptsService.findAll(user);
   }
 

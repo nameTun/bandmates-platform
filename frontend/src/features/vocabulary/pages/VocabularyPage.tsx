@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { vocabularyService } from '../services/vocabulary.service';
 import type { SearchResult, AINotes } from '../services/vocabulary.service';
 import { useAuthStore } from '@/features/auth/store/useAuthStore';
@@ -67,6 +67,7 @@ const HighlightedText = ({ text, highlight }: { text: string, highlight: string 
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 const VocabularyPage: React.FC = () => {
+    const navigate = useNavigate();
     const { isAuthenticated } = useAuthStore();
 
     const [query, setQuery] = useState('');
@@ -77,6 +78,8 @@ const VocabularyPage: React.FC = () => {
     const [aiAnalyzed, setAiAnalyzed] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [aiError, setAiError] = useState<string | null>(null);
+    const [showQuotaModal, setShowQuotaModal] = useState(false);
+    const [quotaMessage, setQuotaMessage] = useState('');
     const [isSaved, setIsSaved] = useState(false);
     const [recentWords, setRecentWords] = useState<string[]>([]);
     
@@ -211,7 +214,8 @@ const VocabularyPage: React.FC = () => {
             saveToCache(result.word, { aiNotes: data, isExpanded: true });
         } catch (error: any) {
             if (error.response?.status === 429) {
-                setAiError(error.response.data.message);
+                setQuotaMessage(error.response.data.message);
+                setShowQuotaModal(true);
             } else {
                 setAiError('Dịch vụ AI đang quá tải. Vui lòng thử lại sau.');
             }
@@ -238,7 +242,8 @@ const VocabularyPage: React.FC = () => {
             }
         } catch (error: any) {
             if (error.response?.status === 429) {
-                setAiError(error.response.data.message);
+                setQuotaMessage(error.response.data.message);
+                setShowQuotaModal(true);
             } else {
                 setAiError('Không thể làm giàu họ từ lúc này. Thử lại sau.');
             }
@@ -251,7 +256,8 @@ const VocabularyPage: React.FC = () => {
     const quickWords = ['success', 'enhance', 'substantial', 'environment', 'crucial'];
 
     return (
-        <div className="min-h-screen bg-slate-50 text-slate-800 font-sans selection:bg-indigo-100 transition-all duration-700">
+        <>
+            <div className="min-h-screen bg-slate-50 text-slate-800 font-sans selection:bg-indigo-100 transition-all duration-700">
             <div className={`mx-auto px-6 py-6 transition-all duration-700 ${isExpanded ? 'max-w-[1580px]' : 'max-w-7xl'}`}>
                 
                 {/* ── SEARCH AREA ── */}
@@ -557,8 +563,71 @@ const VocabularyPage: React.FC = () => {
                 )}
 
             </div>
+            
+            {/* ═══ QUOTA MODAL ═══ */}
+            {showQuotaModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
+                    <div className="bg-white rounded-3xl shadow-2xl max-w-sm w-full overflow-hidden animate-in zoom-in-95 duration-300 border border-slate-100 text-center">
+                        <div className="p-8">
+                            <div className="w-20 h-20 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner ring-4 ring-indigo-50/50">
+                                <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                            <h3 className="text-xl font-bold text-slate-800 mb-3">Hết lượt dùng AI</h3>
+                            <p className="text-slate-500 text-sm leading-relaxed mb-8">
+                                {quotaMessage}
+                            </p>
+                            
+                            <div className="flex flex-col gap-3">
+                                {!isAuthenticated ? (
+                                    <>
+                                        <button 
+                                            onClick={() => navigate('/register')}
+                                            className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-2xl shadow-lg shadow-indigo-200 transition-all hover:-translate-y-0.5"
+                                        >
+                                            Đăng ký nhận thêm lượt
+                                        </button>
+                                        <button 
+                                            onClick={() => navigate('/login')}
+                                            className="w-full py-4 text-slate-600 font-bold hover:bg-slate-50 rounded-2xl transition-colors"
+                                        >
+                                            Đã có tài khoản? Đăng nhập
+                                        </button>
+                                    </>
+                                ) : (
+                                    <button 
+                                        onClick={() => setShowQuotaModal(false)}
+                                        className="w-full py-4 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-2xl shadow-lg transition-all"
+                                    >
+                                        Đã hiểu
+                                    </button>
+                                )}
+                                
+                                {!isAuthenticated && (
+                                    <button 
+                                        onClick={() => setShowQuotaModal(false)}
+                                        className="mt-2 text-xs text-slate-400 hover:text-slate-500 font-medium font-sans"
+                                    >
+                                        Bỏ qua lần này
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                        {!isAuthenticated && (
+                            <div className="bg-slate-50 p-4 border-t border-slate-100">
+                                <p className="text-[11px] text-slate-400 font-bold uppercase tracking-wider font-sans">
+                                    Nâng cấp tài khoản để dùng không giới hạn
+                                </p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
+    </>
     );
 };
 
 export default VocabularyPage;
+

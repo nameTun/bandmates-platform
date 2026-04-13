@@ -222,11 +222,14 @@ const PracticeLibrary: React.FC<{ onSelect: (prompt: Prompt) => void }> = ({ onS
 
 /* ──────────── WRITING EDITOR ──────────── */
 
-const WritingEditor: React.FC<{
+interface WritingEditorProps {
   promptObj: Prompt;
   onBack: () => void;
+  onError?: (status: number, message: string) => void;
   reviewAttempt?: any;
-}> = ({ promptObj, onBack, reviewAttempt }) => {
+}
+
+const WritingEditor: React.FC<WritingEditorProps> = ({ promptObj, onBack, onError, reviewAttempt }) => {
   const [text, setText] = useState(reviewAttempt?.originalText || '');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AIResponse | null>(reviewAttempt?.aiResponse || null);
@@ -260,8 +263,11 @@ const WritingEditor: React.FC<{
       const data = await practiceService.checkIelts(text, promptObj.id, timeSpent);
       setResult(data);
       setActiveTab('mistakes');
-    } catch { /* handled */ }
-    finally { setLoading(false); }
+    } catch (err: any) {
+      if (err.response?.status === 429) {
+        onError?.(429, err.response.data?.message || 'Bạn đã hết lượt sử dụng AI hôm nay.');
+      }
+    } finally { setLoading(false); }
   };
 
   const scoreColor = (s: number) => s >= 7 ? 'text-emerald-500' : s >= 5 ? 'text-amber-500' : 'text-red-500';
@@ -518,6 +524,9 @@ const PracticePage: React.FC = () => {
   const { id: attemptId } = useParams<{ id?: string }>();
   const navigate = useNavigate();
 
+  const [errorStatus, setErrorStatus] = useState<number | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string>('');
+  const [showQuotaModal, setShowQuotaModal] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Prompt | null>(null);
   const [reviewAttempt, setReviewAttempt] = useState<any | null>(null);
   const [loadingReview, setLoadingReview] = useState(false);
@@ -541,32 +550,103 @@ const PracticePage: React.FC = () => {
     }
   }, [attemptId, navigate]);
 
-  if (attemptId) {
-    if (loadingReview || !reviewAttempt) {
+  const { isAuthenticated } = useAuthStore();
+
+  const renderContent = () => {
+    if (attemptId && (loadingReview || !reviewAttempt)) {
       return (
         <div className="flex items-center justify-center min-h-screen bg-slate-50">
           <Spin size="large" />
         </div>
       );
     }
+
+    if (!selectedTask && !attemptId) {
+      return <PracticeLibrary onSelect={setSelectedTask} />;
+    }
+
     return (
       <WritingEditor
         promptObj={selectedTask as any}
-        onBack={() => navigate('/history')}
+        onBack={() => {
+          if (attemptId) navigate('/history');
+          else setSelectedTask(null);
+        }}
+        onError={(status, message) => {
+          setErrorStatus(status);
+          setErrorMessage(message);
+          if (status === 429) setShowQuotaModal(true);
+        }}
         reviewAttempt={reviewAttempt}
       />
     );
-  }
-
-  if (!selectedTask) {
-    return <PracticeLibrary onSelect={setSelectedTask} />;
-  }
+  };
 
   return (
-    <WritingEditor
-      promptObj={selectedTask}
-      onBack={() => setSelectedTask(null)}
-    />
+    <>
+      {renderContent()}
+
+      {/* ═══ QUOTA MODAL ═══ */}
+      {showQuotaModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-sm w-full overflow-hidden animate-in zoom-in-95 duration-300 border border-slate-100">
+            <div className="p-8 text-center">
+              <div className="w-20 h-20 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner ring-4 ring-indigo-50/50">
+                <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-slate-800 mb-3">Hết lượt luyện tập</h3>
+              <p className="text-slate-500 text-sm leading-relaxed mb-8">
+                {errorMessage}
+              </p>
+              
+              <div className="flex flex-col gap-3">
+                {!isAuthenticated ? (
+                  <>
+                    <button 
+                      onClick={() => navigate('/register')}
+                      className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-2xl shadow-lg shadow-indigo-200 transition-all hover:-translate-y-0.5"
+                    >
+                      Đăng ký nhận 3 lượt/ngày
+                    </button>
+                    <button 
+                      onClick={() => navigate('/login')}
+                      className="w-full py-4 text-slate-600 font-bold hover:bg-slate-50 rounded-2xl transition-colors"
+                    >
+                      Đã có tài khoản? Đăng nhập
+                    </button>
+                  </>
+                ) : (
+                  <button 
+                    onClick={() => setShowQuotaModal(false)}
+                    className="w-full py-4 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-2xl shadow-lg transition-all"
+                  >
+                    Đã hiểu
+                  </button>
+                )}
+                
+                {!isAuthenticated && (
+                  <button 
+                    onClick={() => setShowQuotaModal(false)}
+                    className="mt-2 text-xs text-slate-400 hover:text-slate-500 font-medium font-sans"
+                  >
+                    Bỏ qua lần này
+                  </button>
+                )}
+              </div>
+            </div>
+            {!isAuthenticated && (
+              <div className="bg-slate-50 p-4 text-center border-t border-slate-100">
+                <p className="text-[11px] text-slate-400 font-bold uppercase tracking-wider font-sans">
+                  Nâng cấp tài khoản để dùng không giới hạn
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 

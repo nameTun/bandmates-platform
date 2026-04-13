@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { GuestLimit } from './entities/guest-limit.entity';
 import { ExamAttempt } from './entities/exam-attempt.entity';
 import { ScoringCriteria } from './entities/scoring-criteria.entity';
 
@@ -12,7 +11,7 @@ import { Prompt } from '../prompts/entities/prompt.entity';
 
 @Module({
     imports: [
-        TypeOrmModule.forFeature([GuestLimit, ExamAttempt, ScoringCriteria, Prompt]),
+        TypeOrmModule.forFeature([ExamAttempt, ScoringCriteria, Prompt]),
         ConfigModule,
     ],
     controllers: [ScoringController],

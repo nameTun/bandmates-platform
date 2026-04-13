@@ -7,7 +7,7 @@ import { Category } from '../src/modules/categories/entities/category.entity';
 import { Topic } from '../src/modules/topics/entities/topic.entity';
 import { ExamAttempt } from '../src/modules/scoring/entities/exam-attempt.entity';
 import { ScoringCriteria } from '../src/modules/scoring/entities/scoring-criteria.entity';
-import { GuestLimit } from '../src/modules/scoring/entities/guest-limit.entity';
+
 
 // Load environment variables from .env file
 dotenv.config();
@@ -20,7 +20,7 @@ async function seed() {
     username: process.env.DATABASE_USER || 'root',
     password: process.env.DATABASE_PASSWORD || '',
     database: process.env.DATABASE_NAME || 'test',
-    entities: [User, Prompt, Category, Topic, ExamAttempt, ScoringCriteria, GuestLimit],
+    entities: [User, Prompt, Category, Topic, ExamAttempt, ScoringCriteria],
     synchronize: false,
   });
 

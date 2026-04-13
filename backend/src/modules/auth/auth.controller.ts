@@ -103,6 +103,6 @@ export class AuthController {
 
         setCookies(res, tokens.refreshToken);
 
-        return { accessToken: tokens.accessToken, user };
+        return { accessToken: tokens.accessToken, user};
     }
 }

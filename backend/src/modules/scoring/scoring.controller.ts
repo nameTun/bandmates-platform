@@ -1,15 +1,15 @@
-import { Controller, Post, Body, UseGuards, HttpStatus, HttpException, Get, Param, ForbiddenException, NotFoundException, Query, Delete } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, HttpStatus, HttpException, Get, Param, ForbiddenException, NotFoundException, Query, Delete , Ip} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { GuestGuard } from '../../common/guards/guest.guard';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { GeminiService } from './gemini.service';
 import { CheckTextDto } from './dto/check-text.dto';
 import { ExamAttempt } from './entities/exam-attempt.entity';
 import { Prompt } from '../prompts/entities/prompt.entity';
 import { GetUser } from '../../common/decorators/get-user.decorator';
 import { VisitorId } from '../../common/decorators/visitor-id.decorator';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { User } from '../users/entities/user.entity';
+import { UsageLimitAiService, UsageAction } from '../usage-limit-ai/usage-limit-ai.service';
 
 @Controller('scoring')
 export class ScoringController {
@@ -19,15 +19,24 @@ export class ScoringController {
         private examRepository: Repository<ExamAttempt>,
         @InjectRepository(Prompt)
         private promptRepository: Repository<Prompt>,
+        private usageLimitService: UsageLimitAiService,
     ) { }
 
     @Post('check')
-    @UseGuards(GuestGuard)
     async checkEnglish(
         @Body() dto: CheckTextDto,
         @GetUser() user: User | null,
         @VisitorId() visitorId: string,
+        @Ip() ip: string,
     ) {
+        // Kiểm tra hạn mức sử dụng (Khách 1, User 3)
+        await this.usageLimitService.checkAndRecordUsage(
+            user?.id,
+            visitorId,
+            ip,
+            UsageAction.PRACTICE_ESSAY,
+            user?.role
+        );
     
         // Tự động đếm số từ (Word Count)
         const wordCount = dto.text.trim().split(/\s+/).length;
@@ -83,16 +92,8 @@ export class ScoringController {
             attempt.visitorId = visitorId;
         }
 
-        console.log("--- ATTEMPT DATA TO SAVE ---", {
-            userId: attempt.user?.id,
-            visitorId: attempt.visitorId,
-            overallScore: attempt.overallScore,
-            status: attempt.status
-        });
-
         try {
             await this.examRepository.save(attempt);
-            console.log("ExamAttempt saved successfully with ID:", attempt.id);
         } catch (dbError) {
             console.error("Database Save Error:", dbError);
             throw new HttpException('Lỗi lưu kết quả vào Database', HttpStatus.INTERNAL_SERVER_ERROR);

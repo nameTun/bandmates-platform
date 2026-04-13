@@ -1,8 +1,8 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, Index } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 
-@Entity('ai_usage_logs')
-export class AIUsageLog {
+@Entity('usage_limit_ai')
+export class UsageLimitAi {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
@@ -22,7 +22,7 @@ export class AIUsageLog {
     ipAddress: string;
 
     @Column()
-    action: string; // 'ANALYSIS' | 'ENRICH'
+    action: string; // 'PRACTICE' | 'VOCAB_ANALYSIS' | 'VOCAB_ENRICH'
 
     @CreateDateColumn()
     createdAt: Date;

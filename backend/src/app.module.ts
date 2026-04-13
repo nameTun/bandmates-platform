@@ -8,6 +8,7 @@ import { PromptsModule } from './modules/prompts/prompts.module';
 import { VocabularyModule } from './modules/vocabulary/vocabulary.module';
 import databaseConfig from './config/database.config';
 import { validate } from './config/env.validation';
+import { UsageLimitAiModule } from './modules/usage-limit-ai/usage-limit-ai.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { validate } from './config/env.validation';
     DatabaseModule,
     UsersModule,
     AuthModule,
+    UsageLimitAiModule,
     ScoringModule,
     PromptsModule,
     VocabularyModule,

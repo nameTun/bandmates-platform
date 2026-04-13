@@ -5,8 +5,8 @@ import { HttpService } from '@nestjs/axios';
 import { lastValueFrom } from 'rxjs';
 import { translate } from '@vitalets/google-translate-api';
 import { VocabularyHistory } from './entities/vocabulary-history.entity';
-import { AIUsageLog } from './entities/ai-usage-log.entity';
 import { GeminiService } from '../scoring/gemini.service';
+import { UsageLimitAiService, UsageAction } from '../usage-limit-ai/usage-limit-ai.service';
 import { VOCABULARY_API } from './vocabulary.constants';
 
 @Injectable()
@@ -15,10 +15,9 @@ export class VocabularyService {
     constructor(
         @InjectRepository(VocabularyHistory)
         private readonly vocabularyRepository: Repository<VocabularyHistory>,
-        @InjectRepository(AIUsageLog)
-        private readonly aiUsageRepository: Repository<AIUsageLog>,
         private readonly httpService: HttpService,
         private readonly geminiService: GeminiService,
+        private readonly usageLimitService: UsageLimitAiService,
     ) { }
 
     async search(word: string, userId?: string): Promise<any> {
@@ -117,7 +116,7 @@ export class VocabularyService {
             }
         }
 
-        await this.checkAndRecordUsage(userId, ip, visitorId, 'ENRICH');
+        await this.usageLimitService.checkAndRecordUsage(userId, visitorId, ip, UsageAction.ANALYZE_WORD_FAMILY);
         const familyWords = await this.extractWordFamily(cleanWord);
         
         // Chuyển object thành list từ để gửi AI
@@ -180,7 +179,7 @@ export class VocabularyService {
             }
         }
 
-        await this.checkAndRecordUsage(userId, ip, visitorId, 'ANALYSIS');
+        await this.usageLimitService.checkAndRecordUsage(userId, visitorId, ip, UsageAction.ANALYZE_WORD_STRUCTURE);
         const aiData = await this.getIELTSAnalysis(cleanWord);
         // Đảm bảo aiData là object trước khi spread
         const dataObj = typeof aiData === 'string' ? JSON.parse(aiData) : aiData;
@@ -232,49 +231,7 @@ export class VocabularyService {
         };
     }
 
-    /**
-     * KIỂM TRA HẠN NGẠCH AI (User: 10, Guest: 5)
-     * Cơ chế Double Check: Chặn theo cả VisitorId HOẶC IP đối với Guest.
-     */
-    private async checkAndRecordUsage(userId?: string, ip?: string, visitorId?: string, action?: string) {
-        const startOfDay = new Date();
-        startOfDay.setHours(0, 0, 0, 0);
 
-        const limit = userId ? 10 : 5;
-        let count = 0;
-
-        if (userId) {
-            // Đếm theo User ID đã đăng nhập
-            count = await this.aiUsageRepository.count({
-                where: { userId, createdAt: MoreThanOrEqual(startOfDay) }
-            });
-        } else {
-            // Đếm theo VisitorId HOẶC IP cho Guest (Double Check)
-            const queryBuilder = this.aiUsageRepository.createQueryBuilder('usage');
-            count = await queryBuilder
-                .where('usage.createdAt >= :startOfDay', { startOfDay })
-                .andWhere('(usage.visitorId = :visitorId OR usage.ipAddress = :ipAddress)', { 
-                    visitorId: visitorId || 'unknown', 
-                    ipAddress: ip || 'unknown' 
-                })
-                .getCount();
-        }
-
-        if (count >= limit) {
-            throw new HttpException(
-                `Bạn đã hết lượt sử dụng AI hôm nay (${count}/${limit} lượt). Vui lòng quay lại vào ngày mai!`,
-                HttpStatus.TOO_MANY_REQUESTS,
-            );
-        }
-
-        // Lưu log đồng thời các định danh để "bủa lưới" tra cứu sau này
-        await this.aiUsageRepository.save({
-            userId,
-            visitorId,
-            ipAddress: ip,
-            action: action || 'UNKNOWN',
-        });
-    }
 
     /**
      * [PERSISTENCE] Cập nhật hoặc lưu mới Snapshot lịch sử tra cứu

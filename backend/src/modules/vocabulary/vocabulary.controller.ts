@@ -44,7 +44,6 @@ export class VocabularyController {
         @VisitorId() visitorId: string,
         @GetUser() user: User | null
     ) {
-        console.log('--- AI Enrichment Triggered for:', word, 'by', user?.id || visitorId || ip);
         return this.vocabularyService.getFamilyAINotes(word, user?.id, ip, visitorId);
     }
 
