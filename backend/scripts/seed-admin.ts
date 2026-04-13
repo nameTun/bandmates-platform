@@ -2,6 +2,7 @@ import { DataSource } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
 import * as dotenv from 'dotenv';
 import { User, UserRole } from '../src/modules/users/entities/user.entity';
+import { UserProfile } from '../src/modules/user-profiles/entities/user-profile.entity';
 import { Prompt } from '../src/modules/prompts/entities/prompt.entity';
 import { Category } from '../src/modules/categories/entities/category.entity';
 import { Topic } from '../src/modules/topics/entities/topic.entity';
@@ -43,12 +44,15 @@ async function seed() {
     } else {
       const hashedPassword = await bcrypt.hash(adminPass, 10);
       
-      const admin = userRepository.create({
-        email: adminEmail,
-        password: hashedPassword,
-        name: adminName,
-        role: UserRole.ADMIN,
-      });
+      const admin = new User();
+      admin.email = adminEmail;
+      admin.password = hashedPassword;
+      admin.role = UserRole.ADMIN;
+
+      // Khởi tạo profile kèm theo
+      const profile = new UserProfile();
+      profile.displayName = adminName;
+      admin.profile = profile;
 
       await userRepository.save(admin);
       console.log('Admin user created successfully!');

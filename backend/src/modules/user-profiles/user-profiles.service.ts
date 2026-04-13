@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { UserProfile } from '../users/entities/user-profile.entity';
+import { UserProfile } from './entities/user-profile.entity';
 import { UpdateUserProfileDto } from './dto/update-user-profile.dto';
 
 @Injectable()
@@ -27,12 +27,12 @@ export class UserProfilesService {
             profile = this.profileRepository.create({ 
                 userId, 
                 ...updateData, 
-                isCompleted: true 
+                isOnboardingCompleted: true 
             });
         } else {
             // Cập nhật và đổi cờ
             Object.assign(profile, updateData);
-            profile.isCompleted = true; 
+            profile.isOnboardingCompleted = true; 
         }
 
         return this.profileRepository.save(profile);

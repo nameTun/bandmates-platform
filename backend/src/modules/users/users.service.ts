@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
+import { UserProfile } from '../user-profiles/entities/user-profile.entity';
 
 // @Injectable: Đánh dấu class này là một Provider, có thể được "tiêm" (inject) vào các class khác 
 // như Controller hoặc Service khác thông qua Dependency Injection.
@@ -18,13 +19,12 @@ export class UsersService {
     async createUser(userData: Partial<User> & { name?: string }): Promise<User> {
         const { name, ...userProps } = userData;
         
-        // Nhờ { cascade: true } ở Entity User, TypeORM sẽ tự động insert cả vào bảng user_profiles
-        const newUser = this.usersRepository.create({
-            ...userProps,
-            profile: {
-                displayName: name || null, // Chuyển name người dùng nhập thành displayName của Profile
-            }
-        }); 
+        const newUser = new User();
+        Object.assign(newUser, userProps);
+        
+        const profile = new UserProfile();
+        profile.displayName = name || '';
+        newUser.profile = profile;
         
         return this.usersRepository.save(newUser);
     }
@@ -39,7 +39,7 @@ export class UsersService {
     async findUserByEmailWithPassword(email: string): Promise<User | null> {
         return this.usersRepository.findOne({
             where: { email },
-            select: ['id', 'email', 'name', 'password', 'role'] // Explicitly select password
+            select: ['id', 'email', 'password', 'role'] // Explicitly select password without 'name'
         });
     }
 

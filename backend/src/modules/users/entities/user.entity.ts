@@ -1,6 +1,6 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, OneToMany, OneToOne } from 'typeorm';
 import { VocabularyHistory } from '../../vocabulary/entities/vocabulary-history.entity';
-import { UserProfile } from './user-profile.entity';
+import { UserProfile } from '../../user-profiles/entities/user-profile.entity';
 
 export enum UserRole {
   ADMIN = 'admin',
