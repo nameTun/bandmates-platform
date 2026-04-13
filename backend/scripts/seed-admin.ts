@@ -1,4 +1,4 @@
-import { DataSource } from 'typeorm';
+import { createConnection } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
 import * as dotenv from 'dotenv';
 import { User, UserRole } from '../src/modules/users/entities/user.entity';
@@ -6,37 +6,29 @@ import { UserProfile } from '../src/modules/user-profiles/entities/user-profile.
 import { Prompt } from '../src/modules/prompts/entities/prompt.entity';
 import { Category } from '../src/modules/categories/entities/category.entity';
 import { Topic } from '../src/modules/topics/entities/topic.entity';
-import { ExamAttempt } from '../src/modules/scoring/entities/exam-attempt.entity';
-import { ScoringCriteria } from '../src/modules/scoring/entities/scoring-criteria.entity';
-
-
-// Load environment variables from .env file
+import { ExamAttempt } from 'src/modules/scoring/entities/exam-attempt.entity';
+import { ScoringCriteria } from 'src/modules/scoring/entities/scoring-criteria.entity';
 dotenv.config();
 
 async function seed() {
-  const AppDataSource = new DataSource({
+  const connection = await createConnection({
     type: 'mysql',
     host: process.env.DATABASE_HOST || 'localhost',
-    port: parseInt(process.env.DATABASE_PORT || '3306', 10),
+    port: parseInt(process.env.DATABASE_PORT || '3306'),
     username: process.env.DATABASE_USER || 'root',
     password: process.env.DATABASE_PASSWORD || '',
     database: process.env.DATABASE_NAME || 'test',
-    entities: [User, Prompt, Category, Topic, ExamAttempt, ScoringCriteria],
+    entities: [User, UserProfile, Prompt, Category, Topic, ExamAttempt, ScoringCriteria],
     synchronize: false,
   });
 
+  const userRepository = connection.getRepository(User);
+
+  const adminEmail = 'admin@gmail.com';
+  const adminPass = 'Admin123456';
+  const adminName = 'System Admin';
+
   try {
-    await AppDataSource.initialize();
-    console.log('Database connected successfully.');
-
-    const userRepository = AppDataSource.getRepository(User);
-
-    // THÔNG TIN ADMIN MẶC ĐỊNH 
-    const adminEmail = 'admin@gmail.com';
-    const adminPass = 'Admin123456';
-    const adminName = 'System Admin';
-
-    // Kiểm tra xem admin đã tồn tại chưa
     const existingAdmin = await userRepository.findOne({ where: { email: adminEmail } });
 
     if (existingAdmin) {
@@ -49,23 +41,21 @@ async function seed() {
       admin.password = hashedPassword;
       admin.role = UserRole.ADMIN;
 
-      // Khởi tạo profile kèm theo
+      // Khởi tạo profile kèm theo chuẩn quan hệ 1-1
       const profile = new UserProfile();
       profile.displayName = adminName;
+      profile.isOnboardingCompleted = true; // Admin mặc định xong onboarding
       admin.profile = profile;
 
       await userRepository.save(admin);
       console.log('Admin user created successfully!');
       console.log(`Email: ${adminEmail}`);
       console.log(`Password: ${adminPass}`);
-
     }
-
   } catch (error) {
-    console.error('Error during seeding:', error);
+    console.error('Error seeding admin user:', error);
   } finally {
-    await AppDataSource.destroy();
-    console.log('Database connection closed.');
+    await connection.close();
   }
 }
 

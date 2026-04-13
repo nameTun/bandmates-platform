@@ -75,7 +75,7 @@ const DashboardPage: React.FC = () => {
         {/* Greeting */}
         <div className="mb-8">
           <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
-            {greeting()}, {user?.name || 'bạn'}! 👋
+            {greeting()}, {user?.profile?.displayName || 'bạn'}! 👋
           </h1>
           <p className="text-slate-500 mt-1">Đây là tổng quan tiến độ học tập của bạn.</p>
         </div>

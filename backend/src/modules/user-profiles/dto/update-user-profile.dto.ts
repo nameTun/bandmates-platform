@@ -1,6 +1,6 @@
 import { IsString, IsOptional, IsNumber, IsEnum } from 'class-validator';
 import { Type } from 'class-transformer';
-import { ExamType, StudyPurpose, IeltsSkill } from '../entities/user-profile.entity';
+import { ExamType, StudyPurpose, WritingFocus } from '../entities/user-profile.entity';
 
 export class UpdateUserProfileDto {
     @IsOptional()
@@ -24,8 +24,8 @@ export class UpdateUserProfileDto {
     examType?: ExamType;
 
     @IsOptional()
-    @IsEnum(IeltsSkill)
-    weakestSkill?: IeltsSkill;
+    @IsEnum(WritingFocus)
+    weakestSkill?: WritingFocus;
 
     @IsOptional()
     @IsEnum(StudyPurpose)

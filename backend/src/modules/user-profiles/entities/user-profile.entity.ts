@@ -7,20 +7,20 @@ export enum ExamType {
 }
 
 export enum StudyPurpose {
-    STUDY_ABROAD = 'Study Abroad', // Du học
-    IMMIGRATION = 'Immigration',   // Định cư
-    WORK = 'Work',                 // Công việc
-    PERSONAL = 'Personal Interest',// Tu dưỡng cá nhân
-    OTHER = 'Other',               // Khác
+    GRADUATION = 'Graduation',       // Xét tốt nghiệp
+    STUDY_ABROAD = 'Study Abroad',     // Du học
+    WORK_VISA = 'Immigration',         // Định cư
+    JOB_APPLICATION = 'Job Application',// Xin việc/Phỏng vấn
+    PROMOTION = 'Career Promotion',    // Thăng tiến sự nghiệp
+    PERSONAL_INTEREST = 'Personal',    // Trau dồi cá nhân
 }
 
-export enum IeltsSkill {
-    READING = 'Reading',
-    WRITING = 'Writing',
-    LISTENING = 'Listening',
-    SPEAKING = 'Speaking',
-    GRAMMAR = 'Grammar',
-    VOCABULARY = 'Vocabulary',
+export enum WritingFocus {
+    TASK_RESPONSE = 'Task Response',
+    COHERENCE_COHESION = 'Coherence & Cohesion',
+    LEXICAL_RESOURCE = 'Vocabulary',
+    GRAMMAR_ACCURACY = 'Grammar',
+    IDEA_GENERATION = 'Ideas',
 }
 
 @Entity('user_profiles')
@@ -60,8 +60,8 @@ export class UserProfile {
     examType: ExamType;
 
     // Cải tiến: Sử dụng Enum để đồng nhất dữ liệu
-    @Column({ type: 'enum', enum: IeltsSkill, nullable: true })
-    weakestSkill: IeltsSkill;
+    @Column({ type: 'enum', enum: WritingFocus, nullable: true })
+    weakestSkill: WritingFocus;
 
     // Cải tiến: Sử dụng Enum cho mục đích học tập
     @Column({ type: 'enum', enum: StudyPurpose, nullable: true })

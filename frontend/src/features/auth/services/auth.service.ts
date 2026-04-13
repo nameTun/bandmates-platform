@@ -5,8 +5,11 @@ export interface User {
     email: string;
     googleId?: string;
     facebookId?: string;
-    name?: string;
     role: string;
+    profile?: {
+        displayName: string | null;
+        isOnboardingCompleted: boolean;
+    };
 }
 
 export interface AuthResponse {

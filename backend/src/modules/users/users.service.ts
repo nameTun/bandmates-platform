@@ -20,12 +20,15 @@ export class UsersService {
         const { name, ...userProps } = userData;
         
         const newUser = new User();
+        // Gán các thuộc tính cơ bản của User (email, password, roles...)
         Object.assign(newUser, userProps);
         
+        // Khởi tạo Profile đi kèm và gán tên hiển thị
         const profile = new UserProfile();
-        profile.displayName = name || '';
+        profile.displayName = name || ''; 
         newUser.profile = profile;
         
+        // Nhờ { cascade: true } ở Entity User, TypeORM sẽ tự động lưu cả Profile vào DB
         return this.usersRepository.save(newUser);
     }
 
@@ -54,6 +57,7 @@ export class UsersService {
     async findUserByIdWithRefreshToken(id: string): Promise<User | null> {
         return this.usersRepository
             .createQueryBuilder('user')
+            .leftJoinAndSelect('user.profile', 'profile') // Phải load profile để Frontend biết đã xong onboarding chưa
             .where('user.id = :id', { id })
             .addSelect('user.refreshToken') // Chủ động bật cột bị ẩn lên
             .getOne();
