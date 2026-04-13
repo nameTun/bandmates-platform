@@ -21,16 +21,24 @@ export class VocabularyController {
         return this.vocabularyService.search(word, user?.id);
     }
 
-    /** [SLOW — gọi sau] Phân tích ngữ pháp từ AI */
-    @Get('ai-notes')
+    /** [SLOW — gọi sau] Phân tích ngữ pháp và IELTS Writing từ AI (Cá nhân hóa) */
+    @Get('word-analysis-ai')
     @UseGuards(OptionalJwtAuthGuard)
-    async getAINotes(
+    async getWordAnalysisAi(
         @Query('word') word: string, 
         @Ip() ip: string, 
         @VisitorId() visitorId: string,
         @GetUser() user: User | null
     ) {
-        return this.vocabularyService.getAINotes(word, user?.id, ip, visitorId);
+        let userProfile = null;
+        if (user && user.id) {
+            try {
+                userProfile = await this.userProfilesService.getProfile(user.id);
+            } catch (e) {
+                console.warn(`[Word-Analysis] Không lấy được profile cho user ${user.id}, dùng mặc định.`);
+            }
+        }
+        return this.vocabularyService.getWordAnalysisAi(word, user?.id, ip, visitorId, userProfile);
     }
 
     /** [TEST] Kiểm tra kết nối Controller */

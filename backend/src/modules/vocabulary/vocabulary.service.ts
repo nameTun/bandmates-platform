@@ -170,7 +170,7 @@ export class VocabularyService {
         }
     }
 
-    async getAINotes(word: string, userId?: string, ip?: string, visitorId?: string): Promise<any> {
+    async getWordAnalysisAi(word: string, userId?: string, ip?: string, visitorId?: string, userProfile?: UserProfile | null): Promise<any> {
         const cleanWord = word.trim().toLowerCase();
 
         // [SNAPSHOT CHECK] Trả về ngay nếu đã có phân tích AI trong DB
@@ -184,7 +184,7 @@ export class VocabularyService {
         }
 
         await this.usageLimitService.checkAndRecordUsage(userId, visitorId, ip, UsageAction.ANALYZE_WORD_STRUCTURE);
-        const aiData = await this.getIELTSAnalysis(cleanWord);
+        const aiData = await this.getIELTSAnalysis(cleanWord, userProfile);
         const result = { word: cleanWord, ...aiData };
 
         // [SNAPSHOT] Cập nhật phân tích IELTS vào DB
@@ -342,23 +342,31 @@ export class VocabularyService {
         }
     }
 
-    private async getIELTSAnalysis(word: string) {
+    private async getIELTSAnalysis(word: string, userProfile?: UserProfile | null) {
         try {
+            const targetBand = userProfile?.targetBand ? Number(userProfile.targetBand) : 7.0;
+            const studyPurpose = userProfile?.studyPurpose || 'General IELTS Improvement';
+
             const prompt = `
-                Bạn là chuyên gia IELTS 9.0. Phân tích chuyên sâu từ: "${word}".
-                Trả về DUY NHẤT một đối tượng JSON (không kèm markup) với cấu trúc sau:
+                Bạn là một giám khảo IELTS 9.0 chuyên nghiệp và khách quan. 
+                Nhiệm vụ: Phân tích chuyên sâu từ "${word}" để giúp học viên nâng trình độ Writing bài bám sát mục đích học tập cá nhân.
+                
+                Nội dung bao gồm:
+                1. "ieltsBand": Đánh giá trình độ của từ này (VD: "Đây là từ vựng thuộc Band 7.0+, hãy dùng nó để bứt phá điểm số").
+                2. "collocations": Các cụm từ đi kèm phổ biến. Mỗi cụm từ gồm: "phrase" (Tiếng Anh), "meaning" (Giải thích Tiếng Việt súc tích), "example" (Ví dụ Tiếng Anh sát bối cảnh "${studyPurpose}", chuẩn Band ${targetBand}).
+                3. "writingStructures": Các cấu trúc câu ăn điểm khi dùng từ này. Bao gồm "structure" (Công thức), "explanation" (Cách dùng bằng Tiếng Việt), "example" (Ví dụ Tiếng Anh chuẩn Band ${targetBand} trong bối cảnh "${studyPurpose}").
+                4. "commonMistakes": Các lỗi người học hay mắc phải. "wrong" (Lỗi sai), "correct" (Cách sửa), "note" (Giải thích tại sao sai bằng Tiếng Việt).
+                5. "bandUpgradeTip": Lời khuyên "vàng" bằng Tiếng Việt để dùng từ này đạt Band điểm cao hơn (không nhắc đến con số Band của đề xuất ngầm).
+
+                LƯU Ý: Xưng hô chuyên nghiệp, trung tính. Giải thích dùng Tiếng Việt. Ví dụ dùng Tiếng Anh.
+
+                Trả về DUY NHẤT đối tượng JSON:
                 {
-                    "ieltsBand": "Nâng từ Band X lên Band Y",
-                    "collocations": [
-                        { "phrase": "cụm từ", "meaning": "nghĩa tiếng Việt", "example": "ví dụ tiếng Anh" }
-                    ],
-                    "writingStructures": [
-                        { "structure": "công thức/cấu trúc", "explanation": "cách dùng", "example": "ví dụ tiếng Anh" }
-                    ],
-                    "commonMistakes": [
-                        { "wrong": "lỗi sai", "correct": "sửa đúng", "note": "vì sao" }
-                    ],
-                    "bandUpgradeTip": "lời khuyên nâng band"
+                    "ieltsBand": "...",
+                    "collocations": [ { "phrase": "...", "meaning": "...", "example": "..." } ],
+                    "writingStructures": [ { "structure": "...", "explanation": "...", "example": "..." } ],
+                    "commonMistakes": [ { "wrong": "...", "correct": "...", "note": "..." } ],
+                    "bandUpgradeTip": "..."
                 }
             `;
             const res = await this.aiService.generateContent(prompt);

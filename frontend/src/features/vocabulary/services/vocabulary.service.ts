@@ -79,7 +79,7 @@ export const vocabularyService = {
 
     /** Phân tích IELTS Writing chuyên sâu từ AI */
     getAINotes: async (word: string): Promise<AINotes> => {
-        const response = await api.get<AINotes>(`/vocabulary/ai-notes?word=${encodeURIComponent(word)}`);
+        const response = await api.get<AINotes>(`/vocabulary/word-analysis-ai?word=${encodeURIComponent(word)}`);
         return response.data;
     },
 
