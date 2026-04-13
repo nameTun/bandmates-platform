@@ -14,13 +14,26 @@ export class UsersService {
         private usersRepository: Repository<User>,
     ) { }
 
-    async createUser(userData: Partial<User>): Promise<User> {
-        const newUser = this.usersRepository.create(userData); // Tạo object User từ data (chưa lưu)
-        return this.usersRepository.save(newUser); // Lưu vào DB
+    // Mở rộng kiểu dữ liệu đầu vào để chấp nhận thêm trường name (dành cho việc tạo profile)
+    async createUser(userData: Partial<User> & { name?: string }): Promise<User> {
+        const { name, ...userProps } = userData;
+        
+        // Nhờ { cascade: true } ở Entity User, TypeORM sẽ tự động insert cả vào bảng user_profiles
+        const newUser = this.usersRepository.create({
+            ...userProps,
+            profile: {
+                displayName: name || null, // Chuyển name người dùng nhập thành displayName của Profile
+            }
+        }); 
+        
+        return this.usersRepository.save(newUser);
     }
 
     async findUserByEmail(email: string): Promise<User | null> {
-        return this.usersRepository.findOne({ where: { email } });
+        return this.usersRepository.findOne({ 
+            where: { email },
+            relations: ['profile'] // Lấy kèm thông tin Profile
+        });
     }
 
     async findUserByEmailWithPassword(email: string): Promise<User | null> {
@@ -31,7 +44,10 @@ export class UsersService {
     }
 
     async findUserById(id: string): Promise<User | null> {
-        return this.usersRepository.findOne({ where: { id } });
+        return this.usersRepository.findOne({ 
+            where: { id },
+            relations: ['profile'] // Lấy kèm thông tin Profile
+        });
     }
 
     // Dùng riêng cho luồng Refresh Token - cần đọc cột refreshToken bị ẩn (select: false)

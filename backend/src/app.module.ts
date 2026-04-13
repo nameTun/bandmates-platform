@@ -9,6 +9,7 @@ import { VocabularyModule } from './modules/vocabulary/vocabulary.module';
 import databaseConfig from './config/database.config';
 import { validate } from './config/env.validation';
 import { UsageLimitAiModule } from './modules/usage-limit-ai/usage-limit-ai.module';
+import { UserProfilesModule } from './modules/user-profiles/user-profiles.module';
 
 @Module({
   imports: [
@@ -20,7 +21,8 @@ import { UsageLimitAiModule } from './modules/usage-limit-ai/usage-limit-ai.modu
       validate,
     }),
     DatabaseModule,
-    UsersModule,
+    UsersModule,// for feature/auth
+    UserProfilesModule,
     AuthModule,
     UsageLimitAiModule,
     ScoringModule,
