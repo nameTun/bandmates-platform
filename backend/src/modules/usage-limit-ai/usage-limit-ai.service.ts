@@ -29,7 +29,7 @@ export class UsageLimitAiService {
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
 
-    // 1. Xác định hạn mức dựa trên Role và Action
+    // Xác định hạn mức dựa trên Role và Action
     const isGuest = !userId;
     const isAdmin = userRole === 'admin';
 
@@ -40,18 +40,19 @@ export class UsageLimitAiService {
     }
 
     const limit = this.getLimit(action, isGuest);
-    let count = 0;
+    let currentUsageCount = 0;
 
-    // 2. Đếm số lần đã sử dụng trong ngày
+    // Đếm số lần đã sử dụng trong ngày
     if (userId) {
       // Thành viên cá nhân
-      count = await this.usageRepository.count({
+      currentUsageCount = await this.usageRepository.count({
         where: { userId, action, createdAt: MoreThanOrEqual(startOfDay) },
       });
     } else {
       // Khách vãng lai (Double check bằng cả VisitorId và IP)
+      // Đếm số lượng bản ghi trong bảng UsageLimitAi và tìm bản ghi theo action
       const queryBuilder = this.usageRepository.createQueryBuilder('usage');
-      count = await queryBuilder
+      currentUsageCount = await queryBuilder
         .where('usage.action = :action', { action })
         .andWhere('usage.createdAt >= :startOfDay', { startOfDay })
         .andWhere('(usage.visitorId = :visitorId OR usage.ipAddress = :ipAddress)', {
@@ -61,16 +62,16 @@ export class UsageLimitAiService {
         .getCount();
     }
 
-    // 3. Kiểm tra chéo hạn mức
-    if (count >= limit) {
+    // Kiểm tra chéo hạn mức
+    if (currentUsageCount >= limit) {
       const message = isGuest
-        ? `Bạn đã hết lượt ${this.getActionLabel(action)} hôm nay (${count}/${limit} lượt). Hãy đăng nhập để nhận thêm lượt!`
-        : `Bạn đã hết lượt ${this.getActionLabel(action)} hôm nay (${count}/${limit} lượt). Vui lòng quay lại vào ngày mai!`;
+        ? `Bạn đã hết lượt ${this.getActionLabel(action)} hôm nay (${currentUsageCount}/${limit} lượt). Hãy đăng nhập để nhận thêm lượt!`
+        : `Bạn đã hết lượt ${this.getActionLabel(action)} hôm nay (${currentUsageCount}/${limit} lượt). Vui lòng quay lại vào ngày mai!`;
 
       throw new HttpException(message, HttpStatus.TOO_MANY_REQUESTS);
     }
 
-    // 4. Ghi lại lượt sử dụng mới
+    // Ghi lại lượt sử dụng mới
     await this.recordUsage(userId, visitorId, ip, action);
   }
 
@@ -94,7 +95,7 @@ export class UsageLimitAiService {
       default: return 'sử dụng AI';
     }
   }
-
+  // tăng thêm 1 lần sử dụng bằng cách tăng thêm 1 bản ghi lượt dùng
   private async recordUsage(userId?: string, visitorId?: string, ip?: string, action?: string) {
     await this.usageRepository.save({
       userId,

@@ -15,7 +15,7 @@ export class ScoringService {
         let studentContext = '';
         let focusInstructions = '';
         
-        // [STAGE 4] Tính toán Target Band + 1.0 (Mặc định 8.0 nếu là khách)
+        // Tính toán Target Band + 1.0 (Mặc định 8.0 nếu là khách)
         const userTargetBand = userProfile?.targetBand ? Number(userProfile.targetBand) : 7.0;
         const aiTargetBand = Math.min(userTargetBand + 1.0, 9.0);
 

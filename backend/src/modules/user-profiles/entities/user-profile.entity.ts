@@ -30,6 +30,7 @@ export class UserProfile {
     id: string;
 
     // [QUAN HỆ] Liên kết 1-1 với bảng users. Database tự động tạo khóa ngoại userId.
+    // Nếu một dòng trong bảng User bị xóa, MySQL sẽ tự động xóa dòng tương ứng trong bảng UserProfile này
     @OneToOne(() => User, (user) => user.profile, { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'userId' })
     user: User;

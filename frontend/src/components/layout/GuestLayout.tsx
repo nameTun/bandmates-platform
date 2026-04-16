@@ -62,9 +62,9 @@ const GuestLayout: React.FC = () => {
               <div className="flex items-center gap-2">
                 <div className="flex items-center gap-2.5 bg-slate-50 border border-slate-200/80 rounded-full pl-1 pr-4 py-1 hover:border-slate-300 transition-colors cursor-default">
                   <div className="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center text-white text-xs font-bold shadow-sm">
-                    {user.name?.charAt(0).toUpperCase() || 'U'}
+                    {user.profile?.displayName?.charAt(0).toUpperCase() || 'U'}
                   </div>
-                  <span className="text-sm font-semibold text-slate-700 hidden sm:inline">{user.name}</span>
+                  <span className="text-sm font-semibold text-slate-700 hidden sm:inline">{user.profile?.displayName || 'User'}</span>
                 </div>
                 <button
                   onClick={handleLogout}
