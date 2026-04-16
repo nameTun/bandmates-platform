@@ -40,7 +40,16 @@ api.interceptors.request.use(
 
 // --- RESPONSE INTERCEPTOR ---
 api.interceptors.response.use(
-    (response) => response,
+    (response) => {
+        // Tự động "bóc vỏ" nếu response có cấu trúc Global Wrapper { success: true, data: ... }
+        if (response.data && response.data.success === true && 'data' in response.data) {
+            return {
+                ...response,
+                data: response.data.data
+            };
+        }
+        return response;
+    },
     async (error) => {
         const originalRequest = error.config;
 
@@ -63,7 +72,7 @@ api.interceptors.response.use(
                         {},
                         { withCredentials: true }
                     );
-                    const { accessToken, user } = rs.data;
+                    const { accessToken, user } = rs.data.data; // Thêm .data để bóc vỏ vì gọi bằng axios thuần
 
                     // Cập nhật cả token lẫn user vào Store
                     useAuthStore.getState().setAuth(accessToken, user);
