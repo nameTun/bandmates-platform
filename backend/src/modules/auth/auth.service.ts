@@ -15,11 +15,23 @@ export class AuthService {
 
     // Login
     async login(user: User) {
+        console.log(user);
         const tokens = await this.tokenService.getTokens(user);
         await this.updateRefreshToken(user.id, tokens.refreshToken);
 
-        // Ensure sensitive fields are never returned to client
-        const { password, refreshToken, ...safeUser } = user;
+        // Chuyển đổi tường minh để tránh mất dữ liệu quan hệ (profile) do cơ chế Instance của TypeORM
+        const safeUser = {
+            id: user.id,
+            email: user.email,
+            role: user.role,
+            profile: user.profile ? {
+                id: user.profile.id,
+                displayName: user.profile.displayName,
+                isOnboardingCompleted: user.profile.isOnboardingCompleted,
+                avatarUrl: user.profile.avatarUrl
+            } : null
+        };
+
         return { tokens, user: safeUser };
     }
 
@@ -45,7 +57,18 @@ export class AuthService {
         const tokens = await this.tokenService.getTokens(user);
         await this.updateRefreshToken(user.id, tokens.refreshToken);
 
-        const { password, refreshToken, ...safeUser } = user;
+        const safeUser = {
+            id: user.id,
+            email: user.email,
+            role: user.role,
+            profile: user.profile ? {
+                id: user.profile.id,
+                displayName: user.profile.displayName,
+                isOnboardingCompleted: user.profile.isOnboardingCompleted,
+                avatarUrl: user.profile.avatarUrl
+            } : null
+        };
+
         return { tokens, user: safeUser };
     }
 

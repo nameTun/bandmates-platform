@@ -56,7 +56,7 @@ export class ScoringController {
             }
         }
 
-        // [STAGE 4] Lấy thông tin Profile để cá nhân hóa AI (nếu user đã đăng nhập)
+        // Lấy thông tin Profile để cá nhân hóa AI (nếu user đã đăng nhập)
         let userProfile = null;
         if (user && user.id) {
             try {
@@ -71,9 +71,8 @@ export class ScoringController {
         try {
             aiResult = await this.scoringService.checkEnglish(dto.text, promptContent, userProfile);
         } catch (error) {
-            console.error('Scoring Error:', error); // Log lỗi chi tiết để debug
             throw new HttpException(
-                `AI Service Error: ${error.message || 'Service unavailable'}`,
+                'Hệ thống chấm điểm AI đang bận hoặc gặp sự cố. Vui lòng thử lại sau vài phút.',
                 HttpStatus.SERVICE_UNAVAILABLE
             );
         }

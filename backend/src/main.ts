@@ -5,31 +5,46 @@ import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 
+/**
+ * bootstrap() là hàm khởi động trung tâm của ứng dụng NestJS.
+ */
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Global Validation Pipe
+  /**
+   * Global Validation Pipe:
+   * Tự động kiểm tra dữ liệu đầu vào (DTO).
+   * - whitelist: Tự động loại bỏ các thuộc tính lạ, ngăn chặn tấn công Overposting.
+   * - transform: Tự động chuyển đổi kiểu dữ liệu (VD: từ string trong URL sang number trong code).
+   */
   app.useGlobalPipes(
       new ValidationPipe({
-          whitelist: true, // loại bỏ các field không có trong DTO
-          transform: true, // ép kiểu dữ liệu (vd: string -> number)
+          whitelist: true, 
+          transform: true, 
       })
   );
 
-  // Global Exception Filter 
+  /**
+   * Centralized Error Handling:
+   * Sử dụng Global Filter để đảm bảo mọi lỗi trong hệ thống đều được format về một chuẩn JSON duy nhất.
+   */
   const httpAdapterHost = app.get(HttpAdapterHost);
   app.useGlobalFilters(new AllExceptionsFilter(httpAdapterHost));
 
-  // Security Headers
+  /**
+   * Security Middlewares:
+   * - helmet: Thiết lập 15 lớp bảo mật HTTP header (ngăn chặn XSS, Clickjacking...).
+   * - cookie-parser: Cần thiết để Backend có thể đọc được Refresh Token từ HttpOnly Cookie.
+   */
   app.use(helmet());
-
-  // Cookie Parser
   app.use(cookieParser());
 
-  // CORS Setup
+  /**
+   * CORS Configuration:
+   */
   app.enableCors({
-    origin: 'http://localhost:5173', // Frontend URL
-    credentials: true, // Allow cookies
+    origin: 'http://localhost:5173', // Địa chỉ của Vite Frontend
+    credentials: true,
   });
 
   await app.listen(process.env.PORT ?? 3000);

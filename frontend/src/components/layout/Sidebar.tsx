@@ -1,6 +1,7 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/features/auth/store/useAuthStore';
+import { useProfileStore } from '@/features/user-profiles/store/useProfileStore';
 import { authService } from '@/features/auth/services/auth.service';
 
 const navItems = [
@@ -44,6 +45,7 @@ const navItems = [
 
 const Sidebar: React.FC = () => {
   const { user, logout } = useAuthStore();
+  const { profile } = useProfileStore();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -51,6 +53,10 @@ const Sidebar: React.FC = () => {
     logout();
     navigate('/');
   };
+
+  // Ưu tiên dùng dữ liệu từ profile store (đã qua khảo sát), 
+  // nếu chưa có thì dùng dữ liệu thô từ auth store (lúc mới login)
+  const displayName = profile?.displayName || user?.profile?.displayName || 'User';
 
   return (
     <aside className="w-64 bg-white border-r border-slate-200/80 flex flex-col justify-between h-screen sticky top-0 flex-shrink-0">
@@ -104,10 +110,10 @@ const Sidebar: React.FC = () => {
         {user && (
           <div className="flex items-center gap-3 px-3 py-2.5 mb-2">
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center text-white text-xs font-bold shadow-sm flex-shrink-0">
-              {user.profile?.displayName?.charAt(0).toUpperCase() || 'U'}
+              {displayName.charAt(0).toUpperCase()}
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-semibold text-slate-800 truncate">{user.profile?.displayName || 'User'}</p>
+              <p className="text-sm font-semibold text-slate-800 truncate">{displayName}</p>
               <p className="text-xs text-slate-400 truncate">{user.email}</p>
             </div>
           </div>

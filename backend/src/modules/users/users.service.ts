@@ -18,36 +18,59 @@ export class UsersService {
     // Mở rộng kiểu dữ liệu đầu vào để chấp nhận thêm trường name (dành cho việc tạo profile)
     async createUser(userData: Partial<User> & { name?: string }): Promise<User> {
         const { name, ...userProps } = userData;
-        
+
         const newUser = new User();
         // Gán các thuộc tính cơ bản của User (email, password, roles...)
         Object.assign(newUser, userProps);
-        
+
         // Khởi tạo Profile đi kèm và gán tên hiển thị
         const profile = new UserProfile();
-        profile.displayName = name || ''; 
+        profile.displayName = name || '';
+        profile.user = newUser; // Đảm bảo mối quan hệ 2 chiều
         newUser.profile = profile;
-        
+
         // Nhờ { cascade: true } ở Entity User, TypeORM sẽ tự động lưu cả Profile vào DB
         return this.usersRepository.save(newUser);
     }
 
     async findUserByEmail(email: string): Promise<User | null> {
-        return this.usersRepository.findOne({ 
+        return this.usersRepository.findOne({
             where: { email },
             relations: ['profile'] // Lấy kèm thông tin Profile
         });
     }
 
+    // cách viết khác nếu không dùng addSelect
+    // async findUserByEmailWithPassword(email: string): Promise<User | null> {
+    //     return this.usersRepository.findOne({
+    //         where: { email },
+    //         select: {
+    //             id: true,
+    //             email: true,
+    //             password: true,
+    //             role: true,
+    //             profile: { // Phải liệt kê cả các cột của bảng profile ở đây
+    //                 id: true,
+    //                 displayName: true,
+    //                 isOnboardingCompleted: true
+    //             }
+    //         },
+    //         relations: {
+    //             profile: true
+    //         }
+    //     });
+    // }
     async findUserByEmailWithPassword(email: string): Promise<User | null> {
-        return this.usersRepository.findOne({
-            where: { email },
-            select: ['id', 'email', 'password', 'role'] // Explicitly select password without 'name'
-        });
+        return this.usersRepository
+            .createQueryBuilder('user')
+            .leftJoinAndSelect('user.profile', 'profile') // Load profile một cách tường minh
+            .where('user.email = :email', { email })
+            .addSelect('user.password') // Bật cột password (vốn bị select: false trong Entity User)
+            .getOne();
     }
 
     async findUserById(id: string): Promise<User | null> {
-        return this.usersRepository.findOne({ 
+        return this.usersRepository.findOne({
             where: { id },
             relations: ['profile'] // Lấy kèm thông tin Profile
         });
