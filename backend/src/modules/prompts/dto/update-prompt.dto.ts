@@ -1,22 +1,22 @@
-import { IsEnum, IsNotEmpty, IsOptional, IsString, IsUrl, IsUUID, IsBoolean } from 'class-validator';
+import { IsEnum, IsOptional, IsString, IsUrl, IsUUID, IsBoolean } from 'class-validator';
 import { TaskType } from '../../../common/enums/task-type.enum';
 
-export class CreatePromptDto {
+export class UpdatePromptDto {
   @IsEnum(TaskType)
-  @IsNotEmpty()
-  taskType: TaskType;
-
-  @IsUUID()
-  @IsNotEmpty()
-  categoryId: string; // ID của PromptCategory (VD: d3b0... cho "Line Graph")
+  @IsOptional()
+  taskType?: TaskType;
 
   @IsUUID()
   @IsOptional()
-  topicId?: string; // ID của Topic (chỉ dùng cho Task 2, VD: "Education")
+  categoryId?: string;
+
+  @IsUUID()
+  @IsOptional()
+  topicId?: string;
 
   @IsString()
-  @IsNotEmpty()
-  content: string;
+  @IsOptional()
+  content?: string;
 
   @IsUrl()
   @IsOptional()

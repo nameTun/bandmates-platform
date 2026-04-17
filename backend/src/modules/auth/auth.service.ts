@@ -15,7 +15,7 @@ export class AuthService {
 
     // Login
     async login(user: User) {
-        console.log(user);
+
         const tokens = await this.tokenService.getTokens(user);
         await this.updateRefreshToken(user.id, tokens.refreshToken);
 

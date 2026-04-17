@@ -10,11 +10,18 @@ import { promptService } from '../services/prompt.service';
 import type { Prompt, CreatePromptDto } from '../services/prompt.service';
 import { TaskType } from '@/common/enums/task-type.enum';
 
-const taskTypeLabel: Record<string, { text: string; color: string }> = {
-  [TaskType.TASK_1_ACADEMIC]: { text: 'Task 1 Aca', color: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20' },
-  [TaskType.TASK_1_GENERAL]: { text: 'Task 1 Gen', color: 'bg-teal-500/10 text-teal-400 border-teal-500/20' },
-  [TaskType.TASK_2]: { text: 'Task 2', color: 'bg-violet-500/10 text-violet-400 border-violet-500/20' },
+/**
+ * Tự động viết hoa chữ cái đầu tiên của mỗi dòng trong đề bài 
+ * (Hợp lệ cho cả các dòng bắt đầu bằng dấu gạch ngang '-')
+ */
+const formatPrompt = (text: string) => {
+  if (!text) return '';
+  return text.replace(/(^|\n)([\s\-\*]*)([a-z])/g, (_match, p1, p2, p3) => {
+    return p1 + p2 + p3.toUpperCase();
+  });
 };
+
+
 
 /* ── COLOR PALETTE FOR TAGS ── */
 const TAG_COLORS = [
@@ -92,6 +99,9 @@ const PromptManagement: React.FC = () => {
   const [selectedTopicId, setSelectedTopicId] = useState('');
   const [content, setContent] = useState('');
   const [imageUrl, setImageUrl] = useState('');
+  const [modelAnswer, setModelAnswer] = useState('');
+  const [hints, setHints] = useState('');
+  const [targetBand, setTargetBand] = useState<number>(7.0);
   const [isFreeSample, setIsFreeSample] = useState(false);
 
   useEffect(() => {
@@ -131,23 +141,17 @@ const PromptManagement: React.FC = () => {
     }
   };
 
-  const handleToggleFreeSample = async (id: string, isFreeSample: boolean) => {
-    try {
-      await promptService.updatePrompt(id, { isFreeSample });
-      message.success('Đã cập nhật trạng thái đề mẫu');
-      fetchInitialData();
-    } catch {
-      message.error('Lỗi khi cập nhật trạng thái đề mẫu!');
-    }
-  };
 
   const handleEditFullPrompt = (prompt: Prompt) => {
     setEditingFullPromptId(prompt.id);
     setSelectedTaskType(prompt.taskType);
     setSelectedCategoryId(prompt.category?.id || '');
     setSelectedTopicId(prompt.topic?.id || '');
-    setContent(prompt.content || '');
+    setContent(prompt.content);
     setImageUrl(prompt.imageUrl || '');
+    setModelAnswer(prompt.modelAnswer || '');
+    setHints(prompt.hints || '');
+    setTargetBand(prompt.targetBand || 7.0);
     setIsFreeSample(prompt.isFreeSample || false);
     setShowForm(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -158,8 +162,8 @@ const PromptManagement: React.FC = () => {
       return message.warning('Vui lòng điền đầy đủ các thông tin bắt buộc!');
     }
 
-    if (selectedTaskType !== TaskType.TASK_2 && !imageUrl.trim()) {
-      return message.warning('Vui lòng cung cấp link hình ảnh cho Task 1!');
+    if (selectedTaskType === TaskType.TASK_1_ACADEMIC && !imageUrl.trim()) {
+      return message.warning('Vui lòng cung cấp link hình ảnh cho Task 1 Academic!');
     }
 
     try {
@@ -169,7 +173,10 @@ const PromptManagement: React.FC = () => {
         categoryId: selectedCategoryId,
         topicId: selectedTaskType === TaskType.TASK_2 ? selectedTopicId : undefined,
         content: content,
-        imageUrl: selectedTaskType !== TaskType.TASK_2 ? imageUrl : undefined,
+        imageUrl: selectedTaskType === TaskType.TASK_1_ACADEMIC ? imageUrl : undefined,
+        modelAnswer: modelAnswer || undefined,
+        hints: hints || undefined,
+        targetBand: targetBand,
         isFreeSample: isFreeSample
       };
 
@@ -184,10 +191,13 @@ const PromptManagement: React.FC = () => {
       // Reset form & Refresh
       setShowForm(false);
       setEditingFullPromptId(null);
-      setContent('');
-      setImageUrl('');
       setSelectedCategoryId('');
       setSelectedTopicId('');
+      setContent('');
+      setImageUrl('');
+      setModelAnswer('');
+      setHints('');
+      setTargetBand(7.0);
       setIsFreeSample(false);
       fetchInitialData();
     } catch (error: any) {
@@ -243,6 +253,16 @@ const PromptManagement: React.FC = () => {
       message.error('Không thể xoá đề bài');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleToggleFreeSample = async (id: string, checked: boolean) => {
+    try {
+      await promptService.updatePrompt(id, { isFreeSample: checked });
+      message.success(checked ? 'Đã đặt làm đề mẫu' : 'Đã huỷ trạng thái đề mẫu');
+      fetchInitialData();
+    } catch (error) {
+      message.error('Không thể cập nhật trạng thái đề mẫu');
     }
   };
 
@@ -362,8 +382,8 @@ const PromptManagement: React.FC = () => {
       key: 'content',
       render: (_, prompt) => (
         <div className="flex flex-col gap-2.5 min-w-[300px]">
-          <div className="text-sm font-medium text-slate-800 leading-relaxed">
-            {prompt.content}
+          <div className="text-sm font-medium text-slate-800 leading-relaxed whitespace-pre-wrap">
+            {formatPrompt(prompt.content)}
           </div>
           {editingId === prompt.id ? (
             <div className="mt-2 flex flex-col gap-2.5 bg-transparent p-3 rounded-xl border border-orange-500/50 shadow-inner">
@@ -429,7 +449,7 @@ const PromptManagement: React.FC = () => {
            checked={isFreeSample} 
            onChange={(checked) => handleToggleFreeSample(record.id, checked)} 
            size="small" 
-           className={isFreeSample ? 'bg-orange-500' : 'bg-[#27272a]'}
+           className={isFreeSample ? 'bg-orange-500' : 'bg-slate-300'}
         />
       ),
       filters: (() => {
@@ -455,7 +475,7 @@ const PromptManagement: React.FC = () => {
           <Tooltip title="Sửa đề thi">
             <button 
               onClick={() => handleEditFullPrompt(record)}
-              className="p-2 bg-slate-50 border border-slate-200 text-slate-500 rounded-lg hover:text-slate-900 hover:border-slate-300 hover:bg-[#27272a] transition-all shadow-sm"
+              className="p-2 bg-slate-50 border border-slate-200 text-slate-500 rounded-lg hover:text-orange-500 hover:border-orange-500/30 hover:bg-orange-500/5 transition-all shadow-sm"
             >
               <EditIcon />
             </button>
@@ -617,8 +637,8 @@ const PromptManagement: React.FC = () => {
               />
             </div>
 
-            {/* Link Image ONLY for Task 1 */}
-            {selectedTaskType !== TaskType.TASK_2 && (
+            {/* Link Image ONLY for Task 1 Academic */}
+            {selectedTaskType === TaskType.TASK_1_ACADEMIC && (
               <div className="flex flex-col gap-1.5 mb-6 animate-in fade-in duration-300">
                 <label className="text-[13px] font-medium text-slate-500 uppercase tracking-wider flex items-center gap-2">
                   <span>Link hình ảnh biểu đồ</span>
@@ -634,12 +654,52 @@ const PromptManagement: React.FC = () => {
               </div>
             )}
 
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+              {/* Target Band */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[13px] font-medium text-slate-500 uppercase tracking-wider">Target Band (Loại đề)</label>
+                <select 
+                  value={targetBand}
+                  onChange={(e) => setTargetBand(Number(e.target.value))}
+                  className="w-full bg-slate-50 border border-slate-200 text-slate-900 text-sm rounded-lg px-3.5 py-2.5 outline-none hover:border-slate-300 focus:border-[#d4d4d8] focus:ring-1 focus:ring-[#d4d4d8] transition-all"
+                >
+                  {[5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5, 9.0].map(band => (
+                    <option key={band} value={band}>Band {band.toFixed(1)}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Model Answer */}
+            <div className="flex flex-col gap-1.5 mb-5">
+              <label className="text-[13px] font-medium text-slate-500 uppercase tracking-wider">Bài mẫu tham khảo (Model Answer)</label>
+              <textarea
+                rows={6}
+                value={modelAnswer}
+                onChange={(e) => setModelAnswer(e.target.value)}
+                placeholder="Nhập bài mẫu chất lượng cao..."
+                className="w-full bg-slate-50 border border-slate-200 text-slate-900 text-sm rounded-lg px-3.5 py-3 outline-none hover:border-slate-300 focus:border-[#d4d4d8] focus:ring-1 focus:ring-[#d4d4d8] transition-all resize-none placeholder:text-slate-400 font-serif leading-relaxed"
+              />
+            </div>
+
+            {/* Hints / Vocabulary */}
+            <div className="flex flex-col gap-1.5 mb-8">
+              <label className="text-[13px] font-medium text-slate-500 uppercase tracking-wider">Gợi ý & Từ vựng (Hints)</label>
+              <textarea
+                rows={4}
+                value={hints}
+                onChange={(e) => setHints(e.target.value)}
+                placeholder="Gợi ý hướng làm bài hoặc các từ vựng ăn điểm..."
+                className="w-full bg-slate-50 border border-slate-200 text-slate-900 text-sm rounded-lg px-3.5 py-3 outline-none hover:border-slate-300 focus:border-[#d4d4d8] focus:ring-1 focus:ring-[#d4d4d8] transition-all resize-none placeholder:text-slate-400"
+              />
+            </div>
+
             {/* Free Sample Toggle */}
             <div className="flex items-center gap-3 mb-8 bg-slate-50/50 border border-slate-200 p-4 rounded-xl">
               <Switch 
                 checked={isFreeSample} 
-                onChange={setIsFreeSample} 
-                className={isFreeSample ? 'bg-orange-500' : 'bg-[#27272a]'}
+                onChange={setIsFreeSample}
+                className={isFreeSample ? 'bg-orange-500' : 'bg-slate-300'}
               />
               <div className="flex flex-col">
                 <span className="text-base font-medium text-slate-900">Đặt làm đề thi mẫu (Free Sample)</span>

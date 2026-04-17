@@ -14,6 +14,7 @@ export type Prompt = {
   hints?: string;
   isActive: boolean;
   isFreeSample: boolean;
+  targetBand?: number;
   createdAt: string;
 }
 
@@ -26,6 +27,7 @@ export type CreatePromptDto = {
   modelAnswer?: string;
   hints?: string;
   isFreeSample?: boolean;
+  targetBand?: number;
 }
 
 export const promptService = {

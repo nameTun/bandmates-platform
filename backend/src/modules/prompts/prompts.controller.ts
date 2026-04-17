@@ -1,8 +1,9 @@
-import { Controller, Get, Post, Body, Param, UseGuards, UseInterceptors, UploadedFile, Res } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, UseGuards, UseInterceptors, UploadedFile, Res, Patch, Delete } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
 import { PromptsService } from './prompts.service';
 import { CreatePromptDto } from './dto/create-prompt.dto';
+import { UpdatePromptDto } from './dto/update-prompt.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -23,6 +24,22 @@ export class PromptsController {
   @Roles(UserRole.ADMIN)
   async create(@Body() createPromptDto: CreatePromptDto) {
     return this.promptsService.create(createPromptDto);
+  }
+
+  // API cập nhật đề bài - Chỉ dành cho Admin
+  @Patch(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  async update(@Param('id') id: string, @Body() updatePromptDto: UpdatePromptDto) {
+    return this.promptsService.update(id, updatePromptDto);
+  }
+
+  // API xoá đề bài - Chỉ dành cho Admin
+  @Delete(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  async remove(@Param('id') id: string) {
+    return this.promptsService.remove(id);
   }
 
   // API lấy danh sách đề bài - Phục vụ hiển thị trên Dashboard Admin và Practice Library

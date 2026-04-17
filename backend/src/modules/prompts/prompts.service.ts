@@ -5,6 +5,7 @@ import { Prompt } from './entities/prompt.entity';
 import { Topic } from '../topics/entities/topic.entity';
 import { Category } from '../categories/entities/category.entity';
 import { CreatePromptDto } from './dto/create-prompt.dto';
+import { UpdatePromptDto } from './dto/update-prompt.dto';
 import { TaskType } from '../../common/enums/task-type.enum';
 import * as XLSX from 'xlsx';
 
@@ -47,6 +48,41 @@ export class PromptsService {
     });
 
     return this.promptsRepository.save(prompt);
+  }
+
+  // Cập nhật đề bài
+  async update(id: string, updatePromptDto: UpdatePromptDto): Promise<Prompt> {
+    const prompt = await this.findOne(id);
+    const { categoryId, topicId, ...updateData } = updatePromptDto;
+
+    // 1. Nếu có categoryId mới
+    if (categoryId) {
+      const category = await this.categoriesRepository.findOne({ where: { id: categoryId } });
+      if (!category) throw new BadRequestException('Danh mục không hợp lệ');
+      prompt.category = category;
+    }
+
+    // 2. Nếu có topicId mới
+    if (topicId !== undefined) {
+      if (topicId === null || topicId === '') {
+        prompt.topic = null as any;
+      } else {
+        const topic = await this.topicsRepository.findOne({ where: { id: topicId } });
+        if (!topic) throw new BadRequestException('Chủ đề không học lệ');
+        prompt.topic = topic;
+      }
+    }
+
+    // 3. Cập nhật các trường khác
+    Object.assign(prompt, updateData);
+
+    return this.promptsRepository.save(prompt);
+  }
+
+  // Xoá đề bài
+  async remove(id: string): Promise<void> {
+    const prompt = await this.findOne(id);
+    await this.promptsRepository.remove(prompt);
   }
 
   // Lấy danh sách đề thi (phục vụ Admin Dashboard và Practice Library)

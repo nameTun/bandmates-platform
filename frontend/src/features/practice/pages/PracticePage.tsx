@@ -2,10 +2,21 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { historyService } from '@/features/history/services/history.service';
 import { practiceService } from '@/features/practice/services/practice.service';
-import type { Prompt, Topic, Category, AIResponse, Correction } from '@/features/practice/services/practice.service';
+import type { Prompt, Topic, Category, AIResponse  } from '@/features/practice/services/practice.service';
 import { useAuthStore } from '@/features/auth/store/useAuthStore';
 import { TaskType } from '@/common/enums/task-type.enum';
 import { Spin } from 'antd';
+
+/**
+ * Tự động viết hoa chữ cái đầu tiên của mỗi dòng trong đề bài 
+ * (Hợp lệ cho cả các dòng bắt đầu bằng dấu gạch ngang '-')
+ */
+const formatPrompt = (text: string) => {
+  if (!text) return '';
+  return text.replace(/(^|\n)([\s\-\*]*)([a-z])/g, (_match, p1, p2, p3) => {
+    return p1 + p2 + p3.toUpperCase();
+  });
+};
 
 /* ──────────── TYPES ──────────── */
 // Các interface Correction và AIResponse đã được chuyển vào practice.service.ts
@@ -189,8 +200,8 @@ const PracticeLibrary: React.FC<{ onSelect: (prompt: Prompt) => void }> = ({ onS
                           </span>
                         )}
                       </div>
-                      <p className="text-slate-800 text-sm font-medium line-clamp-4 leading-relaxed group-hover:text-indigo-900 transition-colors mb-4 flex-1">
-                        "{prompt.content}"
+                      <p className="text-slate-800 text-sm font-medium line-clamp-4 leading-relaxed group-hover:text-indigo-900 transition-colors mb-4 flex-1 whitespace-pre-line">
+                        "{formatPrompt(prompt.content)}"
                       </p>
                       
                       <div className="mt-auto pt-4 border-t border-slate-100 flex items-center justify-between">
@@ -303,7 +314,7 @@ const WritingEditor: React.FC<WritingEditorProps> = ({ promptObj, onBack, onErro
             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
               Chủ đề bài viết
             </h3>
-            <p className="text-slate-800 font-semibold leading-relaxed text-[15px]">{promptObj.content}</p>
+            <p className="text-slate-800 font-semibold leading-relaxed text-[15px] whitespace-pre-wrap">{formatPrompt(promptObj.content)}</p>
             {promptObj.imageUrl && (
               <div className="mt-4 p-4 bg-slate-50 rounded-xl border border-slate-100 flex justify-center">
                 <img src={promptObj.imageUrl} alt="Prompt Image" className="max-w-full h-auto max-h-[300px] object-contain rounded-lg" />
@@ -538,7 +549,7 @@ const PracticePage: React.FC = () => {
   const { id: attemptId } = useParams<{ id?: string }>();
   const navigate = useNavigate();
 
-  const [errorStatus, setErrorStatus] = useState<number | null>(null);
+
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [showQuotaModal, setShowQuotaModal] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Prompt | null>(null);
@@ -587,7 +598,6 @@ const PracticePage: React.FC = () => {
           else setSelectedTask(null);
         }}
         onError={(status, message) => {
-          setErrorStatus(status);
           setErrorMessage(message);
           if (status === 429) setShowQuotaModal(true);
         }}
