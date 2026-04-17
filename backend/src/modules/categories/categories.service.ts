@@ -17,10 +17,12 @@ export class CategoriesService {
     return this.categoriesRepository.save(category);
   }
 
-  async findAll(): Promise<Category[]> {
-    return this.categoriesRepository.find({
-      order: { createdAt: 'DESC' },
-    });
+  async findAll(): Promise<any[]> {
+    return this.categoriesRepository
+      .createQueryBuilder('category')
+      .loadRelationCountAndMap('category.promptsCount', 'category.prompts')
+      .orderBy('category.createdAt', 'DESC')
+      .getMany();
   }
 
   async findOne(id: string): Promise<Category> {
@@ -35,14 +37,12 @@ export class CategoriesService {
     return this.categoriesRepository.save(category);
   }
 
-  async remove(id: string): Promise<Category> {
-    const category = await this.findOne(id);
-    category.isActive = false; // Soft delete
-    return this.categoriesRepository.save(category);
+  async remove(id: string): Promise<void> {
+    await this.categoriesRepository.delete(id);
   }
 
   // Giữ lại để không làm vỡ các module cũ nếu có gọi
-  async deactivate(id: string): Promise<Category> {
+  async deactivate(id: string): Promise<void> {
     return this.remove(id);
   }
 }

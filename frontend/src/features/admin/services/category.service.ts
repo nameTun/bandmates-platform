@@ -7,6 +7,7 @@ export type Category = {
   taskType: TaskType;
   description?: string;
   isActive: boolean;
+  promptsCount: number;
   createdAt: string;
 }
 
