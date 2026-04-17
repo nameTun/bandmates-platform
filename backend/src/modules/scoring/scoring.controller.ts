@@ -12,6 +12,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { OptionalJwtAuthGuard } from '../../common/guards/optional-jwt-auth.guard';
 import { User } from '../users/entities/user.entity';
 import { UsageLimitAiService, UsageAction } from '../usage-limit-ai/usage-limit-ai.service';
+import { TaskType } from '../../common/enums/task-type.enum';
 
 @Controller('scoring')
 export class ScoringController {
@@ -69,7 +70,8 @@ export class ScoringController {
         // Gọi AI để chấm điểm (Master Prompt)
         let aiResult;
         try {
-            aiResult = await this.scoringService.checkEnglish(dto.text, promptContent, userProfile);
+            const taskType = promptEntity?.taskType || TaskType.TASK_2;
+            aiResult = await this.scoringService.checkEnglish(dto.text, promptContent, userProfile, taskType);
         } catch (error) {
             throw new HttpException(
                 'Hệ thống chấm điểm AI đang bận hoặc gặp sự cố. Vui lòng thử lại sau vài phút.',

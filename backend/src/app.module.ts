@@ -11,6 +11,7 @@ import { validate } from './config/env.validation';
 import { UsageLimitAiModule } from './modules/usage-limit-ai/usage-limit-ai.module';
 import { UserProfilesModule } from './modules/user-profiles/user-profiles.module';
 import { AiModule } from './modules/ai/ai.module';
+import { ScoringCriteriaModule } from './modules/scoring-criteria/scoring-criteria.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { AiModule } from './modules/ai/ai.module';
     UserProfilesModule,
     AuthModule,
     UsageLimitAiModule,
+    ScoringCriteriaModule,
     ScoringModule,
     PromptsModule,
     VocabularyModule,

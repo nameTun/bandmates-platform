@@ -7,7 +7,7 @@ import { Prompt } from '../src/modules/prompts/entities/prompt.entity';
 import { Category } from '../src/modules/categories/entities/category.entity';
 import { Topic } from '../src/modules/topics/entities/topic.entity';
 import { ExamAttempt } from 'src/modules/scoring/entities/exam-attempt.entity';
-import { ScoringCriteria } from 'src/modules/scoring/entities/scoring-criteria.entity';
+import { ScoringCriteria } from 'src/modules/scoring-criteria/entities/scoring-criteria.entity';
 dotenv.config();
 
 async function seed() {

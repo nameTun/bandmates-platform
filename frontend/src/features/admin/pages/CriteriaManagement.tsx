@@ -1,94 +1,205 @@
-import React from 'react';
-import { Row, Col } from 'antd'; // Tạm giữ Row, Col của antd để chia lưới
+import React, { useState, useEffect, useMemo } from 'react';
+import { message, Spin, Tabs, Tooltip, Input, Button } from 'antd';
+import { scoringCriteriaService, type ScoringCriteria } from '../services/criteria.service';
+import { TaskType } from '@/common/enums/task-type.enum';
 
-const mockCriteriaTask1 = [
-  { id: '1', name: 'Task Achievement', description: 'Đánh giá việc trả lời đầy đủ các yêu cầu của đề bài, tóm tắt chính xác các đặc điểm chính và thực hiện các so sánh cần thiết.' },
-  { id: '2', name: 'Coherence & Cohesion', description: 'Đánh giá tính mạch lạc của bài viết, cách sắp xếp ý tưởng và sử dụng các từ nối liên kết các đoạn văn.' },
-  { id: '3', name: 'Lexical Resource', description: 'Đánh giá vốn từ vựng phong phú, sử dụng từ ngữ chính xác, tự nhiên và đúng ngữ cảnh bài mô tả dữ liệu.' },
-  { id: '4', name: 'Grammatical Range & Accuracy', description: 'Đánh giá khả năng sử dụng đa dạng các cấu trúc ngữ pháp và độ chính xác của chúng.' },
-];
+const { TextArea } = Input;
 
-const mockCriteriaTask2 = [
-  { id: '5', name: 'Task Response', description: 'Đánh giá việc trả lời đúng trọng tâm câu hỏi, phát triển các luận điểm đầy đủ và có lập trường rõ ràng.' },
-  { id: '6', name: 'Coherence & Cohesion', description: 'Đánh giá tính logic trong việc trình bày bài luận, cách sử dụng liên từ và phân bổ đoạn văn hợp lý.' },
-  { id: '7', name: 'Lexical Resource', description: 'Đánh giá khả năng sử dụng từ vựng chuyên sâu về chủ đề xã hội, các cụm từ (collocations) tự nhiên.' },
-  { id: '8', name: 'Grammatical Range & Accuracy', description: 'Đánh giá việc sử dụng câu phức, câu ghép và hạn chế các lỗi ngữ pháp cơ bản.' },
-];
-
+/* ── UI ICONS ── */
 const SaveIcon = () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
     </svg>
 );
 
 const BoltIcon = () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5 text-indigo-600">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+    </svg>
+);
+
+const InfoIcon = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5 text-slate-400">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
     </svg>
 );
 
 const CriteriaManagement: React.FC = () => {
-  const CriteriaCard = ({ title, data }: { title: string, data: any[] }) => (
-      <div className="bg-[#0a0a0a] border border-[#27272a] rounded-xl overflow-hidden flex flex-col h-full shadow-[0_0_15px_rgba(0,0,0,0.5)]">
-         {/* Card Header */}
-         <div className="px-6 py-5 border-b border-[#27272a] bg-[#0f0f0f] flex items-center justify-between">
-             <div className="flex items-center gap-3">
-                 <div className="w-2 h-2 rounded-full bg-white"></div>
-                 <h2 className="text-base font-semibold text-white tracking-tight">{title}</h2>
-             </div>
-             <button className="flex items-center gap-2 px-3 py-1.5 bg-[#18181b] border border-[#27272a] text-[#ededed] text-xs font-medium rounded-lg hover:border-[#3f3f46] hover:bg-[#27272a] transition-colors">
-                 <SaveIcon /> Lưu thay đổi
-             </button>
-         </div>
+    const [loading, setLoading] = useState(true);
+    const [criteria, setCriteria] = useState<ScoringCriteria[]>([]);
+    const [activeTab, setActiveTab] = useState<string>(TaskType.TASK_2);
+    const [savingId, setSavingId] = useState<string | null>(null);
 
-         {/* Card Body */}
-         <div className="p-6 flex-1 flex flex-col gap-6">
-             {data.map((item) => (
-                 <div key={item.id} className="group">
-                     <div className="flex items-center justify-between mb-2">
-                        <span className="text-[11px] font-bold text-[#a1a1aa] uppercase tracking-wider group-focus-within:text-[#ededed] transition-colors">
-                            {item.name}
-                        </span>
-                     </div>
-                     <textarea 
-                        defaultValue={item.description} 
-                        rows={3} 
-                        className="w-full bg-[#18181b] border border-[#27272a] text-[#ededed] text-sm rounded-lg px-4 py-3 outline-none hover:border-[#3f3f46] focus:border-[#d4d4d8] focus:ring-1 focus:ring-[#d4d4d8] transition-all resize-none shadow-inner"
-                        placeholder={`Hướng dẫn AI chấm điểm ${item.name}...`}
-                     />
-                 </div>
-             ))}
-         </div>
-      </div>
-  );
+    useEffect(() => {
+        fetchCriteria();
+    }, []);
 
-  return (
-    <div className="min-h-screen bg-[#0a0a0a] text-[#ededed] font-sans selection:bg-orange-500/30 selection:text-white pb-20">
-      <div className="max-w-[1200px] mx-auto px-8 py-12">
-        {/* Page Header */}
-        <div className="mb-10 max-w-3xl">
-          <div className="flex items-center gap-2 mb-3">
-            <BoltIcon />
-            <span className="text-[#a1a1aa] font-bold text-[10px] uppercase tracking-[0.2em]">Prompt Engineering</span>
-          </div>
-          <h1 className="text-3xl font-semibold tracking-tight text-white mb-2">Cấu hình Tiêu chí chấm điểm</h1>
-          <p className="text-[#71717a] text-sm leading-relaxed">
-            Tinh chỉnh nội dung hướng dẫn (Instruction) cho AI của BandMates. Hệ thống sẽ bám sát những mô tả này để đưa ra điểm số và nhận xét chính xác cho từng tiêu chí đánh giá. Hành vi của AI sẽ thay đổi ngay lập tức sau khi lưu.
-          </p>
+    const fetchCriteria = async () => {
+        try {
+            setLoading(true);
+            const data = await scoringCriteriaService.getAll();
+            setCriteria(data);
+        } catch (error) {
+            message.error('Không thể tải tiêu chí chấm điểm');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleUpdate = async (id: string, newDesc: string) => {
+        try {
+            setSavingId(id);
+            await scoringCriteriaService.update(id, newDesc);
+            message.success('Đã cập nhật chỉ dẫn chấm điểm');
+            // Cập nhật state local
+            setCriteria(prev => prev.map(c => c.id === id ? { ...c, description: newDesc } : c));
+        } catch (error) {
+            message.error('Lỗi khi cập nhật tiêu chí');
+        } finally {
+            setSavingId(null);
+        }
+    };
+
+    const CRITERIA_ORDER: Record<string, number> = { TA: 0, CC: 1, LR: 2, GRA: 3 };
+
+    const filteredCriteria = useMemo(() => {
+        return criteria
+            .filter(c => c.taskType === activeTab)
+            .sort((a, b) => (CRITERIA_ORDER[a.criteriaKey] ?? 99) - (CRITERIA_ORDER[b.criteriaKey] ?? 99));
+    }, [criteria, activeTab]);
+
+    const tabConfig = [
+        { key: TaskType.TASK_2, label: 'Task 2 (Essay)' },
+        { key: TaskType.TASK_1_ACADEMIC, label: 'Task 1 Academic' },
+        { key: TaskType.TASK_1_GENERAL, label: 'Task 1 General' },
+    ];
+
+    return (
+        <div className="min-h-screen bg-slate-50/50 pb-20">
+            {/* Header Hub */}
+            <div className="bg-white border-b border-slate-200 pt-10 pb-6 px-8 mb-8 shadow-sm">
+                <div className="max-w-7xl mx-auto">
+                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                        <div className="max-w-3xl">
+                            <div className="flex items-center gap-2 mb-3">
+                                <div className="p-2 bg-indigo-50 rounded-xl">
+                                    <BoltIcon />
+                                </div>
+                                <span className="text-indigo-600 font-black text-[10px] uppercase tracking-[0.2em]">Prompt Engineering</span>
+                            </div>
+                            <h1 className="text-3xl font-black text-slate-900 tracking-tight mb-2">Tiêu chí chấm điểm AI</h1>
+                            <p className="text-slate-500 text-sm leading-relaxed max-w-2xl">
+                                Quản lý các chỉ dẫn (Instructions) cho AI khi chấm điểm. Mỗi thay đổi ở đây sẽ ảnh hưởng trực tiếp đến cách AI nhận xét và cho điểm các bài làm của học viên.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="mt-8">
+                        <Tabs
+                            activeKey={activeTab}
+                            onChange={setActiveTab}
+                            className="admin-tabs"
+                            items={tabConfig.map(tab => ({
+                                key: tab.key,
+                                label: (
+                                    <span className="px-2 py-1 font-bold text-[13px] uppercase tracking-wide">
+                                        {tab.label}
+                                    </span>
+                                )
+                            }))}
+                        />
+                    </div>
+                </div>
+            </div>
+
+            {/* Main Content */}
+            <div className="max-w-7xl mx-auto px-8">
+                {loading ? (
+                    <div className="flex flex-col items-center justify-center py-32 gap-4">
+                        <Spin size="large" />
+                        <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Đang tải cấu hình AI...</span>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-in slide-in-from-bottom-4 duration-500">
+                        {filteredCriteria.map(item => (
+                            <div 
+                                key={item.id} 
+                                className="bg-white border border-slate-200 rounded-[24px] p-6 shadow-sm hover:shadow-md transition-all flex flex-col group"
+                            >
+                                <div className="flex items-center justify-between mb-4">
+                                    <div className="flex items-center gap-2 text-indigo-600">
+                                        <div className="w-1.5 h-5 bg-indigo-500 rounded-full opacity-50"></div>
+                                        <h4 className="text-sm font-black uppercase tracking-widest">
+                                            {item.criteriaKey === 'TA' && activeTab === TaskType.TASK_2 ? 'Task Response' : 
+                                             item.criteriaKey === 'TA' ? 'Task Achievement' : 
+                                             item.criteriaKey === 'CC' ? 'Coherence & Cohesion' :
+                                             item.criteriaKey === 'LR' ? 'Lexical Resource' :
+                                             'Grammatical Range & Accuracy'}
+                                        </h4>
+                                    </div>
+                                    <span className="px-2 py-1 rounded-lg bg-slate-50 text-[10px] font-black text-slate-400 border border-slate-100 uppercase tracking-tighter">
+                                        {item.criteriaKey}
+                                    </span>
+                                </div>
+
+                                <div className="relative flex-1">
+                                    <TextArea
+                                        id={`ta-${item.id}`}
+                                        defaultValue={item.description}
+                                        rows={8}
+                                        className="w-full bg-slate-50/50 border-slate-100 text-slate-700 text-sm leading-relaxed rounded-xl p-4 focus:bg-white focus:border-indigo-200 focus:shadow-sm transition-all resize-none"
+                                        placeholder={`Nhập hướng dẫn chấm điểm cho ${item.criteriaKey}...`}
+
+                                        onBlur={(e) => {
+                                            if (e.target.value !== item.description) {
+                                                handleUpdate(item.id, e.target.value);
+                                            }
+                                        }}
+                                    />
+                                    <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <Tooltip title="Tự động lưu khi bạn rời khỏi ô nhập">
+                                            <div className="flex items-center gap-1 text-[10px] font-medium text-slate-300">
+                                                <InfoIcon />
+                                                <span>Auto-save</span>
+                                            </div>
+                                        </Tooltip>
+                                    </div>
+                                </div>
+
+                                <div className="mt-4 flex items-center justify-between pt-4 border-t border-slate-50">
+                                    <div className="text-[10px] text-slate-400">
+                                        Cập nhật lần cuối: {new Date(item.updatedAt).toLocaleDateString()}
+                                    </div>
+                                    <Button
+                                        type="primary"
+                                        icon={<SaveIcon />}
+                                        loading={savingId === item.id}
+                                        onClick={() => {
+                                            const textarea = document.getElementById(`ta-${item.id}`) as HTMLTextAreaElement;
+                                            if (textarea) handleUpdate(item.id, textarea.value);
+                                        }}
+                                        className="h-10 px-6 rounded-xl bg-indigo-600 hover:bg-indigo-700 border-none shadow-sm shadow-indigo-100 font-bold text-[12px] uppercase tracking-wide flex items-center gap-2"
+                                        id={`btn-${item.id}`}
+                                    >
+                                        Lưu cấu hình
+                                    </Button>
+                                    {/* Link textarea via id for the button above if it wasn't for the onBlur auto-save */}
+                                    <style>{`
+                                        #ta-${item.id} { }
+                                    `}</style>
+                                </div>
+                                <div className="hidden">
+                                     <script>{`
+                                         // This is just a placeholder to use the id in the button click
+                                     `}</script>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
         </div>
-
-        {/* Main Grid */}
-        <Row gutter={[24, 24]}>
-          <Col xs={24} xl={12}>
-            <CriteriaCard title="IELTS Writing Task 1" data={mockCriteriaTask1} />
-          </Col>
-          <Col xs={24} xl={12}>
-            <CriteriaCard title="IELTS Writing Task 2" data={mockCriteriaTask2} />
-          </Col>
-        </Row>
-      </div>
-    </div>
-  );
+    );
 };
 
 export default CriteriaManagement;

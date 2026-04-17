@@ -3,17 +3,27 @@ import { AiService } from '../ai/ai.service';
 import { AI_MODELS } from '../../config/ai-models.config';
 import { UserProfile } from '../user-profiles/entities/user-profile.entity';
 
+import { ScoringCriteriaService } from '../scoring-criteria/scoring-criteria.service';
+import { TaskType } from '../../common/enums/task-type.enum';
+
 @Injectable()
 export class ScoringService {
-    constructor(private aiService: AiService) {}
+    constructor(
+        private aiService: AiService,
+        private criteriaService: ScoringCriteriaService
+    ) {}
 
     /**
      * [IELTS SCORING] Chấm điểm bài IELTS Writing.
      * Hỗ trợ cá nhân hóa dựa trên dữ liệu User Profile.
      */
-    async checkEnglish(text: string, promptContent?: string, userProfile?: UserProfile | null): Promise<any> {
+    async checkEnglish(
+        text: string, 
+        promptContent?: string, 
+        userProfile?: UserProfile | null,
+        taskType: TaskType = TaskType.TASK_2
+    ): Promise<any> {
         let studentContext = '';
-        let focusInstructions = '';
         
         // Tính toán Target Band + 1.0 (Mặc định 8.0 nếu là khách)
         const userTargetBand = userProfile?.targetBand ? Number(userProfile.targetBand) : 7.0;
@@ -28,30 +38,39 @@ export class ScoringService {
             if (userProfile.weakestSkill && userProfile.weakestSkill.length > 0) {
                 const foci = userProfile.weakestSkill.join(', ');
                 studentContext += `\n- Các trọng tâm cần cải thiện: ${foci}`;
-                focusInstructions = `\nHọc viên đặc biệt muốn cải thiện các kỹ năng: ${foci}. Hãy phân tích cực kỳ chi tiết các lỗi liên quan đến những phần này.`;
             }
         }
+
+        // ── LẤY TIÊU CHÍ CHẤM ĐIỂM TỪ DATABASE ──
+        const criteria = await this.criteriaService.findByTaskType(taskType);
+        
+        // Tạo chuỗi hướng dẫn tiêu chí cho AI
+        const criteriaInstructions = Object.entries(criteria)
+            .map(([key, desc]) => `[CRITERIA: ${key}]\n${desc}`)
+            .join('\n\n');
 
         const ieltsPrompt = `
       Bạn là một chuyên gia chấm thi IELTS Writing khách quan và chuyên nghiệp. 
       Nhiệm vụ của bạn là đánh giá bài làm của học viên dựa trên các tiêu chí chính thức của IELTS một cách súc tích, đi thẳng vào vấn đề chuyên môn.
 
       --- BỐI CẢNH ---
-      CÂU HỎI ĐỀ BÀI: "${promptContent || 'IELTS General Writing'}"
+      LOẠI TASK: ${taskType.replace('_', ' ').toUpperCase()}
+      CÂU HỎI ĐỀ BÀI: "${promptContent || 'IELTS Writing Prompt'}"
       BÀI LÀM CỦA HỌC VIÊN: "${text}"${studentContext ? '\n      --- HỒ SƠ HỌC VIÊN ---' + studentContext : ''}
+
+      --- HƯỚNG DẪN CHẤM ĐIỂM CHI TIẾT ---
+      Hãy áp dụng các quy tắc sau đây để đánh giá từng tiêu chí:
+      
+      ${criteriaInstructions || 'Sử dụng tiêu chuẩn IELTS Writing chuẩn để đánh giá TA, CC, LR, GRA.'}
 
       --- HƯỚNG DẪN QUAN TRỌNG (STRICT) ---
       1. Phong cách và Ngôn ngữ: 
          - Xưng hô: Sử dụng cách xưng hô trung tính, chuyên nghiệp (ví dụ: "Chào [Tên]", hoặc "Về bài viết của bạn..."). Tuyệt đối KHÔNG xưng "em", "thầy", "mình" hay các từ ngữ quá thân mật, lan man.
          - Ngôn ngữ: Bài mẫu (betterVersion) và các câu sửa lỗi (corrected) dùng TIẾNG ANH. Phần nhận xét và giải thích (explanation) dùng TIẾNG VIỆT súc tích.
       
-      2. Tiêu chí chấm điểm: Chấm từ 0 - 9.0 cho 4 tiêu chí chính thức của IELTS.
-
-      3. Nâng cấp câu văn (Sentence Improvement): 
-         - Sửa các lỗi sai về ngữ pháp và từ vựng.
-         - ĐẶC BIỆT: Tìm các câu dù đúng ngữ pháp nhưng còn đơn điệu hoặc chưa tự nhiên. Hãy viết lại chúng một cách chuyên nghiệp và học thuật hơn để khớp với chuẩn Band ${userTargetBand}. Đưa các câu này vào danh sách "corrections".
-
-      4. Nhận xét mục tiêu: Phân tích bài làm đã tiệm cận mức Band ${userTargetBand} chưa. Tuyệt đối KHÔNG nhắc đến con số Band ${aiTargetBand} trong toàn bộ văn bản phản hồi gửi cho người dùng.
+      2. Điểm số: Chấm từ 0 - 9.0 cho 4 tiêu chí chính thức.
+      3. Nâng cấp câu văn (Sentence Improvement): Viết lại câu để khớp với chuẩn Band ${userTargetBand}.
+      4. Nhận xét mục tiêu: Phân tích bài làm đã tiệm cận mức Band ${userTargetBand} chưa. 
 
       --- ĐỊNH DẠNG PHẢN HỒI (JSON DUY NHẤT) ---
       {
@@ -61,7 +80,7 @@ export class ScoringService {
         "scoreGRA": number,
         "overallScore": number,
         "feedback": {
-          "general": "Nhận xét tổng quát súc tích, nêu rõ bài làm đang ở mức nào so với Band ${userTargetBand} mục tiêu. (Tiếng Việt)",
+          "general": "Nhận xét tổng quát súc tích (Tiếng Việt)",
           "ta": "Nhận xét tiêu chí TA (Tiếng Việt)",
           "cc": "Nhận xét tiêu chí CC (Tiếng Việt)",
           "lr": "Nhận xét tiêu chí LR (Tiếng Việt)",
@@ -70,12 +89,12 @@ export class ScoringService {
         "corrections": [
             {
                 "original": "...",
-                "corrected": "câu đã nâng cấp để đạt Band ${userTargetBand}",
-                "explanation": "Giải thích ngắn gọn tại sao câu này giúp đạt điểm cao hơn (Tiếng Việt)",
+                "corrected": "...",
+                "explanation": "...",
                 "type": "grammar" | "vocabulary" | "punctuation"
             }
         ],
-        "betterVersion": "Một bài viết hoàn chỉnh đạt chuẩn mức độ Band ${aiTargetBand + 0.5} (Dùng tiếng Anh chuyên nghiệp, nhưng không được ghi số điểm vào nội dung bài viết)"
+        "betterVersion": "..."
       }
     `;
 
