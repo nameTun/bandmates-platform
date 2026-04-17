@@ -7,6 +7,7 @@ export type Topic = {
   taskType: TaskType;
   description?: string;
   isActive: boolean;
+  promptsCount?: number;
   createdAt: string;
 }
 
@@ -16,9 +17,11 @@ export type CreateTopicDto = {
   description?: string;
 }
 
+export type UpdateTopicDto = Partial<CreateTopicDto>;
+
 export const topicService = {
   /**
-   * Lấy danh sách tất cả các chủ đề xã hội (Topics - Task 2)
+   * Lấy danh sách tất cả các chủ đề (Topics)
    */
   getTopics: async (): Promise<Topic[]> => {
     const response = await api.get('/topics');
@@ -34,10 +37,27 @@ export const topicService = {
   },
 
   /**
-   * Vô hiệu hóa một chủ đề
+   * Cập nhật chủ đề
    */
-  deactivateTopic: async (id: string): Promise<Topic> => {
-    const response = await api.patch(`/topics/${id}/deactivate`);
+  updateTopic: async (id: string, data: UpdateTopicDto): Promise<Topic> => {
+    // Lưu ý: Hiện tại Backend chưa có endpoint Patch :id cho Topic, 
+    // Nếu chưa có ta sẽ dùng tạm create/update logic hoặc bổ sung sau.
+    // Tạm thời để định nghĩa cho UI sẵn sàng.
+    const response = await api.post('/topics', { ...data, id }); // Mocking logic if needed or assuming standard REST
     return response.data;
+  },
+
+  /**
+   * Xoá hoàn toàn một chủ đề (Hard Delete)
+   */
+  deleteTopic: async (id: string): Promise<void> => {
+    await api.delete(`/topics/${id}`);
+  },
+
+  /**
+   * Vô hiệu hóa một chủ đề (Legacy)
+   */
+  deactivateTopic: async (id: string): Promise<void> => {
+    await api.patch(`/topics/${id}/deactivate`);
   }
 };

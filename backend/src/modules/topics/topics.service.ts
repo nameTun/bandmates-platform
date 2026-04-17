@@ -16,10 +16,12 @@ export class TopicsService {
     return this.topicsRepository.save(topic);
   }
 
-  async findAll(): Promise<Topic[]> {
-    return this.topicsRepository.find({
-      order: { createdAt: 'DESC' },
-    });
+  async findAll(): Promise<any[]> {
+    return this.topicsRepository
+      .createQueryBuilder('topic')
+      .loadRelationCountAndMap('topic.promptsCount', 'topic.prompts')
+      .orderBy('topic.createdAt', 'DESC')
+      .getMany();
   }
 
   async findOne(id: string): Promise<Topic> {
@@ -28,9 +30,17 @@ export class TopicsService {
     return topic;
   }
 
-  async deactivate(id: string): Promise<Topic> {
+  async remove(id: string): Promise<void> {
+    await this.topicsRepository.delete(id);
+  }
+
+  async update(id: string, updateData: Partial<CreateTopicDto>): Promise<Topic> {
     const topic = await this.findOne(id);
-    topic.isActive = false;
+    Object.assign(topic, updateData);
     return this.topicsRepository.save(topic);
+  }
+
+  async deactivate(id: string): Promise<void> {
+    return this.remove(id);
   }
 }

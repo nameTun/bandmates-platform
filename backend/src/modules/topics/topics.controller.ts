@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, UseGuards, Patch } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, UseGuards, Patch, Delete } from '@nestjs/common';
 import { TopicsService } from './topics.service';
 import { CreateTopicDto } from './dto/create-topic.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -22,6 +22,20 @@ export class TopicsController {
   @UseGuards(OptionalJwtAuthGuard)
   async findAll() {
     return this.topicsService.findAll();
+  }
+
+  @Delete(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  async remove(@Param('id') id: string) {
+    return this.topicsService.remove(id);
+  }
+
+  @Patch(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  async update(@Param('id') id: string, @Body() updateData: CreateTopicDto) {
+    return this.topicsService.update(id, updateData);
   }
 
   @Patch(':id/deactivate')

@@ -510,7 +510,7 @@ const WritingEditor: React.FC<WritingEditorProps> = ({ promptObj, onBack, onErro
                     </div>
 
                     {/* [NEW] Learning Path - Stage 4 */}
-                    {result.feedback.learningPath && (
+                    {/* {result.feedback.learningPath && (
                       <div className="bg-gradient-to-r from-indigo-600 to-violet-600 rounded-2xl p-6 text-white shadow-lg shadow-indigo-200 mt-2 relative overflow-hidden group">
                         <div className="absolute -right-4 -top-4 w-24 h-24 bg-white/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700" />
                         <h4 className="text-[11px] font-black uppercase tracking-[0.2em] mb-3 flex items-center gap-2 opacity-90">
@@ -521,7 +521,7 @@ const WritingEditor: React.FC<WritingEditorProps> = ({ promptObj, onBack, onErro
                         </h4>
                         <p className="text-[14px] leading-relaxed font-semibold">{result.feedback.learningPath}</p>
                       </div>
-                    )}
+                    )} */}
                   </div>
                 )}
               {activeTab === 'improved' && (

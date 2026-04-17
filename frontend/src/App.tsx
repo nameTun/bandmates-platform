@@ -21,7 +21,6 @@ const AdminLayout = lazy(() => import('@/features/admin/components/AdminLayout')
 const AdminDashboard = lazy(() => import('@/features/admin/pages/AdminDashboard'));
 const PromptManagement = lazy(() => import('@/features/admin/pages/PromptManagement'));
 const CategoryManagement = lazy(() => import('@/features/admin/pages/CategoryManagement'));
-const TopicManagement = lazy(() => import('@/features/admin/pages/TopicManagement'));
 const CriteriaManagement = lazy(() => import('@/features/admin/pages/CriteriaManagement'));
 
 /**
@@ -89,7 +88,6 @@ const App: React.FC = () => {
             <Route index element={<AdminDashboard />} />
             <Route path="prompts" element={<PromptManagement />} />
             <Route path="categories" element={<CategoryManagement />} />
-            <Route path="topics" element={<TopicManagement />} />
             <Route path="criteria" element={<CriteriaManagement />} />
           </Route>
         </Route>
