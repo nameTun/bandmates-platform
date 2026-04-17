@@ -46,15 +46,18 @@ const CriteriaManagement: React.FC = () => {
         }
     };
 
-    const handleUpdate = async (id: string, newDesc: string) => {
+    const handleUpdate = async (id: string, description: string) => {
         try {
             setSavingId(id);
-            await scoringCriteriaService.update(id, newDesc);
-            message.success('Đã cập nhật chỉ dẫn chấm điểm');
-            // Cập nhật state local
-            setCriteria(prev => prev.map(c => c.id === id ? { ...c, description: newDesc } : c));
+            await scoringCriteriaService.update(id, description);
+            message.success('Đã lưu tiêu chí thành công!');
+            
+            setCriteria(prev => 
+                prev.map(c => c.id === id ? { ...c, description } : c)
+            );
         } catch (error) {
-            message.error('Lỗi khi cập nhật tiêu chí');
+            console.error('Failed to update criteria', error);
+            message.error('Không thể lưu tiêu chí. Vui lòng thử lại.');
         } finally {
             setSavingId(null);
         }

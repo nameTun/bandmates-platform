@@ -59,18 +59,22 @@ export class ScoringService {
       BÀI LÀM CỦA HỌC VIÊN: "${text}"${studentContext ? '\n      --- HỒ SƠ HỌC VIÊN ---' + studentContext : ''}
 
       --- HƯỚNG DẪN CHẤM ĐIỂM CHI TIẾT ---
-      Hãy áp dụng các quy tắc sau đây để đánh giá từng tiêu chí:
+      Hãy áp dụng các quy định và mô tả Band sau đây để đánh giá từng tiêu chí một cách nghiêm ngặt:
       
-      ${criteriaInstructions || 'Sử dụng tiêu chuẩn IELTS Writing chuẩn để đánh giá TA, CC, LR, GRA.'}
+      ${criteriaInstructions || `
+      1. TASK ACHIEVEMENT/RESPONSE: Evaluate how fully the response addresses the prompt and maintains a clear position.
+      2. COHERENCE AND COHESION: Check for logical flow, paragraphing, and the effective use of linking words.
+      3. LEXICAL RESOURCE: Assess vocabulary range, precision, and correct use of collocations.
+      4. GRAMMATICAL RANGE AND ACCURACY: Check for sentence variety and frequency of error-free sentences.
+      `}
 
-      --- HƯỚNG DẪN QUAN TRỌNG (STRICT) ---
-      1. Phong cách và Ngôn ngữ: 
-         - Xưng hô: Sử dụng cách xưng hô trung tính, chuyên nghiệp (ví dụ: "Chào [Tên]", hoặc "Về bài viết của bạn..."). Tuyệt đối KHÔNG xưng "em", "thầy", "mình" hay các từ ngữ quá thân mật, lan man.
-         - Ngôn ngữ: Bài mẫu (betterVersion) và các câu sửa lỗi (corrected) dùng TIẾNG ANH. Phần nhận xét và giải thích (explanation) dùng TIẾNG VIỆT súc tích.
-      
-      2. Điểm số: Chấm từ 0 - 9.0 cho 4 tiêu chí chính thức.
-      3. Nâng cấp câu văn (Sentence Improvement): Viết lại câu để khớp với chuẩn Band ${userTargetBand}.
-      4. Nhận xét mục tiêu: Phân tích bài làm đã tiệm cận mức Band ${userTargetBand} chưa. 
+      --- QUY TẮC BẮT BUỘC (STRICT PROTOCOL) ---
+      1. Tuân thủ PENALTY RULES & STRICT CHECK: Trong mỗi tiêu chí [CRITERIA] phía trên, nếu có mục "PENALTY RULES" hoặc "STRICT CHECK", bạn PHẢI ưu tiên kiểm tra trước. Nếu vi phạm, điểm số của tiêu chí đó PHẢI bị khống chế (Capped) theo quy định.
+      2. GAP ANALYSIS (Lộ trình cải thiện): Thực hiện theo hướng dẫn "ACTIONABLE MENTOR FEEDBACK" ở tiêu chí GRA. Bạn hãy đưa ra đúng 3 bước hành động (Step 1, 2, 3) và đặt phần này ở cuối trường "general" trong JSON phản hồi.
+      3. Phong cách và Ngôn ngữ: 
+         - Xưng hô: Sử dụng phong cách chuyên nghiệp, khách quan. Không dùng các từ ngữ quá thân mật (em, mình, thầy).
+         - Ngôn ngữ: Phần nhận xét (feedback) và giải thích lỗi (explanation) dùng TIẾNG VIỆT. Bài mẫu (betterVersion) dùng TIẾNG ANH.
+      4. Sentence Improvement: Nâng cấp các câu văn trong bài làm của học viên để tiệm cận mức Band ${aiTargetBand}.
 
       --- ĐỊNH DẠNG PHẢN HỒI (JSON DUY NHẤT) ---
       {
