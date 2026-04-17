@@ -34,7 +34,23 @@ export const categoryService = {
   },
 
   /**
-   * Vô hiệu hóa một dạng bài
+   * Cập nhật thông tin một dạng bài
+   */
+  updateCategory: async (id: string, data: Partial<CreateCategoryDto>): Promise<Category> => {
+    const response = await api.patch(`/categories/${id}`, data);
+    return response.data;
+  },
+
+  /**
+   * Xóa một dạng bài (Soft Delete)
+   */
+  deleteCategory: async (id: string): Promise<Category> => {
+    const response = await api.delete(`/categories/${id}`);
+    return response.data;
+  },
+
+  /**
+   * Vô hiệu hóa một dạng bài (Tương thích cũ)
    */
   deactivateCategory: async (id: string): Promise<Category> => {
     const response = await api.patch(`/categories/${id}/deactivate`);

@@ -24,6 +24,15 @@ const adminNavItems = [
     ),
   },
   {
+    to: '/admin/categories',
+    label: 'Quản lý danh mục',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+      </svg>
+    ),
+  },
+  {
     to: '/admin/topics',
     label: 'Quản lý chủ đề',
     icon: (
@@ -53,21 +62,30 @@ const adminNavItems = [
 ];
 
 const AdminLayout: React.FC = () => {
-  const { user, logout } = useAuthStore();
+  const { user, logout: authLogout } = useAuthStore();
   const navigate = useNavigate();
 
+  // Xác định tên hiển thị: Ưu tiên displayName trong profile, sau đó là email, mặc định là 'Admin'
+  const userName = user?.profile?.displayName || user?.email || 'Admin';
+
   const handleLogout = async () => {
-    try { await authService.logout(); } catch (e) { console.error(e); }
-    logout();
-    navigate('/');
+    try {
+      await authService.logout();
+      authLogout();
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout failed', error);
+      authLogout();
+      navigate('/login');
+    }
   };
 
   const handleBackToApp = () => navigate('/dashboard');
 
   return (
-    <div className="flex min-h-screen bg-slate-950">
+    <div className="flex min-h-screen bg-slate-50">
       {/* ── Admin Sidebar ── */}
-      <aside className="w-64 bg-slate-900 border-r border-slate-800 flex flex-col justify-between h-screen sticky top-0 flex-shrink-0">
+      <aside className="w-64 bg-slate-900 border-r border-slate-800 flex flex-col justify-between h-screen sticky top-0 flex-shrink-0 z-20">
         {/* Top */}
         <div>
           {/* Logo */}
@@ -95,7 +113,7 @@ const AdminLayout: React.FC = () => {
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
               </svg>
-              Trở về ứng dụng
+              Về ứng dụng
             </button>
           </div>
 
@@ -110,8 +128,8 @@ const AdminLayout: React.FC = () => {
                 className={({ isActive }) =>
                   `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group ${
                     isActive
-                      ? 'bg-orange-500/10 text-orange-400 shadow-sm'
-                      : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                      ? 'bg-gradient-to-r from-orange-500/20 to-orange-500/5 text-orange-400 shadow-sm border border-orange-500/20'
+                      : 'text-slate-400 hover:bg-slate-800 hover:text-white border border-transparent'
                   }`
                 }
               >
@@ -133,17 +151,17 @@ const AdminLayout: React.FC = () => {
           {user && (
             <div className="flex items-center gap-3 px-3 py-2.5 mb-2">
               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center text-white text-xs font-bold shadow-sm flex-shrink-0">
-                {user.name?.charAt(0).toUpperCase() || 'A'}
+                {userName.charAt(0).toUpperCase()}
               </div>
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-white truncate">{user.name}</p>
+                <p className="text-sm font-semibold text-white truncate">{userName}</p>
                 <p className="text-xs text-slate-500 truncate">{user.role === 'admin' ? 'Quản trị viên' : user.email}</p>
               </div>
             </div>
           )}
           <button
             onClick={handleLogout}
-            className="flex items-center gap-3 px-3 py-2.5 w-full rounded-xl text-sm font-medium text-slate-500 hover:bg-red-500/10 hover:text-red-400 transition-all"
+            className="flex items-center gap-3 px-3 py-2.5 w-full rounded-xl text-sm font-medium text-slate-500 hover:bg-red-500/10 hover:text-red-400 transition-all border border-transparent"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5">
               <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -154,7 +172,7 @@ const AdminLayout: React.FC = () => {
       </aside>
 
       {/* ── Main Content Area ── */}
-      <main className="flex-1 overflow-auto bg-slate-950">
+      <main className="flex-1 max-h-screen overflow-auto bg-slate-50">
         <Outlet />
       </main>
     </div>

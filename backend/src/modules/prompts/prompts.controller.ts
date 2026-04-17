@@ -1,10 +1,13 @@
-import { Controller, Get, Post, Body, Param, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, UseGuards, UseInterceptors, UploadedFile, Res } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import type { Response } from 'express';
 import { PromptsService } from './prompts.service';
 import { CreatePromptDto } from './dto/create-prompt.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { UserRole } from '../users/entities/user.entity';
+import { TaskType } from '../../common/enums/task-type.enum';
 import { OptionalJwtAuthGuard } from '../../common/guards/optional-jwt-auth.guard';
 
 import { GetUser } from '../../common/decorators/get-user.decorator';
@@ -12,7 +15,7 @@ import { User } from '../users/entities/user.entity';
 
 @Controller('prompts')
 export class PromptsController {
-  constructor(private readonly promptsService: PromptsService) {}
+  constructor(private readonly promptsService: PromptsService) { }
 
   // API thêm đề bài thủ công - Chỉ dành cho Admin
   @Post()
@@ -33,5 +36,72 @@ export class PromptsController {
   @Get(':id')
   async findOne(@Param('id') id: string) {
     return this.promptsService.findOne(id);
+  }
+
+  // --- EXCEL IMPORT/EXPORT ---
+
+  @Post('import/task2')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @UseInterceptors(FileInterceptor('file'))
+  async importPromptsTask2(@UploadedFile() file: Express.Multer.File) {
+    return this.promptsService.importPromptsTask2(file.buffer);
+  }
+
+  @Post('import/task1-academic')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @UseInterceptors(FileInterceptor('file'))
+  async importPromptsTask1Academic(@UploadedFile() file: Express.Multer.File) {
+    return this.promptsService.importPromptsTask1Academic(file.buffer);
+  }
+
+  @Post('import/task1-general')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @UseInterceptors(FileInterceptor('file'))
+  async importPromptsTask1General(@UploadedFile() file: Express.Multer.File) {
+    return this.promptsService.importPromptsTask1General(file.buffer);
+  }
+
+  @Get('export/all')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  async exportAll(@Res() res: Response) {
+    const buffer = await this.promptsService.exportToExcel();
+    return this.sendExcelResponse(res, buffer, 'prompts-all-export.xlsx');
+  }
+
+  @Get('export/task2')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  async exportTask2(@Res() res: Response) {
+    const buffer = await this.promptsService.exportToExcel(TaskType.TASK_2);
+    return this.sendExcelResponse(res, buffer, 'prompts-task2-export.xlsx');
+  }
+
+  @Get('export/task1-academic')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  async exportTask1Academic(@Res() res: Response) {
+    const buffer = await this.promptsService.exportToExcel(TaskType.TASK_1_ACADEMIC);
+    return this.sendExcelResponse(res, buffer, 'prompts-task1-academic-export.xlsx');
+  }
+
+  @Get('export/task1-general')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  async exportTask1General(@Res() res: Response) {
+    const buffer = await this.promptsService.exportToExcel(TaskType.TASK_1_GENERAL);
+    return this.sendExcelResponse(res, buffer, 'prompts-task1-general-export.xlsx');
+  }
+
+  private sendExcelResponse(res: Response, buffer: Buffer, filename: string) {
+    res.set({
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Content-Length': buffer.length,
+    });
+    res.end(buffer);
   }
 }

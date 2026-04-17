@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Category } from './entities/category.entity';
 import { CreateCategoryDto } from './dto/create-category.dto';
+import { UpdateCategoryDto } from './dto/update-category.dto';
 
 @Injectable()
 export class CategoriesService {
@@ -28,9 +29,20 @@ export class CategoriesService {
     return category;
   }
 
-  async deactivate(id: string): Promise<Category> {
+  async update(id: string, updateCategoryDto: UpdateCategoryDto): Promise<Category> {
     const category = await this.findOne(id);
-    category.isActive = false;
+    Object.assign(category, updateCategoryDto);
     return this.categoriesRepository.save(category);
+  }
+
+  async remove(id: string): Promise<Category> {
+    const category = await this.findOne(id);
+    category.isActive = false; // Soft delete
+    return this.categoriesRepository.save(category);
+  }
+
+  // Giữ lại để không làm vỡ các module cũ nếu có gọi
+  async deactivate(id: string): Promise<Category> {
+    return this.remove(id);
   }
 }
