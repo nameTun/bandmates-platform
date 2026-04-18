@@ -47,7 +47,8 @@ export class AllExceptionsFilter implements ExceptionFilter {
             statusCode: httpStatus,
             timestamp: new Date().toISOString(),
             path: httpAdapter.getRequestUrl(ctx.getRequest()),
-            message: message, // Mảng (nếu lọt class-validator) hoặc chuỗi báo lỗi
+            message: message,
+            ...(typeof exceptionResponse === 'object' ? (exceptionResponse as any) : {}),
         };
 
         // Trả response

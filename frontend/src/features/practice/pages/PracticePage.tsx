@@ -236,7 +236,7 @@ const PracticeLibrary: React.FC<{ onSelect: (prompt: Prompt) => void }> = ({ onS
 interface WritingEditorProps {
   promptObj: Prompt;
   onBack: () => void;
-  onError?: (status: number, message: string) => void;
+  onError?: (status: number, message: string, extraData?: any) => void;
   reviewAttempt?: any;
 }
 
@@ -244,6 +244,7 @@ const WritingEditor: React.FC<WritingEditorProps> = ({ promptObj, onBack, onErro
   const [text, setText] = useState(reviewAttempt?.originalText || '');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AIResponse | null>(reviewAttempt?.aiResponse || null);
+  const [usage, setUsage] = useState<{ limit: number; used: number; remaining: number } | null>(null);
   const [activeTab, setActiveTab] = useState<'mistakes' | 'feedback' | 'improved'>('mistakes');
   const [timeSpent, setTimeSpent] = useState(reviewAttempt?.timeSpent || 0);
   const { isAuthenticated } = useAuthStore();
@@ -268,15 +269,18 @@ const WritingEditor: React.FC<WritingEditorProps> = ({ promptObj, onBack, onErro
 
   const handleAnalyze = async () => {
     if (!text.trim() || text.length < 10) return;
+
     setLoading(true);
     setResult(null);
     try {
       const data = await practiceService.checkIelts(text, promptObj.id, timeSpent);
-      setResult(data);
+      setResult(data.result);
+      setUsage(data.usage);
       setActiveTab('mistakes');
     } catch (err: any) {
       if (err.response?.status === 429) {
-        onError?.(429, err.response.data?.message || 'Bạn đã hết lượt sử dụng AI hôm nay.');
+        const data = err.response.data;
+        onError?.(429, data?.message || 'Hết lượt dùng', data);
       }
     } finally { setLoading(false); }
   };
@@ -350,7 +354,15 @@ const WritingEditor: React.FC<WritingEditorProps> = ({ promptObj, onBack, onErro
           {/* Floating Action */}
           {!reviewAttempt && (
             <div className="sticky bottom-6 flex justify-center mt-6 z-10 pointer-events-none">
-              <div className="pointer-events-auto shadow-[0_10px_40px_-10px_rgba(79,70,229,0.3)] rounded-2xl bg-white p-1.5 flex gap-2 border border-indigo-100">
+              <div className="pointer-events-auto shadow-[0_10px_40px_-10px_rgba(79,70,229,0.3)] rounded-2xl bg-white p-1.5 flex items-center gap-2 border border-indigo-100">
+                {usage && (
+                  <div className="pl-3 pr-1 flex flex-col items-start leading-none">
+                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Hạn mức</span>
+                    <span className="text-[11px] font-black text-indigo-600">
+                      {usage.used}/{usage.limit}
+                    </span>
+                  </div>
+                )}
                 <button
                   onClick={handleAnalyze}
                   disabled={!text.trim() || text.length < 10 || loading}
@@ -552,6 +564,7 @@ const PracticePage: React.FC = () => {
 
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [showQuotaModal, setShowQuotaModal] = useState(false);
+  const [quotaUserLimit, setQuotaUserLimit] = useState<number>(); 
   const [selectedTask, setSelectedTask] = useState<Prompt | null>(null);
   const [reviewAttempt, setReviewAttempt] = useState<any | null>(null);
   const [loadingReview, setLoadingReview] = useState(false);
@@ -597,8 +610,14 @@ const PracticePage: React.FC = () => {
           if (attemptId) navigate('/history');
           else setSelectedTask(null);
         }}
-        onError={(status, message) => {
-          setErrorMessage(message);
+        onError={(status, msg, extraData) => {
+          const finalMessage = typeof msg === 'string' ? msg : 'Bạn đã hết lượt sử dụng AI hôm nay.';
+          const finalUserLimit = (extraData as any)?.userLimit;
+          
+          setErrorMessage(finalMessage);
+          if (finalUserLimit) {
+            setQuotaUserLimit(finalUserLimit);
+          }
           if (status === 429) setShowQuotaModal(true);
         }}
         reviewAttempt={reviewAttempt}
@@ -632,7 +651,7 @@ const PracticePage: React.FC = () => {
                       onClick={() => navigate('/register')}
                       className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-2xl shadow-lg shadow-indigo-200 transition-all hover:-translate-y-0.5"
                     >
-                      Đăng ký nhận 3 lượt/ngày
+                      Đăng ký để nhận {quotaUserLimit} lượt/ngày
                     </button>
                     <button 
                       onClick={() => navigate('/login')}

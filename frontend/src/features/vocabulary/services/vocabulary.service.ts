@@ -78,14 +78,14 @@ export const vocabularyService = {
     },
 
     /** Phân tích IELTS Writing chuyên sâu từ AI */
-    getAINotes: async (word: string): Promise<AINotes> => {
-        const response = await api.get<AINotes>(`/vocabulary/word-analysis-ai?word=${encodeURIComponent(word)}`);
+    getAINotes: async (word: string): Promise<{ result: AINotes; usage: any }> => {
+        const response = await api.get<{ result: AINotes; usage: any }>(`/vocabulary/word-analysis-ai?word=${encodeURIComponent(word)}`);
         return response.data;
     },
 
     /** Phân tích Họ từ chuyên sâu bằng AI */
-    getFamilyAINotes: async (word: string): Promise<FamilyAINotesResponse> => {
-        const response = await api.get<FamilyAINotesResponse>(`/vocabulary/word-family-ai?word=${encodeURIComponent(word)}`);
+    getFamilyAINotes: async (word: string): Promise<{ result: FamilyAINotesResponse; usage: any }> => {
+        const response = await api.get<{ result: FamilyAINotesResponse; usage: any }>(`/vocabulary/word-family-ai?word=${encodeURIComponent(word)}`);
         return response.data;
     },
 

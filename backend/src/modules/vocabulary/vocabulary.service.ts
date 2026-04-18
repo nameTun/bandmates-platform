@@ -106,17 +106,19 @@ export class VocabularyService {
     async getExampleWordFamilyAi(word: string, userId?: string, ip?: string, visitorId?: string, userProfile?: UserProfile | null): Promise<any> {
         const cleanWord = word.trim().toLowerCase();
 
-        // [SNAPSHOT CHECK] Trả về ngay nếu đã có họ từ AI làm giàu trong DB
+        // 1. Kiểm tra và ghi nhận hạn mức (Quay về cơ chế 24h rollback)
+        const usage = await this.usageLimitService.checkAndRecordUsage(userId, visitorId, ip, UsageAction.ANALYZE_WORD_FAMILY);
+
+        // 2. [SNAPSHOT CHECK] Trả về ngay nếu đã có dữ liệu mẫu trong DB
         if (userId) {
             const history = await this.vocabularyRepository.findOne({
                 where: { user: { id: userId }, word: cleanWord }
             });
             if (history && history.familyData) {
-                return { ...history.familyData, fromSnapshot: true };
+                return { result: history.familyData, usage };
             }
         }
 
-        await this.usageLimitService.checkAndRecordUsage(userId, visitorId, ip, UsageAction.ANALYZE_WORD_FAMILY);
         const familyWords = await this.extractWordFamily(cleanWord);
         
         // Chuyển object thành list từ để gửi AI
@@ -127,7 +129,7 @@ export class VocabularyService {
             ...familyWords.adv
         ];
 
-        if (allFamilyWords.length === 0) return [];
+        if (allFamilyWords.length === 0) return { result: { mainTranslation: '', familyData: [] }, usage };
 
         // [STAGE 4.2] Cá nhân hóa theo người dùng
         const targetBand = userProfile?.targetBand ? Number(userProfile.targetBand) : 7.0;
@@ -163,36 +165,47 @@ export class VocabularyService {
                 await this.upsertHistory(userId, cleanWord, { familyData: result });
             }
 
-            return result || { mainTranslation: '', familyData: [] };
+            return {
+                result: result || { mainTranslation: '', familyData: [] },
+                usage
+            };
         } catch (error) {
             console.error('Gemini Word Family Enrichment Error:', error);
-            return { mainTranslation: '', familyData: [] };
+            return {
+                result: { mainTranslation: '', familyData: [] },
+                usage
+            };
         }
     }
 
     async getWordAnalysisAi(word: string, userId?: string, ip?: string, visitorId?: string, userProfile?: UserProfile | null): Promise<any> {
         const cleanWord = word.trim().toLowerCase();
 
-        // [SNAPSHOT CHECK] Trả về ngay nếu đã có phân tích AI trong DB
+        // Kiểm tra và ghi nhận hạn mức
+        const usage = await this.usageLimitService.checkAndRecordUsage(userId, visitorId, ip, UsageAction.ANALYZE_WORD_STRUCTURE);
+
+        // Trả về ngay nếu đã có phân tích AI trong DB
         if (userId) {
             const history = await this.vocabularyRepository.findOne({
                 where: { user: { id: userId }, word: cleanWord }
             });
             if (history && history.aiNotes) {
-                return { ...history.aiNotes, fromSnapshot: true };
+                return { result: history.aiNotes, usage };
             }
         }
 
-        await this.usageLimitService.checkAndRecordUsage(userId, visitorId, ip, UsageAction.ANALYZE_WORD_STRUCTURE);
         const aiData = await this.getIELTSAnalysis(cleanWord, userProfile);
         const result = { word: cleanWord, ...aiData };
 
-        // [SNAPSHOT] Cập nhật phân tích IELTS vào DB
+        // Cập nhật phân tích IELTS vào DB
         if (userId && result.ieltsBand) {
             await this.upsertHistory(userId, cleanWord, { aiNotes: result });
         }
 
-        return result;
+        return {
+            result: result,
+            usage
+        };
     }
 
     async toggleSave(userId: string, word: string) {

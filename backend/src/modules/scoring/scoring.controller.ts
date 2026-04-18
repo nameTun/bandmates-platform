@@ -34,8 +34,8 @@ export class ScoringController {
         @VisitorId() visitorId: string,
         @Ip() ip: string,
     ) {
-        // Kiểm tra hạn mức sử dụng (Khách 1, User 3)
-        await this.usageLimitService.checkAndRecordUsage(
+        // Kiểm tra hạn mức sử dụng trong file config backend/env
+        const usage = await this.usageLimitService.checkAndRecordUsage(
             user?.id,
             visitorId,
             ip,
@@ -51,6 +51,7 @@ export class ScoringController {
         let promptContent = '';
         let promptEntity = null;
         if (dto.promptId) {
+            // tìm prompt theo id, trong prompt có taskType (dùng taskType để tìm criteria)
             promptEntity = await this.promptRepository.findOne({ where: { id: dto.promptId } });
             if (promptEntity) {
                 promptContent = promptEntity.content;
@@ -114,11 +115,12 @@ export class ScoringController {
             throw new HttpException('Lỗi lưu kết quả vào Database', HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
-        // Trả về kết quả cho Frontend
+        // Trả về kết quả cho Frontend kèm thông tin hạn mức
         return {
             success: true,
             data: aiResult,
-            attemptId: attempt.id
+            attemptId: attempt.id,
+            usage: usage // Chứa thông tin limit, used, remaining
         };
     }
 

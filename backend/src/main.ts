@@ -13,6 +13,16 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   /**
+   * Trust Proxy Configuration:
+   * Quan trọng khi deploy lên Render, Vercel, hoặc VPS đứng sau Load Balancer/Nginx.
+   * Giúp @Ip() lấy được IP thực của người dùng thay vì IP của Proxy.
+   */
+  const expressApp = app.getHttpAdapter().getInstance();
+  if (typeof expressApp.set === 'function') {
+    expressApp.set('trust proxy', 1);
+  }
+
+  /**
    * Global Validation Pipe:
    * Tự động kiểm tra dữ liệu đầu vào (DTO).
    * - whitelist: Tự động loại bỏ các thuộc tính lạ, ngăn chặn tấn công Overposting.

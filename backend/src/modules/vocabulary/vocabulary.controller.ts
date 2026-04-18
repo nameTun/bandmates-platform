@@ -38,7 +38,8 @@ export class VocabularyController {
                 console.warn(`[Word-Analysis] Không lấy được profile cho user ${user.id}, dùng mặc định.`);
             }
         }
-        return this.vocabularyService.getWordAnalysisAi(word, user?.id, ip, visitorId, userProfile);
+        const usage = await this.vocabularyService.getWordAnalysisAi(word, user?.id, ip, visitorId, userProfile);
+        return usage; // Bây giờ Service đã trả về { result, usage }
     }
 
     /** [TEST] Kiểm tra kết nối Controller */
@@ -65,7 +66,8 @@ export class VocabularyController {
                 console.warn(`[Word-Family] Không lấy được profile cho user ${user.id}, dùng mặc định.`);
             }
         }
-        return this.vocabularyService.getExampleWordFamilyAi(word, user?.id, ip, visitorId, userProfile);
+        const usage = await this.vocabularyService.getExampleWordFamilyAi(word, user?.id, ip, visitorId, userProfile);
+        return usage; // Bây giờ Service đã trả về { result, usage }
     }
 
     /** Toggle lưu/bỏ lưu từ vào Sổ tay — Chỉ User đăng nhập */

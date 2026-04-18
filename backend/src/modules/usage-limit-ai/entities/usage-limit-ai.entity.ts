@@ -22,7 +22,7 @@ export class UsageLimitAi {
     ipAddress: string;
 
     @Column()
-    action: string; // 'PRACTICE' | 'VOCAB_ANALYSIS' | 'VOCAB_ENRICH'
+    action: string; // 'PRACTICE_ESSAY', 'ANALYZE_WORD_STRUCTURE', 'ANALYZE_WORD_FAMILY'
 
     @CreateDateColumn()
     createdAt: Date;

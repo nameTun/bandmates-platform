@@ -80,6 +80,8 @@ const VocabularyPage: React.FC = () => {
     const [aiError, setAiError] = useState<string | null>(null);
     const [showQuotaModal, setShowQuotaModal] = useState(false);
     const [quotaMessage, setQuotaMessage] = useState('');
+    const [quotaUserLimit, setQuotaUserLimit] = useState<number | null>(null);
+    const [usage, setUsage] = useState<{ limit: number; used: number; remaining: number } | null>(null);
     const [isSaved, setIsSaved] = useState(false);
     const [recentWords, setRecentWords] = useState<string[]>([]);
     
@@ -210,11 +212,14 @@ const VocabularyPage: React.FC = () => {
         setAiError(null);
         try {
             const data = await vocabularyService.getAINotes(result.word);
-            setAiNotes(data);
-            saveToCache(result.word, { aiNotes: data, isExpanded: true });
+            setAiNotes(data.result);
+            setUsage(data.usage);
+            saveToCache(result.word, { aiNotes: data.result, isExpanded: true });
         } catch (error: any) {
             if (error.response?.status === 429) {
-                setQuotaMessage(error.response.data.message);
+                const data = error.response.data;
+                setQuotaMessage(data.message || 'Bạn đã hết lượt sử dụng AI hôm nay.');
+                if (data.userLimit) setQuotaUserLimit(data.userLimit);
                 setShowQuotaModal(true);
             } else {
                 setAiError('Dịch vụ AI đang quá tải. Vui lòng thử lại sau.');
@@ -231,18 +236,21 @@ const VocabularyPage: React.FC = () => {
         setAiError(null);
         try {
             const data = await vocabularyService.getFamilyAINotes(result.word);
-            if (data.familyData) {
-                setEnrichedFamilyData(data.familyData);
-                saveToCache(result.word, { enrichedFamilyData: data.familyData });
+            setUsage(data.usage);
+            if (data.result.familyData) {
+                setEnrichedFamilyData(data.result.familyData);
+                saveToCache(result.word, { enrichedFamilyData: data.result.familyData });
             }
-            if (data.mainTranslation) {
-                const updatedResult = { ...result, translation: data.mainTranslation };
+            if (data.result.mainTranslation) {
+                const updatedResult = { ...result, translation: data.result.mainTranslation };
                 setResult(updatedResult);
                 saveToCache(result.word, { result: updatedResult });
             }
         } catch (error: any) {
             if (error.response?.status === 429) {
-                setQuotaMessage(error.response.data.message);
+                const data = error.response.data;
+                setQuotaMessage(data.message || 'Bạn đã hết lượt sử dụng AI hôm nay.');
+                if (data.userLimit) setQuotaUserLimit(data.userLimit);
                 setShowQuotaModal(true);
             } else {
                 setAiError('Không thể làm giàu họ từ lúc này. Thử lại sau.');
@@ -354,15 +362,25 @@ const VocabularyPage: React.FC = () => {
                                         </div>
                                     </div>
                                     
-                                    <button 
-                                        onClick={handleAnalyzeIELTS}
-                                        className={`group relative p-3 rounded-2xl transition-all ${aiAnalyzed ? 'bg-violet-600 text-white' : 'bg-slate-50 text-slate-400 hover:bg-violet-50 hover:text-violet-600'}`}
-                                    >
-                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                                        </svg>
-                                        <span className="absolute bottom-full right-0 mb-3 px-2 py-1 bg-slate-800 text-white text-[9px] rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none font-black shadow-xl uppercase uppercase">Phân tích IELTS (AI)</span>
-                                    </button>
+                                    <div className="flex items-center gap-4">
+                                        {usage && (
+                                            <div className="hidden md:flex flex-col items-end leading-none">
+                                                <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest mb-1">AI Limit</span>
+                                                <span className="text-[11px] font-bold text-indigo-400 bg-indigo-50/50 px-2 py-0.5 rounded-full border border-indigo-100/50">
+                                                    {usage.used}/{usage.limit}
+                                                </span>
+                                            </div>
+                                        )}
+                                        <button 
+                                            onClick={handleAnalyzeIELTS}
+                                            className={`group relative p-3 rounded-2xl transition-all ${aiAnalyzed ? 'bg-violet-600 text-white' : 'bg-slate-50 text-slate-400 hover:bg-violet-50 hover:text-violet-600'}`}
+                                        >
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                            </svg>
+                                            <span className="absolute bottom-full right-0 mb-3 px-2 py-1 bg-slate-800 text-white text-[9px] rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none font-black shadow-xl uppercase uppercase">Phân tích IELTS (AI)</span>
+                                        </button>
+                                    </div>
                                 </div>
 
                                 <div className="p-6 bg-slate-900 rounded-[30px] mb-10 shadow-inner group overflow-hidden">
@@ -438,14 +456,24 @@ const VocabularyPage: React.FC = () => {
                                 <div className="flex items-center justify-between mb-8">
                                     <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Word Family Explorer</h3>
                                     
-                                    <button 
-                                        onClick={handleEnrichFamilyAI}
-                                        disabled={familyAiLoading}
-                                        className={`group relative p-3 rounded-2xl transition-all ${enrichedFamilyData ? 'bg-indigo-600 text-white shadow-indigo-200 shadow-lg' : 'bg-slate-50 text-slate-400 hover:bg-indigo-50 hover:text-indigo-600'}`}
-                                    >
-                                        <SparkleIcon />
-                                        <span className="absolute bottom-full right-0 mb-3 px-2 py-1 bg-slate-800 text-white text-[9px] rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none font-black shadow-xl uppercase uppercase">Làm giàu Họ từ (AI)</span>
-                                    </button>
+                                    <div className="flex items-center gap-3">
+                                        {usage && (
+                                            <div className="flex flex-col items-end leading-none">
+                                                <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest mb-1">AI Limit</span>
+                                                <span className="text-[11px] font-bold text-indigo-400 bg-indigo-50/50 px-2 py-0.5 rounded-full border border-indigo-100/50">
+                                                    {usage.used}/{usage.limit}
+                                                </span>
+                                            </div>
+                                        )}
+                                        <button 
+                                            onClick={handleEnrichFamilyAI}
+                                            disabled={familyAiLoading}
+                                            className={`group relative p-3 rounded-2xl transition-all ${enrichedFamilyData ? 'bg-indigo-600 text-white shadow-indigo-200 shadow-lg' : 'bg-slate-50 text-slate-400 hover:bg-indigo-50 hover:text-indigo-600'}`}
+                                        >
+                                            <SparkleIcon />
+                                            <span className="absolute bottom-full right-0 mb-3 px-2 py-1 bg-slate-800 text-white text-[9px] rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none font-black shadow-xl uppercase uppercase">Làm giàu Họ từ (AI)</span>
+                                        </button>
+                                    </div>
                                 </div>
 
                                 <div className="grid grid-cols-1 gap-5 flex-1">
@@ -586,7 +614,7 @@ const VocabularyPage: React.FC = () => {
                                             onClick={() => navigate('/register')}
                                             className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-2xl shadow-lg shadow-indigo-200 transition-all hover:-translate-y-0.5"
                                         >
-                                            Đăng ký nhận thêm lượt
+                                            Đăng ký nhận {quotaUserLimit || 5} lượt/ngày
                                         </button>
                                         <button 
                                             onClick={() => navigate('/login')}

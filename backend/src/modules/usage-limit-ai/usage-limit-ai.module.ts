@@ -1,11 +1,15 @@
 import { Module, Global } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ConfigModule } from '@nestjs/config';
 import { UsageLimitAi } from './entities/usage-limit-ai.entity';
 import { UsageLimitAiService } from './usage-limit-ai.service';
 
-@Global() // Đánh dấu Global để các module khác không cần import lại nhiều lần
+@Global()
 @Module({
-  imports: [TypeOrmModule.forFeature([UsageLimitAi])],
+  imports: [
+    TypeOrmModule.forFeature([UsageLimitAi]),
+    ConfigModule,
+  ],
   providers: [UsageLimitAiService],
   exports: [UsageLimitAiService],
 })
