@@ -56,5 +56,34 @@ export const categoryService = {
   deactivateCategory: async (id: string): Promise<Category> => {
     const response = await api.patch(`/categories/${id}/deactivate`);
     return response.data;
+  },
+
+  /**
+   * Import Danh mục từ Excel
+   */
+  importCategories: async (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await api.post('/categories/import', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  },
+
+  /**
+   * Tải file Export Excel
+   */
+  downloadExport: async () => {
+    const response = await api.get('/categories/export', {
+      responseType: 'blob',
+    });
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'categories-export.xlsx');
+    document.body.appendChild(link);
+    link.click();
+    link.parentNode?.removeChild(link);
+    window.URL.revokeObjectURL(url);
   }
 };

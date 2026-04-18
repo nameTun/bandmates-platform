@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, UseGuards, Patch, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, UseGuards, Patch, Delete, Res, UseInterceptors, UploadedFile } from '@nestjs/common';
 import { CategoriesService } from './categories.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
@@ -7,6 +7,8 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { UserRole } from '../users/entities/user.entity';
 import { OptionalJwtAuthGuard } from '../../common/guards/optional-jwt-auth.guard';
+import { FileInterceptor } from '@nestjs/platform-express';
+import * as express from 'express';
 
 @Controller('categories')
 export class CategoriesController {
@@ -51,5 +53,26 @@ export class CategoriesController {
   @Roles(UserRole.ADMIN)
   async deactivate(@Param('id') id: string) {
     return this.categoriesService.remove(id);
+  }
+
+  @Post('import')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @UseInterceptors(FileInterceptor('file'))
+  async importCategories(@UploadedFile() file: Express.Multer.File) {
+    return this.categoriesService.importFromExcel(file.buffer);
+  }
+
+  @Get('export')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  async exportCategories(@Res() res: express.Response) {
+    const buffer = await this.categoriesService.exportToExcel();
+    res.set({
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': 'attachment; filename="categories-export.xlsx"',
+      'Content-Length': buffer.length,
+    });
+    return res.end(buffer);
   }
 }

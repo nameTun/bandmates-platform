@@ -7,6 +7,7 @@ import { Category } from '../categories/entities/category.entity';
 import { CreatePromptDto } from './dto/create-prompt.dto';
 import { UpdatePromptDto } from './dto/update-prompt.dto';
 import { TaskType } from '../../common/enums/task-type.enum';
+import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import * as XLSX from 'xlsx';
 
 @Injectable()
@@ -18,6 +19,7 @@ export class PromptsService {
     private topicsRepository: Repository<Topic>,
     @InjectRepository(Category)
     private categoriesRepository: Repository<Category>,
+    private cloudinaryService: CloudinaryService,
   ) { }
 
   // --- QUẢN LÝ ĐỀ BÀI (Prompt) ---
@@ -82,6 +84,19 @@ export class PromptsService {
   // Xoá đề bài
   async remove(id: string): Promise<void> {
     const prompt = await this.findOne(id);
+    
+    // Nếu có ảnh Cloudinary, thực hiện xóa ảnh trên Cloud
+    if (prompt.imageUrl && prompt.imageUrl.includes('cloudinary.com')) {
+      const publicId = this.cloudinaryService.extractPublicIdFromUrl(prompt.imageUrl);
+      if (publicId) {
+        try {
+          await this.cloudinaryService.deleteImage(publicId);
+        } catch (error) {
+          console.error(`Không thể xóa ảnh trên Cloudinary cho đề bài ${id}:`, error);
+        }
+      }
+    }
+
     await this.promptsRepository.remove(prompt);
   }
 
@@ -123,7 +138,7 @@ export class PromptsService {
    */
   async importPromptsTask1Academic(fileBuffer: Buffer) {
     const data = this.parseExcelSheet(fileBuffer);
-    return this.processImport(data, TaskType.TASK_1_ACADEMIC, ['url', 'category', 'context']);
+    return this.processImport(data, TaskType.TASK_1_ACADEMIC, ['imageurl', 'category', 'prompt']);
   }
 
   /**
@@ -167,10 +182,17 @@ export class PromptsService {
           if (cleanKey.includes('prompt') || cleanKey.includes('question') || cleanKey.includes('đềbài') || cleanKey.includes('nộidung')) {
             row.prompt = rawRow[key];
           }
+          if (cleanKey.includes('url') || cleanKey.includes('image') || cleanKey.includes('ảnh') || cleanKey.includes('graphic') || cleanKey.includes('media')) {
+            row.imageurl = rawRow[key];
+          }
+          if (cleanKey.includes('target') || cleanKey.includes('band')) {
+            row.targetband = rawRow[key];
+          }
         }
 
         // 1. Lấy nội dung đề bài (Đã được map ở trên)
-        const content = row.prompt || row.context || row.content || row.question;
+        const content = row.prompt || row.content || row.context || row.question;
+        const imageUrl = row.imageurl || row.url || row.imageUrl;
 
         // 2. Validate các trường bắt buộc
         const missingFields = requiredFields.filter(f => {
@@ -179,21 +201,35 @@ export class PromptsService {
           if (field === 'context' || field === 'content' || field === 'prompt') return !content;
           if (field === 'topic') return !row.topic;
           if (field === 'category') return !row.category;
+          if (field === 'url' || field === 'imageurl' || field === 'image_url') return !imageUrl;
           return !row[field];
         });
 
         if (missingFields.length > 0) {
-          results.errors.push(`Dòng ${index + 2}: Thiếu các cột (${missingFields.join(', ')})`);
+          results.errors.push(`Dòng ${index + 2}: Thiếu các cột (${missingFields.join(', ')}) | Prompt preview: ${content?.substring(0, 20)}...`);
           continue;
         }
 
-        // 2. Tìm hoặc tạo Category
+        // 2. Tìm hoặc tạo Category (Tìm theo name + taskType để tránh lỗi Unique Name)
         let category: Category | undefined = undefined;
         if (row.category) {
-          category = await this.categoriesRepository.findOne({ where: { name: row.category } }) as Category;
+          category = await this.categoriesRepository.findOne({ 
+            where: { name: row.category, taskType } 
+          }) as Category;
+          
           if (!category) {
-            category = this.categoriesRepository.create({ name: row.category, taskType });
-            await this.categoriesRepository.save(category);
+            // Nếu không tìm thấy category cho TASK này, nhưng có category trùng tên ở task khác?
+            // Vì name là UNIQUE, chúng ta phải kiểm tra xem có ai dùng tên này chưa
+            const globalCategory = await this.categoriesRepository.findOne({ where: { name: row.category } });
+            
+            if (globalCategory) {
+              // Nếu tên đã tồn tại nhưng cho task khác, chúng ta tạm thời dùng chính nó 
+              // (Hoặc bạn có thể đổi unique sang name + taskType ở DB sau này)
+              category = globalCategory;
+            } else {
+              category = this.categoriesRepository.create({ name: row.category, taskType });
+              await this.categoriesRepository.save(category);
+            }
           }
         }
 
@@ -217,8 +253,8 @@ export class PromptsService {
           taskType,
           category,
           topic,
-          imageUrl: row.url || row.imageUrl || undefined,
-          targetBand: row.targetBand ? Number(row.targetBand) : undefined,
+          imageUrl: row.imageurl || row.url || row.imageUrl || undefined,
+          targetBand: row.targetband ? Number(row.targetband) : undefined,
           isFreeSample: row.isFreeSample === 'TRUE' || row.isFreeSample === true || row.isFreeSample === 'yes'
         };
 
@@ -270,11 +306,14 @@ export class PromptsService {
           row.url = p.imageUrl;
         }
         row.category = p.category?.name;
-        row.context = p.content;
+        row.prompt = p.content; // Đổi context -> prompt cho đúng yêu cầu
+        row.imageurl = p.imageUrl; // Đổi url -> imageurl
         row.modelAnswer = p.modelAnswer;
         row.hints = p.hints;
         row.targetBand = p.targetBand;
         row.isFreeSample = p.isFreeSample;
+        row.isActive = p.isActive;
+        row.createdAt = p.createdAt;
         return row;
       });
 
