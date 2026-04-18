@@ -9,6 +9,7 @@ import type { Topic } from '../services/topic.service';
 import { promptService } from '../services/prompt.service';
 import type { Prompt, CreatePromptDto } from '../services/prompt.service';
 import { TaskType } from '@/common/enums/task-type.enum';
+import * as XLSX from 'xlsx';
 
 /**
  * Tự động viết hoa chữ cái đầu tiên của mỗi dòng trong đề bài 
@@ -497,6 +498,44 @@ const PromptManagement: React.FC = () => {
     return baseColumns;
   };
 
+  const handleDownloadSample = (taskType: TaskType) => {
+    let headers: any[] = [];
+    let sampleData: any[] = [];
+
+    if (taskType === TaskType.TASK_2) {
+      headers = ['topic', 'category', 'prompt', 'targetBand', 'isFreeSample'];
+      sampleData = [{
+        topic: 'Travel',
+        category: 'Opinion',
+        prompt: 'Some people think that traveling is good. To what extent do you agree?',
+        targetBand: 7.5,
+        isFreeSample: 'TRUE'
+      }];
+    } else if (taskType === TaskType.TASK_1_ACADEMIC) {
+      headers = ['category', 'prompt', 'imageurl', 'targetBand', 'isFreeSample'];
+      sampleData = [{
+        category: 'Bar Chart',
+        prompt: 'The chart below shows the number of visitors to three different cities...',
+        imageurl: 'https://res.cloudinary.com/demo/image/upload/sample.jpg',
+        targetBand: 6.5,
+        isFreeSample: 'FALSE'
+      }];
+    } else {
+      headers = ['category', 'prompt', 'targetBand', 'isFreeSample'];
+      sampleData = [{
+        category: 'Formal Letter',
+        prompt: 'You should write a letter to your manager...',
+        targetBand: 8.0,
+        isFreeSample: 'TRUE'
+      }];
+    }
+
+    const worksheet = XLSX.utils.json_to_sheet(sampleData, { header: headers });
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Sample');
+    XLSX.writeFile(workbook, `sample-${taskType.toLowerCase()}.xlsx`);
+  };
+
   return (
     <div className="min-h-screen bg-transparent text-slate-900 font-sans selection:bg-orange-500/20 selection:text-orange-900">
       <div className="max-w-[1200px] mx-auto px-8 py-12">
@@ -541,7 +580,12 @@ const PromptManagement: React.FC = () => {
             <div key={task.type} className={`bg-white border border-slate-200 rounded-xl p-5 hover:border-${task.color}-500/30 transition-all group`}>
               <div className="flex items-center justify-between mb-4">
                 <span className={`text-xs font-bold uppercase tracking-widest text-${task.color}-400`}>{task.label}</span>
-                <div className={`w-2 h-2 rounded-full bg-${task.color}-500/40 shadow-sm`}></div>
+                <button 
+                  onClick={() => handleDownloadSample(task.type)}
+                  className="text-[10px] text-slate-400 hover:text-slate-600 underline font-medium"
+                >
+                  Tải file mẫu
+                </button>
               </div>
               <div className="flex gap-2">
                 <label className="flex-1">

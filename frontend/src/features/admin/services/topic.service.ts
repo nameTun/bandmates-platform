@@ -59,5 +59,34 @@ export const topicService = {
    */
   deactivateTopic: async (id: string): Promise<void> => {
     await api.patch(`/topics/${id}/deactivate`);
+  },
+
+  /**
+   * Import Chủ đề từ Excel
+   */
+  importTopics: async (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await api.post('/topics/import', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  },
+
+  /**
+   * Tải file Export Excel
+   */
+  downloadExport: async () => {
+    const response = await api.get('/topics/export', {
+      responseType: 'blob',
+    });
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'topics-export.xlsx');
+    document.body.appendChild(link);
+    link.click();
+    link.parentNode?.removeChild(link);
+    window.URL.revokeObjectURL(url);
   }
 };

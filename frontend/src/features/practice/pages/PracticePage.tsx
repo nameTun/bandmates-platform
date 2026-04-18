@@ -5,7 +5,7 @@ import { practiceService } from '@/features/practice/services/practice.service';
 import type { Prompt, Topic, Category, AIResponse  } from '@/features/practice/services/practice.service';
 import { useAuthStore } from '@/features/auth/store/useAuthStore';
 import { TaskType } from '@/common/enums/task-type.enum';
-import { Spin } from 'antd';
+import { Spin, Image } from 'antd';
 
 /**
  * Tự động viết hoa chữ cái đầu tiên của mỗi dòng trong đề bài 
@@ -313,42 +313,64 @@ const WritingEditor: React.FC<WritingEditorProps> = ({ promptObj, onBack, onErro
             </div>
           </div>
 
-          {/* Prompt */}
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm mb-6">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-              Chủ đề bài viết
-            </h3>
-            <p className="text-slate-800 font-semibold leading-relaxed text-[15px] whitespace-pre-wrap">{formatPrompt(promptObj.content)}</p>
-            {promptObj.imageUrl && (
-              <div className="mt-4 p-4 bg-slate-50 rounded-xl border border-slate-100 flex justify-center">
-                <img src={promptObj.imageUrl} alt="Prompt Image" className="max-w-full h-auto max-h-[300px] object-contain rounded-lg" />
-              </div>
-            )}
-            {promptObj.topic && (
-              <div className="mt-4 flex gap-2">
-                <span className="text-[10px] font-bold px-2.5 py-1 uppercase tracking-wider text-slate-500 bg-slate-100 rounded-md">
-                  Topic: {promptObj.topic.name}
-                </span>
-              </div>
-            )}
-          </div>
+          {/* Prompt & Editor Wrapper */}
+          <div className={`flex flex-col ${promptObj.taskType === TaskType.TASK_1_ACADEMIC ? 'lg:flex-row' : ''} gap-6 mb-6`}>
+            
+            {/* Prompt Section */}
+            <div className={`${promptObj.taskType === TaskType.TASK_1_ACADEMIC ? 'lg:w-[45%] flex-shrink-0' : 'w-full'} bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col`}>
+              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                Nội dung đề bài
+              </h3>
+              <p className="text-slate-800 font-semibold leading-relaxed text-[14px] whitespace-pre-wrap mb-4">{formatPrompt(promptObj.content)}</p>
+              
+              {promptObj.imageUrl && (
+                <div className="mt-auto pt-4 bg-slate-50/50 rounded-xl border border-dashed border-slate-200 flex justify-center overflow-hidden group relative">
+                  <Image
+                    src={promptObj.imageUrl} 
+                    alt="Prompt Image" 
+                    className="max-w-full h-auto max-h-[400px] object-contain rounded-lg transition-transform duration-500 group-hover:scale-105"
+                    preview={{
+                      mask: (
+                        <div className="flex flex-col items-center gap-2">
+                          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                            <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7" />
+                          </svg>
+                          <span className="text-xs font-bold uppercase tracking-widest">Phóng to biểu đồ</span>
+                        </div>
+                      )
+                    }}
+                  />
+                </div>
+              )}
 
-          {/* Editor */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm min-h-[400px] relative flex flex-col focus-within:ring-4 focus-within:ring-indigo-500/10 focus-within:border-indigo-400 transition-all">
-            <div className="flex items-center gap-1 p-3 border-b border-slate-100 bg-slate-50/50 rounded-t-2xl">
-              <div className="flex-1" />
-              <span className={`text-[11px] px-3 font-bold uppercase tracking-wider transition-colors ${isEnough ? 'text-emerald-500' : 'text-slate-400'}`}>
-                {wordCount} / {minWords}+ từ
-                {isEnough && <span className="ml-1 text-base leading-none inline-block align-middle">✓</span>}
-              </span>
+              {promptObj.topic && (
+                <div className="mt-4 flex gap-2">
+                  <span className="text-[10px] font-bold px-2.5 py-1 uppercase tracking-wider text-slate-500 bg-slate-100 rounded-md">
+                    Topic: {promptObj.topic.name}
+                  </span>
+                </div>
+              )}
             </div>
-            <textarea
-              value={text}
-              readOnly={!!reviewAttempt}
-              onChange={(e) => setText(e.target.value)}
-              placeholder="Bắt đầu viết bài của bạn tại đây..."
-              className="flex-1 w-full p-8 text-[15px] leading-relaxed text-slate-800 bg-white border-0 rounded-2xl shadow-sm focus:ring-0 resize-none outline-none"
-            />
+
+            {/* Editor Section */}
+            <div className="flex-1 flex flex-col gap-6">
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm min-h-[450px] relative flex flex-col focus-within:ring-4 focus-within:ring-indigo-500/10 focus-within:border-indigo-400 transition-all">
+                <div className="flex items-center gap-1 p-3 border-b border-slate-100 bg-slate-50/50 rounded-t-2xl">
+                  <div className="flex-1" />
+                  <span className={`text-[11px] px-3 font-bold uppercase tracking-wider transition-colors ${isEnough ? 'text-emerald-500' : 'text-slate-400'}`}>
+                    {wordCount} / {minWords}+ từ
+                    {isEnough && <span className="ml-1 text-base leading-none inline-block align-middle">✓</span>}
+                  </span>
+                </div>
+                <textarea
+                  value={text}
+                  readOnly={!!reviewAttempt}
+                  onChange={(e) => setText(e.target.value)}
+                  placeholder="Bắt đầu viết bài của bạn tại đây..."
+                  className="flex-1 w-full p-8 text-[15px] leading-relaxed text-slate-800 bg-white border-0 rounded-2xl shadow-sm focus:ring-0 resize-none outline-none"
+                />
+              </div>
+            </div>
           </div>
 
           {/* Floating Action */}

@@ -12,6 +12,7 @@ import { UsageLimitAiModule } from './modules/usage-limit-ai/usage-limit-ai.modu
 import { UserProfilesModule } from './modules/user-profiles/user-profiles.module';
 import { AiModule } from './modules/ai/ai.module';
 import { ScoringCriteriaModule } from './modules/scoring-criteria/scoring-criteria.module';
+import { CloudinaryModule } from './modules/cloudinary/cloudinary.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { ScoringCriteriaModule } from './modules/scoring-criteria/scoring-criter
     }),
     DatabaseModule,
     AiModule,
+    CloudinaryModule,
     UsersModule,// for feature/auth
     UserProfilesModule,
     AuthModule,

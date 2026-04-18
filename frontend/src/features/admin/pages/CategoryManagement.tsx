@@ -125,27 +125,62 @@ const CategoryManagement: React.FC = () => {
   };
 
   const handleUpdate = async () => {
-    if (!formName.trim()) return;
+    if (!selectedCategory || !formName.trim()) return;
     try {
       setSubmitting(true);
-      if (activeTab === 'TOPICS' && selectedCategory) {
+      if (activeTab === 'TOPICS') {
         await topicService.updateTopic(selectedCategory.id, {
           name: formName,
-          description: formDescription
+          description: formDescription,
         });
-      } else if (selectedCategory) {
+      } else {
         await categoryService.updateCategory(selectedCategory.id, {
           name: formName,
-          description: formDescription
+          description: formDescription,
         });
       }
-      message.success('Đã cập nhật thông tin thành công');
+      message.success('Cập nhật thành công');
       setIsEditModalOpen(false);
       fetchData();
     } catch (error: any) {
-      message.error(error.response?.data?.message || 'Có lỗi xảy ra');
+      message.error(error.response?.data?.message || 'Lỗi khi cập nhật');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleExport = async () => {
+    try {
+      if (activeTab === 'TOPICS') {
+        await topicService.downloadExport();
+      } else {
+        await categoryService.downloadExport();
+      }
+      message.success('Tải file Excel thành công');
+    } catch (error) {
+      message.error('Lỗi khi xuất dữ liệu');
+    }
+  };
+
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setLoading(true);
+      if (activeTab === 'TOPICS') {
+        const res = await topicService.importTopics(file);
+        message.success(`Import Topics thành công: Tạo mới ${res.created}, Cập nhật ${res.updated}`);
+      } else {
+        const res = await categoryService.importCategories(file);
+        message.success(`Import Categories thành công: Tạo mới ${res.created}, Cập nhật ${res.updated}`);
+      }
+      fetchData();
+    } catch (error: any) {
+      message.error(error.response?.data?.message || 'Lỗi khi import file');
+    } finally {
+      setLoading(false);
+      e.target.value = ''; // Reset input
     }
   };
 
@@ -242,13 +277,33 @@ const CategoryManagement: React.FC = () => {
               Việc tổ chức dữ liệu khoa học giúp hệ thống AI chấm bài chính xác hơn.
             </p>
           </div>
-          <button
-            onClick={() => { setFormName(''); setFormDescription(''); setIsAddModalOpen(true); }}
-            className="flex items-center justify-center gap-2 px-6 py-3 bg-slate-900 text-white text-sm font-bold rounded-xl hover:bg-slate-800 transition-all shadow-lg shadow-slate-200 active:scale-95 flex-shrink-0"
-          >
-            <PlusIcon />
-            {activeTab === 'TOPICS' ? 'Tạo Chủ đề mới' : 'Tạo Dạng bài mới'}
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleExport}
+              className="flex items-center justify-center gap-2 px-4 py-3 bg-white border border-slate-200 text-slate-600 text-sm font-bold rounded-xl hover:border-slate-300 hover:text-slate-900 transition-all shadow-sm active:scale-95"
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
+              </svg>
+              Export
+            </button>
+            <label className="cursor-pointer">
+              <input type="file" className="hidden" accept=".xlsx, .xls" onChange={handleImport} />
+              <div className="flex items-center justify-center gap-2 px-4 py-3 bg-white border border-slate-200 text-slate-600 text-sm font-bold rounded-xl hover:border-slate-300 hover:text-slate-900 transition-all shadow-sm active:scale-95">
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242M12 12v9m-4-4l4 4 4-4" />
+                </svg>
+                Import
+              </div>
+            </label>
+            <button
+              onClick={() => { setFormName(''); setFormDescription(''); setIsAddModalOpen(true); }}
+              className="flex items-center justify-center gap-2 px-6 py-3 bg-slate-900 text-white text-sm font-bold rounded-xl hover:bg-slate-800 transition-all shadow-lg shadow-slate-200 active:scale-95 flex-shrink-0"
+            >
+              <PlusIcon />
+              {activeTab === 'TOPICS' ? 'Tạo Chủ đề' : 'Tạo Dạng bài'}
+            </button>
+          </div>
         </div>
 
         {/* Main Tabs */}
