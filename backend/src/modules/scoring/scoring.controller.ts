@@ -68,51 +68,52 @@ export class ScoringController {
             }
         }
 
-        // Gọi AI để chấm điểm (Master Prompt)
-        let aiResult;
-        try {
-            const taskType = promptEntity?.taskType || TaskType.TASK_2;
-            aiResult = await this.scoringService.checkEnglish(dto.text, promptContent, userProfile, taskType);
-        } catch (error) {
-            throw new HttpException(
-                'Hệ thống chấm điểm AI đang bận hoặc gặp sự cố. Vui lòng thử lại sau vài phút.',
-                HttpStatus.SERVICE_UNAVAILABLE
-            );
-        }
-
-        // Lưu lịch sử vào database cùng với các điểm thành phần
+        // --- 1. KHỞI TẠO BẢN GHI PENDING ---
         const attempt = this.examRepository.create({
             originalText: dto.text,
             wordCount: wordCount,
             timeSpent: timeSpent,
-            aiResponse: aiResult,
             prompt: promptEntity,
-
-            // Mapping điểm
-            overallScore: aiResult?.overallScore || null,
-            scoreTA: aiResult?.scoreTA || null,
-            scoreCC: aiResult?.scoreCC || null,
-            scoreLR: aiResult?.scoreLR || null,
-            scoreGRA: aiResult?.scoreGRA || null,
+            status: 'pending',
         });
 
-        // Lấy User từ Payload JWT
-        // (Vẫn giữ logic linh hoạt để check cả .id và .userId cho an tâm tuyệt đối)
         const realUserId = user?.id || (user as any)?.userId;
-
-
         if (realUserId) {
-            // Cách an toàn nhất để gán Relation trong TypeORM khi chỉ có ID
             attempt.user = { id: realUserId } as any;
         } else if (visitorId) {
             attempt.visitorId = visitorId;
         }
 
+        await this.examRepository.save(attempt);
+
+        // --- 2. GỌI AI CHẤM ĐIỂM ---
+        let aiResult;
         try {
+            const taskType = promptEntity?.taskType || TaskType.TASK_2;
+            aiResult = await this.scoringService.checkEnglish(dto.text, promptContent, userProfile, taskType);
+
+            // --- 3. CẬP NHẬT TRẠNG THÁI SUCCESS ---
+            Object.assign(attempt, {
+                aiResponse: aiResult,
+                overallScore: aiResult?.overallScore || null,
+                scoreTA: aiResult?.scoreTA || null,
+                scoreCC: aiResult?.scoreCC || null,
+                scoreLR: aiResult?.scoreLR || null,
+                scoreGRA: aiResult?.scoreGRA || null,
+                status: 'success',
+            });
             await this.examRepository.save(attempt);
-        } catch (dbError) {
-            console.error("Database Save Error:", dbError);
-            throw new HttpException('Lỗi lưu kết quả vào Database', HttpStatus.INTERNAL_SERVER_ERROR);
+
+        } catch (error) {
+            // --- 4. CẬP NHẬT TRẠNG THÁI FAILED ---
+            attempt.status = 'failed';
+            await this.examRepository.save(attempt);
+
+            console.error("Scoring Error for attempt", attempt.id, ":", error);
+            throw new HttpException(
+                'Hệ thống chấm điểm AI đang bận hoặc gặp sự cố. Vui lòng thử lại sau vài phút.',
+                HttpStatus.SERVICE_UNAVAILABLE
+            );
         }
 
         // Trả về kết quả cho Frontend kèm thông tin hạn mức

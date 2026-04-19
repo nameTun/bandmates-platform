@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Spin, message } from 'antd';
 import { LoadingOutlined } from '@ant-design/icons';
+import { Link } from 'react-router-dom';
 import { 
   Users, 
   FileText, 
@@ -70,6 +71,16 @@ const AdminDashboard: React.FC = () => {
     {
       label: 'Tổng đề thi',
       value: stats?.prompts.total.toLocaleString() || '0',
+      path: '/admin/prompts#data-center',
+      detail: (
+        <div className="flex gap-2 mt-1 text-[9px] font-bold uppercase tracking-tighter text-orange-500 animate-pulse">
+          <span>T1A: {stats?.prompts.task1Academic}</span>
+          <span>•</span>
+          <span>T1G: {stats?.prompts.task1General}</span>
+          <span>•</span>
+          <span>T2: {stats?.prompts.task2}</span>
+        </div>
+      ),
       color: 'from-purple-500 to-fuchsia-600',
       shadow: 'shadow-purple-500/10',
       icon: <FileText className="w-5 h-5 text-white" />,
@@ -77,6 +88,15 @@ const AdminDashboard: React.FC = () => {
     {
       label: 'Bài đã chấm',
       value: stats?.attempts.total.toLocaleString() || '0',
+      detail: (
+        <div className="flex gap-2 mt-1 text-[9px] font-bold uppercase tracking-tighter text-orange-500 animate-pulse">
+          <span>T1A: {stats?.attempts.task1Academic}</span>
+          <span>•</span>
+          <span>T1G: {stats?.attempts.task1General}</span>
+          <span>•</span>
+          <span>T2: {stats?.attempts.task2}</span>
+        </div>
+      ),
       color: 'from-emerald-500 to-teal-600',
       shadow: 'shadow-emerald-500/10',
       icon: <ClipboardCheck className="w-5 h-5 text-white" />,
@@ -122,29 +142,43 @@ const AdminDashboard: React.FC = () => {
 
         {/* ── Stats Grid ── */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-          {statsOverview.map((stat) => (
-            <div 
-              key={stat.label} 
-              className="group bg-white border border-slate-200/60 rounded-[24px] p-6 hover:shadow-2xl hover:shadow-slate-200 transition-all duration-300 hover:-translate-y-1 cursor-default"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div className={`w-11 h-11 rounded-2xl bg-gradient-to-br ${stat.color} flex items-center justify-center shadow-lg ${stat.shadow} group-hover:scale-110 transition-transform duration-500`}>
-                  {stat.icon}
+          {statsOverview.map((stat) => {
+            const CardContent = (
+              <div 
+                className={`group h-full bg-white border border-slate-200/50 rounded-[20px] p-4 shadow-sm hover:shadow-xl hover:shadow-slate-200 transition-all duration-300 hover:-translate-y-1 ${stat.path ? 'cursor-pointer' : 'cursor-default'}`}
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center shadow-lg ${stat.shadow} group-hover:scale-110 transition-transform duration-500`}>
+                    {stat.icon}
+                  </div>
+                  <div className="p-1 rounded-lg bg-slate-50 text-slate-300 group-hover:text-orange-500 transition-colors">
+                    <Activity className="w-3.5 h-3.5" />
+                  </div>
                 </div>
-                <div className="p-1.5 rounded-lg bg-slate-50 text-slate-300 group-hover:text-orange-500 transition-colors">
-                  <Activity className="w-4 h-4" />
+                <div>
+                  <div className="text-4xl font-black text-slate-900 mb-1 tracking-tighter tabular-nums leading-none">
+                    {stat.value}
+                  </div>
+                  <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest opacity-80">
+                    {stat.label}
+                  </div>
+                  {stat.detail && (
+                    <div className="mt-3 pt-3 border-t border-slate-50">
+                      {stat.detail}
+                    </div>
+                  )}
                 </div>
               </div>
-              <div>
-                <div className="text-3xl font-black text-slate-900 mb-0.5 tracking-tight tabular-nums">
-                  {stat.value}
-                </div>
-                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                  {stat.label}
-                </div>
-              </div>
-            </div>
-          ))}
+            );
+
+            return stat.path ? (
+              <Link key={stat.label} to={stat.path} className="block no-underline h-full">
+                {CardContent}
+              </Link>
+            ) : (
+              <div key={stat.label} className="h-full">{CardContent}</div>
+            );
+          })}
         </div>
 
         {/* ── AI Quota Monitoring ── */}
@@ -172,7 +206,7 @@ const AdminDashboard: React.FC = () => {
                   .sort((a, b) => {
                     const priority = [
                       'gemini-3.1-flash-lite-preview', 
-                      'gemini-3-flash-preview', 
+                      'gemini-3.0-flash-preview', 
                       'gemini-2.5-flash', 
                       'gemini-2.5-flash-lite'
                     ];
@@ -331,7 +365,7 @@ const AdminDashboard: React.FC = () => {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-0.5">
                         <span className="text-sm font-bold text-slate-900 truncate">{item.user}</span>
-                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 font-bold uppercase">{item.task.replace(/task_|_/g, ' ')}</span>
+                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 font-bold uppercase">{item.task}</span>
                       </div>
                       <div className="flex items-center gap-3 text-xs text-slate-400">
                         <span className="flex items-center gap-1.5 font-medium"><Target className="w-3.5 h-3.5" /> {item.topic}</span>
@@ -390,7 +424,7 @@ const AdminDashboard: React.FC = () => {
                     <Activity className="w-4 h-4 text-orange-400" />
                     <span className="text-[10px] font-bold text-orange-400 uppercase tracking-widest">Hệ thống AI</span>
                  </div>
-                 <h4 className="text-white font-black text-sm mb-2 group-hover:text-orange-300 transition-colors">Hiệu suất Gemini 1.5 Pro</h4>
+                 <h4 className="text-white font-black text-sm mb-2 group-hover:text-orange-300 transition-colors">Hiệu suất Gemini Flash 3.1 lite</h4>
                  <p className="text-slate-400 text-xs leading-relaxed font-medium opacity-80 group-hover:opacity-100 transition-opacity">
                    Lượt chấm gần nhất phản hồi trong <span className="text-white font-bold">1.2 giây</span>. Tỷ lệ chính xác ước tính đạt 98.4%.
                  </p>

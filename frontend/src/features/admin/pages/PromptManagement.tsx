@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { message, Spin, Tabs, Badge, Image, Tooltip, Input as AntInput, Table, Switch } from 'antd';
+import { useLocation } from 'react-router-dom';
 import type { ColumnsType } from 'antd/es/table';
 import type { FilterValue } from 'antd/es/table/interface';
 import { categoryService } from '../services/category.service';
@@ -27,18 +28,18 @@ const formatPrompt = (text: string) => {
 
 /* ── COLOR PALETTE FOR TAGS ── */
 const TAG_COLORS = [
-  { bg: 'bg-blue-50',    text: 'text-blue-700',    border: 'border-blue-200' },
-  { bg: 'bg-emerald-50', text: 'text-emerald-700',  border: 'border-emerald-200' },
-  { bg: 'bg-violet-50',  text: 'text-violet-700',   border: 'border-violet-200' },
-  { bg: 'bg-amber-50',   text: 'text-amber-700',    border: 'border-amber-200' },
-  { bg: 'bg-rose-50',    text: 'text-rose-700',     border: 'border-rose-200' },
-  { bg: 'bg-cyan-50',    text: 'text-cyan-700',     border: 'border-cyan-200' },
-  { bg: 'bg-fuchsia-50', text: 'text-fuchsia-700',  border: 'border-fuchsia-200' },
-  { bg: 'bg-lime-50',    text: 'text-lime-700',     border: 'border-lime-200' },
-  { bg: 'bg-orange-50',  text: 'text-orange-700',   border: 'border-orange-200' },
-  { bg: 'bg-teal-50',    text: 'text-teal-700',     border: 'border-teal-200' },
-  { bg: 'bg-indigo-50',  text: 'text-indigo-700',   border: 'border-indigo-200' },
-  { bg: 'bg-pink-50',    text: 'text-pink-700',     border: 'border-pink-200' },
+  { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200' },
+  { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
+  { bg: 'bg-violet-50', text: 'text-violet-700', border: 'border-violet-200' },
+  { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200' },
+  { bg: 'bg-rose-50', text: 'text-rose-700', border: 'border-rose-200' },
+  { bg: 'bg-cyan-50', text: 'text-cyan-700', border: 'border-cyan-200' },
+  { bg: 'bg-fuchsia-50', text: 'text-fuchsia-700', border: 'border-fuchsia-200' },
+  { bg: 'bg-lime-50', text: 'text-lime-700', border: 'border-lime-200' },
+  { bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-200' },
+  { bg: 'bg-teal-50', text: 'text-teal-700', border: 'border-teal-200' },
+  { bg: 'bg-indigo-50', text: 'text-indigo-700', border: 'border-indigo-200' },
+  { bg: 'bg-pink-50', text: 'text-pink-700', border: 'border-pink-200' },
 ];
 
 const getTagColor = (name: string) => {
@@ -83,11 +84,11 @@ const SparklesIcon = () => (
 const PromptManagement: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<string>(TaskType.TASK_2);
-  
+
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  
+
   // Data States
   const [prompts, setPrompts] = useState<Prompt[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -111,6 +112,20 @@ const PromptManagement: React.FC = () => {
   const [hints, setHints] = useState('');
   const [targetBand, setTargetBand] = useState<number>(7.0);
   const [isFreeSample, setIsFreeSample] = useState(false);
+  const location = useLocation();
+
+  useEffect(() => {
+    // Nếu URL có #data-center, cuộn xuống vị trí đích
+    if (location.hash === '#data-center') {
+      const timer = setTimeout(() => {
+        const element = document.getElementById('data-center');
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [location.hash]); // Chỉ chạy lại khi hash thay đổi
 
   useEffect(() => {
     fetchInitialData();
@@ -195,7 +210,7 @@ const PromptManagement: React.FC = () => {
         await promptService.createPrompt(payload as CreatePromptDto);
         message.success('Đã tạo đề bài mới thành công!');
       }
-      
+
       // Reset form & Refresh
       setShowForm(false);
       setEditingFullPromptId(null);
@@ -395,28 +410,28 @@ const PromptManagement: React.FC = () => {
           </div>
           {editingId === prompt.id ? (
             <div className="mt-2 flex flex-col gap-2.5 bg-transparent p-3 rounded-xl border border-orange-500/50 shadow-inner">
-               <span className="text-[10px] font-bold text-orange-400 uppercase tracking-wider flex items-center gap-1.5"><EditIcon/> Chỉnh sửa bài mẫu</span>
-               <AntInput.TextArea 
-                 value={editValue}
-                 onChange={(e) => setEditValue(e.target.value)}
-                 autoSize={{ minRows: 3, maxRows: 10 }}
-                 className="bg-slate-50 border-slate-200 text-sm text-slate-900 font-medium rounded-lg"
-                 placeholder="Nhập nội dung bài mẫu vào đây..."
-               />
-               <div className="flex items-center justify-end gap-2 mt-1">
-                 <button onClick={() => setEditingId(null)} className="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-[#27272a] rounded-lg transition-all">Huỷ</button>
-                 <button onClick={() => handleUpdateModelAnswer(prompt.id)} className="px-4 py-1.5 text-xs font-bold bg-gradient-to-r from-orange-500 to-orange-600 shadow border border-orange-400/50 text-slate-900 rounded-lg hover:from-orange-400 hover:to-orange-500 transition-all flex items-center gap-1.5">
-                   <CheckIcon/> Cập nhật
-                 </button>
-               </div>
+              <span className="text-[10px] font-bold text-orange-400 uppercase tracking-wider flex items-center gap-1.5"><EditIcon /> Chỉnh sửa bài mẫu</span>
+              <AntInput.TextArea
+                value={editValue}
+                onChange={(e) => setEditValue(e.target.value)}
+                autoSize={{ minRows: 3, maxRows: 10 }}
+                className="bg-slate-50 border-slate-200 text-sm text-slate-900 font-medium rounded-lg"
+                placeholder="Nhập nội dung bài mẫu vào đây..."
+              />
+              <div className="flex items-center justify-end gap-2 mt-1">
+                <button onClick={() => setEditingId(null)} className="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-[#27272a] rounded-lg transition-all">Huỷ</button>
+                <button onClick={() => handleUpdateModelAnswer(prompt.id)} className="px-4 py-1.5 text-xs font-bold bg-gradient-to-r from-orange-500 to-orange-600 shadow border border-orange-400/50 text-slate-900 rounded-lg hover:from-orange-400 hover:to-orange-500 transition-all flex items-center gap-1.5">
+                  <CheckIcon /> Cập nhật
+                </button>
+              </div>
             </div>
           ) : (
-            <div 
+            <div
               className={`mt-1 p-3 rounded-xl border transition-all ${prompt.modelAnswer ? 'bg-slate-50 border-slate-200 hover:border-slate-300' : 'bg-white border-dashed border-slate-200 hover:border-orange-500/50 hover:bg-orange-500/5 cursor-pointer group/add'}`}
               onClick={() => {
                 if (!prompt.modelAnswer) {
-                   setEditingId(prompt.id);
-                   setEditValue('');
+                  setEditingId(prompt.id);
+                  setEditValue('');
                 }
               }}
             >
@@ -426,16 +441,16 @@ const PromptManagement: React.FC = () => {
                     <span className="inline-flex text-[9px] font-bold text-orange-500 uppercase tracking-widest bg-orange-500/10 border border-orange-500/20 px-1.5 py-0.5 rounded">Bài mẫu tham khảo</span>
                   </div>
                   <div className="text-xs text-slate-600 line-clamp-3 leading-relaxed group-hover/answer:text-slate-800 transition-colors">{prompt.modelAnswer}</div>
-                   <button 
-                     onClick={(e) => { e.stopPropagation(); setEditingId(prompt.id); setEditValue(prompt.modelAnswer || ''); }}
-                     className="absolute -top-1 -right-1 p-1.5 opacity-0 group-hover/answer:opacity-100 bg-[#27272a] text-slate-900 rounded-md hover:bg-orange-500 shadow-lg transition-all"
-                   >
-                     <EditIcon />
-                   </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setEditingId(prompt.id); setEditValue(prompt.modelAnswer || ''); }}
+                    className="absolute -top-1 -right-1 p-1.5 opacity-0 group-hover/answer:opacity-100 bg-[#27272a] text-slate-900 rounded-md hover:bg-orange-500 shadow-lg transition-all"
+                  >
+                    <EditIcon />
+                  </button>
                 </div>
               ) : (
                 <div className="flex items-center gap-2 text-xs text-slate-400 group-hover/add:text-orange-400 transition-colors font-medium">
-                  <div className="p-1 rounded-md bg-slate-50 group-hover/add:bg-orange-500/20"><PlusIcon /></div> 
+                  <div className="p-1 rounded-md bg-slate-50 group-hover/add:bg-orange-500/20"><PlusIcon /></div>
                   <span>Thêm bài mẫu cho đề này</span>
                 </div>
               )}
@@ -453,11 +468,11 @@ const PromptManagement: React.FC = () => {
       dataIndex: 'isFreeSample',
       key: 'isFreeSample',
       render: (isFreeSample: boolean, record: Prompt) => (
-        <Switch 
-           checked={isFreeSample} 
-           onChange={(checked) => handleToggleFreeSample(record.id, checked)} 
-           size="small" 
-           className={isFreeSample ? 'bg-orange-500' : 'bg-slate-300'}
+        <Switch
+          checked={isFreeSample}
+          onChange={(checked) => handleToggleFreeSample(record.id, checked)}
+          size="small"
+          className={isFreeSample ? 'bg-orange-500' : 'bg-slate-300'}
         />
       ),
       filters: (() => {
@@ -481,7 +496,7 @@ const PromptManagement: React.FC = () => {
       render: (_, record) => (
         <div className="flex justify-center gap-1.5">
           <Tooltip title="Sửa đề thi">
-            <button 
+            <button
               onClick={() => handleEditFullPrompt(record)}
               className="p-2 bg-slate-50 border border-slate-200 text-slate-500 rounded-lg hover:text-orange-500 hover:border-orange-500/30 hover:bg-orange-500/5 transition-all shadow-sm"
             >
@@ -489,7 +504,7 @@ const PromptManagement: React.FC = () => {
             </button>
           </Tooltip>
           <Tooltip title="Xoá đề bài">
-            <button 
+            <button
               onClick={() => handleDeletePrompt(record.id)}
               className="p-2 bg-slate-50 border border-slate-200 text-slate-500 rounded-lg hover:text-red-500 hover:border-red-500/30 hover:bg-red-500/10 transition-all shadow-sm"
             >
@@ -587,7 +602,7 @@ const PromptManagement: React.FC = () => {
             <div key={task.type} className={`bg-white border border-slate-200 rounded-xl p-5 hover:border-${task.color}-500/30 transition-all group`}>
               <div className="flex items-center justify-between mb-4">
                 <span className={`text-xs font-bold uppercase tracking-widest text-${task.color}-400`}>{task.label}</span>
-                <button 
+                <button
                   onClick={() => handleDownloadSample(task.type)}
                   className="text-[10px] text-slate-400 hover:text-slate-600 underline font-medium"
                 >
@@ -596,9 +611,9 @@ const PromptManagement: React.FC = () => {
               </div>
               <div className="flex gap-2">
                 <label className="flex-1">
-                  <input 
-                    type="file" 
-                    className="hidden" 
+                  <input
+                    type="file"
+                    className="hidden"
                     accept=".xlsx, .xls"
                     onChange={(e) => handleImport(task.type, e)}
                   />
@@ -606,7 +621,7 @@ const PromptManagement: React.FC = () => {
                     Import
                   </div>
                 </label>
-                <button 
+                <button
                   onClick={() => handleExport(task.type)}
                   className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-transparent border border-slate-200 text-slate-500 text-[11px] font-bold uppercase rounded-lg hover:border-slate-300 hover:text-slate-900 transition-all"
                 >
@@ -618,17 +633,18 @@ const PromptManagement: React.FC = () => {
         </div>
 
         {/* Add Form (Collapsible) */}
+        <div id="data-center"></div>
         {showForm && (
           <div className="bg-white border border-slate-200 rounded-xl p-8 mb-10 shadow-xl shadow-slate-200/50 animate-in slide-in-from-top-4 duration-300">
             <h3 className="text-base font-semibold text-slate-900 mb-6 tracking-tight font-bold">
               {editingFullPromptId ? 'Sửa thông tin đề bài' : 'Khai báo cấu trúc đề bài'}
             </h3>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-5">
               {/* Task Type */}
               <div className="flex flex-col gap-1.5">
                 <label className="text-[13px] font-medium text-slate-500 uppercase tracking-wider">Loại bài thi</label>
-                <select 
+                <select
                   value={selectedTaskType}
                   onChange={(e) => {
                     setSelectedTaskType(e.target.value as TaskType);
@@ -646,7 +662,7 @@ const PromptManagement: React.FC = () => {
               {/* Category */}
               <div className="flex flex-col gap-1.5">
                 <label className="text-[13px] font-medium text-slate-500 uppercase tracking-wider">Dạng bài</label>
-                <select 
+                <select
                   value={selectedCategoryId}
                   onChange={(e) => setSelectedCategoryId(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 text-slate-900 text-sm rounded-lg px-3.5 py-2.5 outline-none hover:border-slate-300 focus:border-[#d4d4d8] focus:ring-1 focus:ring-[#d4d4d8] transition-all"
@@ -662,7 +678,7 @@ const PromptManagement: React.FC = () => {
               {selectedTaskType === TaskType.TASK_2 && (
                 <div className="flex flex-col gap-1.5 animate-in fade-in duration-300">
                   <label className="text-[13px] font-medium text-slate-500 uppercase tracking-wider">Chủ đề (Topic)</label>
-                  <select 
+                  <select
                     value={selectedTopicId}
                     onChange={(e) => setSelectedTopicId(e.target.value)}
                     className="w-full bg-slate-50 border border-slate-200 text-slate-900 text-sm rounded-lg px-3.5 py-2.5 outline-none hover:border-slate-300 focus:border-[#d4d4d8] focus:ring-1 focus:ring-[#d4d4d8] transition-all"
@@ -709,7 +725,7 @@ const PromptManagement: React.FC = () => {
               {/* Target Band */}
               <div className="flex flex-col gap-1.5">
                 <label className="text-[13px] font-medium text-slate-500 uppercase tracking-wider">Target Band (Loại đề)</label>
-                <select 
+                <select
                   value={targetBand}
                   onChange={(e) => setTargetBand(Number(e.target.value))}
                   className="w-full bg-slate-50 border border-slate-200 text-slate-900 text-sm rounded-lg px-3.5 py-2.5 outline-none hover:border-slate-300 focus:border-[#d4d4d8] focus:ring-1 focus:ring-[#d4d4d8] transition-all"
@@ -747,8 +763,8 @@ const PromptManagement: React.FC = () => {
 
             {/* Free Sample Toggle */}
             <div className="flex items-center gap-3 mb-8 bg-slate-50/50 border border-slate-200 p-4 rounded-xl">
-              <Switch 
-                checked={isFreeSample} 
+              <Switch
+                checked={isFreeSample}
                 onChange={setIsFreeSample}
                 className={isFreeSample ? 'bg-orange-500' : 'bg-slate-300'}
               />
@@ -760,7 +776,7 @@ const PromptManagement: React.FC = () => {
 
             {/* Actions */}
             <div className="flex items-center gap-3 pt-2 border-t border-slate-200 mt-6">
-              <button 
+              <button
                 onClick={handleSubmitForm}
                 disabled={submitting}
                 className="px-5 py-2.5 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors flex items-center gap-2 disabled:opacity-50"
@@ -769,8 +785,8 @@ const PromptManagement: React.FC = () => {
               </button>
               <button
                 onClick={() => {
-                   setShowForm(false);
-                   setEditingFullPromptId(null);
+                  setShowForm(false);
+                  setEditingFullPromptId(null);
                 }}
                 disabled={submitting}
                 className="px-5 py-2.5 bg-transparent text-slate-600 text-sm font-medium rounded-lg hover:bg-slate-50 hover:text-slate-900 transition-colors"
@@ -843,7 +859,7 @@ const PromptManagement: React.FC = () => {
 
         {/* Table System */}
         <div className="rounded-xl overflow-hidden bg-white border border-slate-200 admin-table-wrapper">
-          <Table 
+          <Table
             className="admin-table"
             columns={getColumns()}
             dataSource={filteredPrompts}
@@ -856,7 +872,7 @@ const PromptManagement: React.FC = () => {
           />
         </div>
       </div>
-      
+
       {/* ── GLOBAL STYLES OVERRIDES FOR ANTD TABS AND TABLE ── */}
       <style>{`
         .admin-tabs .ant-tabs-nav {
@@ -935,7 +951,7 @@ const PromptManagement: React.FC = () => {
         }
       `}</style>
     </div>
-);
+  );
 };
 
 export default PromptManagement;

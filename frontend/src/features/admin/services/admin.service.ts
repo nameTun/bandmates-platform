@@ -12,6 +12,9 @@ export interface AdminStatistics {
   };
   attempts: {
     total: number;
+    task1Academic: number;
+    task1General: number;
+    task2: number;
     recent: {
       id: string;
       user: string;

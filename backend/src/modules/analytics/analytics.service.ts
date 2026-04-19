@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { User } from '../users/entities/user.entity';
+import { User, UserRole } from '../users/entities/user.entity';
 import { Prompt } from '../prompts/entities/prompt.entity';
 import { ExamAttempt } from '../scoring/entities/exam-attempt.entity';
 import { TaskType } from '../../common/enums/task-type.enum';
@@ -37,17 +37,53 @@ export class AnalyticsService {
             where: { taskType: TaskType.TASK_2 }
         });
 
-        // 3. Thống kê Lượt làm bài (chỉ tính bài thành công)
-        const totalAttempts = await this.attemptsRepository.count({
-            where: { status: 'success' }
-        });
+        // 3. Thống kê Lượt làm bài (Chỉ tính bài từ User/Admin đã đăng nhập, loại bỏ Guest)
+        const totalAttempts = await this.attemptsRepository
+            .createQueryBuilder('attempt')
+            .innerJoin('attempt.user', 'user')
+            .leftJoin('attempt.prompt', 'prompt')
+            .where('attempt.status = :status', { status: 'success' })
+            .andWhere('user.role IN (:...roles)', { roles: [UserRole.USER, UserRole.ADMIN] })
+            .getCount();
+
+        const task1AcademicAttempts = await this.attemptsRepository
+            .createQueryBuilder('attempt')
+            .innerJoin('attempt.user', 'user')
+            .innerJoin('attempt.prompt', 'prompt')
+            .where('attempt.status = :status', { status: 'success' })
+            .andWhere('user.role IN (:...roles)', { roles: [UserRole.USER, UserRole.ADMIN] })
+            .andWhere('prompt.taskType = :type', { type: TaskType.TASK_1_ACADEMIC })
+            .getCount();
+
+        const task1GeneralAttempts = await this.attemptsRepository
+            .createQueryBuilder('attempt')
+            .innerJoin('attempt.user', 'user')
+            .innerJoin('attempt.prompt', 'prompt')
+            .where('attempt.status = :status', { status: 'success' })
+            .andWhere('user.role IN (:...roles)', { roles: [UserRole.USER, UserRole.ADMIN] })
+            .andWhere('prompt.taskType = :type', { type: TaskType.TASK_1_GENERAL })
+            .getCount();
+
+        const task2Attempts = await this.attemptsRepository
+            .createQueryBuilder('attempt')
+            .innerJoin('attempt.user', 'user')
+            .innerJoin('attempt.prompt', 'prompt')
+            .where('attempt.status = :status', { status: 'success' })
+            .andWhere('user.role IN (:...roles)', { roles: [UserRole.USER, UserRole.ADMIN] })
+            .andWhere('prompt.taskType = :type', { type: TaskType.TASK_2 })
+            .getCount();
 
         // 4. Lấy 5 bài làm gần đây nhất (Recent Activity)
         const recentAttempts = await this.attemptsRepository.find({
-            relations: ['user', 'prompt', 'prompt.topic'],
+            where: {
+                status: 'success',
+                user: { role: UserRole.USER }
+            },
+            relations: ['user', 'prompt', 'prompt.topic', 'user.profile'],
             order: { createdAt: 'DESC' },
             take: 5,
         });
+
 
         // 5. Thống kê Top 5 Chủ đề (Topic) được làm nhiều nhất
         // QueryBuilder để group by topic name
@@ -67,20 +103,30 @@ export class AnalyticsService {
         // 6. Thống kê Hạn mức AI (AI Quota)
         const aiUsageRaw = await this.aiUsageRepository.find();
         
+        // Logic tính toán thời gian thực tế để "Reset ảo" trên Dashboard
+        const now = new Date();
+        const currentMinuteId = Math.floor(now.getTime() / 60000);
+        const today = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh' }).split(' ')[0];
+
         // Kết hợp dữ liệu thực tế với Định mức (Limits) từ file config
         const aiUsageStats = aiUsageRaw.map(usage => {
             const limits = AI_LIMITS[usage.modelName] || { rpm: 0, rpd: 0 };
+            
+            // Xử lý Virtual Reset cho hiển thị: Nếu đã qua phút mới/ngày mới thì hiển thị là 0
+            const displayRPM = usage.lastMinuteId === currentMinuteId ? usage.currentRPM : 0;
+            const displayRPD = usage.resetDayAt === today ? usage.currentRPD : 0;
+
             return {
                 modelName: usage.modelName,
                 rpm: {
-                    current: usage.currentRPM,
+                    current: displayRPM,
                     limit: limits.rpm,
-                    percent: limits.rpm > 0 ? Math.round((usage.currentRPM / limits.rpm) * 100) : 0,
+                    percent: limits.rpm > 0 ? Math.round((displayRPM / limits.rpm) * 100) : 0,
                 },
                 rpd: {
-                    current: usage.currentRPD,
+                    current: displayRPD,
                     limit: limits.rpd,
-                    percent: limits.rpd > 0 ? Math.round((usage.currentRPD / limits.rpd) * 100) : 0,
+                    percent: limits.rpd > 0 ? Math.round((displayRPD / limits.rpd) * 100) : 0,
                 },
                 lastRequestAt: usage.lastRequestAt,
             };
@@ -98,6 +144,9 @@ export class AnalyticsService {
             },
             attempts: {
                 total: totalAttempts,
+                task1Academic: task1AcademicAttempts,
+                task1General: task1GeneralAttempts,
+                task2: task2Attempts,
                 recent: recentAttempts.map(a => ({
                     id: a.id,
                     user: a.user?.profile?.displayName || a.user?.email || 'Guest',
