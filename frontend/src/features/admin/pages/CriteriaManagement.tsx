@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { message, Spin, Tabs, Tooltip, Input, Button } from 'antd';
-import { scoringCriteriaService, type ScoringCriteria } from '../services/criteria.service';
+import { scoringCriteriaService, type ScoringCriteria } from '../services/admin-criteria-manager.service';
 import { TaskType } from '@/common/enums/task-type.enum';
 import AdminPageHeader from '../components/AdminPageHeader';
 

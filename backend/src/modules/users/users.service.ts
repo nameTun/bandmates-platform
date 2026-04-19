@@ -87,6 +87,83 @@ export class UsersService {
             .getOne();
     }
 
+    // --- ADMIN METHODS ---
+
+    /**
+     * Lấy danh sách người dùng với các thông số phân tích (dành cho Admin)
+     */
+    async findAll(query: {
+        page?: number;
+        limit?: number;
+        search?: string;
+        role?: string;
+    }) {
+        const { page = 1, limit = 10, search, role } = query;
+        const skip = (page - 1) * limit;
+
+        const queryBuilder = this.usersRepository
+            .createQueryBuilder('user')
+            .leftJoinAndSelect('user.profile', 'profile')
+            // Join với bảng ExamAttempt để tính toán các chỉ số
+            .leftJoin('exam_attempts', 'attempt', 'attempt.userId = user.id AND attempt.status = :status', { status: 'success' })
+            .select([
+                'user.id',
+                'user.email',
+                'user.role',
+                'user.isActive',
+                'user.googleId',
+                'user.facebookId',
+                'user.createdAt',
+                'profile.displayName',
+                'profile.avatarUrl',
+            ])
+            // Thêm các cột tính toán (Raw select)
+            .addSelect('COUNT(attempt.id)', 'totalEssays')
+            .addSelect('AVG(attempt.overallScore)', 'avgBand')
+            .groupBy('user.id')
+            .addGroupBy('profile.id');
+
+        // Áp dụng bộ lọc tìm kiếm (Email hoặc Tên)
+        if (search) {
+            queryBuilder.andWhere(
+                '(user.email LIKE :search OR profile.displayName LIKE :search)',
+                { search: `%${search}%` }
+            );
+        }
+
+        // Áp dụng bộ lọc vai trò
+        if (role) {
+            queryBuilder.andWhere('user.role = :role', { role });
+        }
+
+        // Thực hiện phân trang
+        const total = await queryBuilder.getCount();
+        const rawResults = await queryBuilder
+            .orderBy('user.createdAt', 'DESC')
+            .offset(skip)
+            .limit(limit)
+            .getRawAndEntities();
+
+        // Map lại dữ liệu để trả về định dạng đẹp cho Frontend
+        const items = rawResults.entities.map((user, index) => {
+            const raw = rawResults.raw[index];
+            return {
+                ...user,
+                totalEssays: parseInt(raw.totalEssays) || 0,
+                avgBand: parseFloat(raw.avgBand) || 0,
+            };
+        });
+
+        return {
+            items,
+            meta: {
+                total,
+                page,
+                lastPage: Math.ceil(total / limit),
+            },
+        };
+    }
+
     async updateUser(id: string, updateData: Partial<User>): Promise<void> {
         await this.usersRepository.update(id, updateData);
     }

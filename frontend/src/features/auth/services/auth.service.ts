@@ -1,11 +1,12 @@
 import api from '@/lib/api';
+import { UserRole } from '@/common/enums/user-role.enum';
 
 export interface User {
     id: string;
     email: string;
     googleId?: string;
     facebookId?: string;
-    role: string;
+    role: UserRole;
     profile?: {
         displayName: string | null;
         isOnboardingCompleted: boolean;
