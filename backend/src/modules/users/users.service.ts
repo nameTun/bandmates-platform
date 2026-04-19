@@ -15,17 +15,18 @@ export class UsersService {
         private usersRepository: Repository<User>,
     ) { }
 
-    // Mở rộng kiểu dữ liệu đầu vào để chấp nhận thêm trường name (dành cho việc tạo profile)
-    async createUser(userData: Partial<User> & { name?: string }): Promise<User> {
-        const { name, ...userProps } = userData;
+    // Mở rộng kiểu dữ liệu đầu vào để chấp nhận thêm trường name và avatarUrl
+    async createUser(userData: Partial<User> & { name?: string, avatarUrl?: string }): Promise<User> {
+        const { name, avatarUrl, ...userProps } = userData;
 
         const newUser = new User();
         // Gán các thuộc tính cơ bản của User (email, password, roles...)
         Object.assign(newUser, userProps);
 
-        // Khởi tạo Profile đi kèm và gán tên hiển thị
+        // Khởi tạo Profile đi kèm và gán tên hiển thị, ảnh đại diện
         const profile = new UserProfile();
         profile.displayName = name || '';
+        profile.avatarUrl = avatarUrl || null;
         profile.user = newUser; // Đảm bảo mối quan hệ 2 chiều
         newUser.profile = profile;
 
@@ -88,5 +89,18 @@ export class UsersService {
 
     async updateUser(id: string, updateData: Partial<User>): Promise<void> {
         await this.usersRepository.update(id, updateData);
+    }
+
+    // Cập nhật thông tin Profile (dùng cho việc đồng bộ Avatar/DisplayName)
+    async updateProfile(userId: string, data: Partial<UserProfile>): Promise<void> {
+        const user = await this.usersRepository.findOne({
+            where: { id: userId },
+            relations: ['profile']
+        });
+
+        if (user && user.profile) {
+            Object.assign(user.profile, data);
+            await this.usersRepository.save(user);
+        }
     }
 }

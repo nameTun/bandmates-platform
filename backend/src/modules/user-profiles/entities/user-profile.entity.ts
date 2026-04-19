@@ -38,13 +38,13 @@ export class UserProfile {
     @Column()
     userId: string;
 
-    // [HIỂN THỊ] Tên người dùng hiển thị trên giao diện
-    @Column({ nullable: true })
-    displayName: string;
+    // Tên người dùng hiển thị trên giao diện
+    @Column({ type: 'varchar', nullable: true })
+    displayName: string | null;
 
-    // [HIỂN THỊ] Đường dẫn ảnh đại diện
-    @Column({ nullable: true })
-    avatarUrl: string;
+    // Đường dẫn ảnh đại diện
+    @Column({ type: 'varchar', nullable: true })
+    avatarUrl: string | null;
 
     // --- CÁC TRƯỜNG DỮ LIỆU CUNG CẤP NGỮ CẢNH (CONTEXT) CHO AI ---
 
@@ -70,7 +70,7 @@ export class UserProfile {
 
     // --- TRẠNG THÁI ---
 
-    // [TRẠNG THÁI] Cờ đánh dấu người dùng đã hoàn thành khảo sát Onboarding hay chưa
+    // Cờ đánh dấu người dùng đã hoàn thành khảo sát Onboarding hay chưa
     @Column({ default: false })
     isOnboardingCompleted: boolean;
 

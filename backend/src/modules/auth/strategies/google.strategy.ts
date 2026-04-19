@@ -21,13 +21,14 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
 
     // Hàm validate sẽ được gọi khi Google trả về token thành công
     async validate(accessToken: string, refreshToken: string, profile: any, done: VerifyCallback): Promise<any> {
-        const { displayName, emails, id } = profile;
+        const { displayName, emails, id, photos } = profile;
 
         // Gọi AuthService để tìm hoặc tạo user mới
         const user = await this.authService.validateGoogleUser({
             email: emails[0].value,
             name: displayName,
             googleId: id,
+            avatarUrl: photos && photos[0] ? photos[0].value : undefined,
         });
 
         // done(null, user) sẽ gán user vào request object (req.user)

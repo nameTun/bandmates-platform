@@ -100,9 +100,27 @@ const LoginPage: React.FC = () => {
 
   if (status === 'success') {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[70vh]">
-        <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-4" />
-        <p className="text-slate-500 font-medium">Đang xác thực tài khoản...</p>
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/20 to-violet-50/20 relative overflow-hidden p-6 text-center">
+        {/* Decorative background elements */}
+        <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-200/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-80 h-80 bg-violet-200/20 rounded-full blur-3xl translate-y-1/3 -translate-x-1/3 pointer-events-none" />
+        
+        <div className="relative z-10 max-w-sm w-full bg-white/70 backdrop-blur-xl p-10 rounded-3xl border border-white shadow-2xl shadow-slate-200/50">
+          <div className="relative w-20 h-20 mx-auto mb-8">
+            <div className="absolute inset-0 border-4 border-indigo-100 rounded-full" />
+            <div className="absolute inset-0 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+            <div className="absolute inset-2 bg-indigo-50 rounded-full flex items-center justify-center">
+              <svg className="w-8 h-8 text-indigo-500 animate-pulse" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+              </svg>
+            </div>
+          </div>
+          
+          <h3 className="text-xl font-extrabold text-slate-900 mb-2">Đang đồng bộ hóa...</h3>
+          <p className="text-sm text-slate-500 leading-relaxed font-medium">
+            Chúng tôi đang thiết lập phiên đăng nhập an toàn cho bạn. Vui lòng đợi trong giây lát.
+          </p>
+        </div>
       </div>
     );
   }

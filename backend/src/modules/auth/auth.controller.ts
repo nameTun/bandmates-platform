@@ -3,6 +3,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { AuthService } from './auth.service';
 import type { Response } from 'express';
 import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { setCookies, clearCookie } from '../../common/utils/cookie.util';
@@ -13,7 +14,8 @@ import { Cookies } from '../../common/decorators/cookies.decorator';
 export class AuthController {
     constructor(
         private authService: AuthService,
-        private jwtService: JwtService
+        private jwtService: JwtService,
+        private configService: ConfigService
     ) { }
 
     @Get('google')
@@ -30,7 +32,8 @@ export class AuthController {
         setCookies(res, tokens.refreshToken);
 
         // Redirect to Frontend
-        return res.redirect(`http://localhost:5173/login?status=success`);
+        const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:5173';
+        return res.redirect(`${frontendUrl}/login?status=success`);
     }
 
     @Get('facebook')
@@ -44,7 +47,8 @@ export class AuthController {
 
         setCookies(res, tokens.refreshToken);
 
-        return res.redirect(`http://localhost:5173/login?status=success`);
+        const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:5173';
+        return res.redirect(`${frontendUrl}/login?status=success`);
     }
 
     @Post('refresh')
