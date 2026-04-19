@@ -77,28 +77,53 @@ export class AuthService {
         await this.usersService.updateUser(userId, { refreshToken: refreshToken });
     }
 
-    async validateGoogleUser(details: { email: string; name: string; googleId: string }): Promise<User> {
+    async validateGoogleUser(details: { email: string; name: string; googleId: string; avatarUrl?: string }): Promise<User> {
         const user = await this.usersService.findUserByEmail(details.email);
-        if (user) return user;
+        
+        if (user) {
+            // 1. Link Google ID nếu người dùng chưa có
+            if (!user.googleId) {
+                await this.usersService.updateUser(user.id, { googleId: details.googleId });
+                user.googleId = details.googleId;
+            }
+            // 2. Đồng bộ Avatar nếu người dùng chưa có
+            if (!user.profile?.avatarUrl && details.avatarUrl) {
+                await this.usersService.updateProfile(user.id, { avatarUrl: details.avatarUrl });
+                if (user.profile) user.profile.avatarUrl = details.avatarUrl;
+            }
+            return user;
+        }
+
         return this.usersService.createUser({
             email: details.email,
             name: details.name,
             googleId: details.googleId,
+            avatarUrl: details.avatarUrl
         });
     }
 
-    async validateFacebookUser(details: { email: string; name: string; facebookId: string }): Promise<User> {
+    async validateFacebookUser(details: { email: string; name: string; facebookId: string; avatarUrl?: string }): Promise<User> {
         const user = await this.usersService.findUserByEmail(details.email);
+        
         if (user) {
-            // Nếu có user trùng email (vd đã Sign up bằng tay hoặc Google), tự động link tài khoản facebook
-            // Lưu ý: Ở đây ta bỏ qua việc update user.facebookId nếu đã có để code ngắn gọn,
-            // hoặc lý tưởng là gọi this.usersService.update(...)
+            // 1. Link Facebook ID nếu người dùng chưa có
+            if (!user.facebookId) {
+                await this.usersService.updateUser(user.id, { facebookId: details.facebookId });
+                user.facebookId = details.facebookId;
+            }
+            // 2. Đồng bộ Avatar nếu người dùng chưa có
+            if (!user.profile?.avatarUrl && details.avatarUrl) {
+                await this.usersService.updateProfile(user.id, { avatarUrl: details.avatarUrl });
+                if (user.profile) user.profile.avatarUrl = details.avatarUrl;
+            }
             return user;
         }
+
         return this.usersService.createUser({
             email: details.email,
             name: details.name,
             facebookId: details.facebookId,
+            avatarUrl: details.avatarUrl
         });
     }
 
