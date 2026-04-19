@@ -127,19 +127,21 @@ export class AiService {
         }
 
         let needsSave = false;
+        const currentMinuteId = Math.floor(now.getTime() / 60000);
 
         // Logic Reset Ngày (00:00 VN)
         if (usage.resetDayAt !== today) {
             usage.currentRPD = 0;
             usage.currentRPM = 0;
             usage.resetDayAt = today;
+            usage.lastMinuteId = currentMinuteId;
             needsSave = true;
         }
 
-        // Logic Reset Phút (RPM) - Nếu cách request cuối > 60s thì reset RPM
-        const secondsSinceLastRequest = (now.getTime() - new Date(usage.lastRequestAt).getTime()) / 1000;
-        if (secondsSinceLastRequest > 60) {
+        // Logic Reset Phút (RPM) - Nếu sang phút mới thì reset RPM
+        if (usage.lastMinuteId !== currentMinuteId) {
             usage.currentRPM = 0;
+            usage.lastMinuteId = currentMinuteId;
             needsSave = true;
         }
 
@@ -194,5 +196,12 @@ export class AiService {
             usage.lastRequestAt = new Date();
             await this.aiUsageRepository.save(usage);
         }
+    }
+
+    /**
+     * [GENERIC] Gửi bất kỳ prompt tùy ý nào hỗ trợ nhóm model LIGHT.
+     */
+    async generateContent(prompt: string): Promise<any> {
+        return this.generateWithFallback(prompt, AI_MODELS.LIGHT);
     }
 }

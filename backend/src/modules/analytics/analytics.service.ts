@@ -5,6 +5,8 @@ import { User } from '../users/entities/user.entity';
 import { Prompt } from '../prompts/entities/prompt.entity';
 import { ExamAttempt } from '../scoring/entities/exam-attempt.entity';
 import { TaskType } from '../../common/enums/task-type.enum';
+import { AiUsage } from '../ai/entities/ai-usage.entity';
+import { AI_LIMITS } from '../../config/ai-models.config';
 
 @Injectable()
 export class AnalyticsService {
@@ -15,6 +17,8 @@ export class AnalyticsService {
         private promptsRepository: Repository<Prompt>,
         @InjectRepository(ExamAttempt)
         private attemptsRepository: Repository<ExamAttempt>,
+        @InjectRepository(AiUsage)
+        private aiUsageRepository: Repository<AiUsage>,
     ) { }
 
     async getGlobalStatistics() {
@@ -60,6 +64,28 @@ export class AnalyticsService {
             .limit(5)
             .getRawMany();
 
+        // 6. Thống kê Hạn mức AI (AI Quota)
+        const aiUsageRaw = await this.aiUsageRepository.find();
+        
+        // Kết hợp dữ liệu thực tế với Định mức (Limits) từ file config
+        const aiUsageStats = aiUsageRaw.map(usage => {
+            const limits = AI_LIMITS[usage.modelName] || { rpm: 0, rpd: 0 };
+            return {
+                modelName: usage.modelName,
+                rpm: {
+                    current: usage.currentRPM,
+                    limit: limits.rpm,
+                    percent: limits.rpm > 0 ? Math.round((usage.currentRPM / limits.rpm) * 100) : 0,
+                },
+                rpd: {
+                    current: usage.currentRPD,
+                    limit: limits.rpd,
+                    percent: limits.rpd > 0 ? Math.round((usage.currentRPD / limits.rpd) * 100) : 0,
+                },
+                lastRequestAt: usage.lastRequestAt,
+            };
+        });
+
         return {
             users: {
                 total: totalUsers,
@@ -86,6 +112,7 @@ export class AnalyticsService {
                 name: t.name,
                 count: parseInt(t.count),
             })),
+            aiUsage: aiUsageStats,
         };
     }
 }

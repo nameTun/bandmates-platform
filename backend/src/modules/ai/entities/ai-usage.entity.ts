@@ -16,4 +16,7 @@ export class AiUsage {
 
     @Column({ type: 'varchar', length: 10, default: '' })
     resetDayAt: string; // Định dạng YYYY-MM-DD
+
+    @Column({ default: 0 })
+    lastMinuteId: number; // Định dạng Epoch Minute (Date.now() / 60000)
 }

@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AiService } from './ai.service';
 import { AiUsage } from './entities/ai-usage.entity';
+import { AiSeedService } from './ai-seed.service';
 
 @Global()
 @Module({
@@ -10,7 +11,7 @@ import { AiUsage } from './entities/ai-usage.entity';
         ConfigModule,
         TypeOrmModule.forFeature([AiUsage])
     ],
-    providers: [AiService],
-    exports: [AiService],
+    providers: [AiService, AiSeedService],
+    exports: [AiService, TypeOrmModule],
 })
 export class AiModule {}

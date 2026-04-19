@@ -26,6 +26,20 @@ export interface AdminStatistics {
     name: string;
     count: number;
   }[];
+  aiUsage: {
+    modelName: string;
+    rpm: {
+      current: number;
+      limit: number;
+      percent: number;
+    };
+    rpd: {
+      current: number;
+      limit: number;
+      percent: number;
+    };
+    lastRequestAt: string;
+  }[];
 }
 
 export const adminService = {

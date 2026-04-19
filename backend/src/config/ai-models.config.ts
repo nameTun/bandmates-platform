@@ -24,9 +24,8 @@ export interface ModelLimits {
 }
 
 export const AI_LIMITS: Record<string, ModelLimits> = {
-    'gemini-3.1-flash-lite-preview': { rpm: 15, rpd: 1500 },
-    'gemini-2.5-flash-lite': { rpm: 15, rpd: 1500 },
-    'gemini-3-flash-preview': { rpm: 15, rpd: 1500 },
-    'gemini-2.5-flash': { rpm: 15, rpd: 1500 },
-    'gemini-1.5-pro': { rpm: 2, rpd: 50 },
+    'gemini-3.1-flash-lite-preview': { rpm: 15, rpd: 500 },
+    'gemini-2.5-flash-lite': { rpm: 10, rpd: 20 },
+    'gemini-3-flash-preview': { rpm: 5, rpd: 20 },
+    'gemini-2.5-flash': { rpm: 5, rpd: 20 },
 };
