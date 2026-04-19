@@ -1,13 +1,20 @@
-import { AI_MODELS } from '../../config/ai-models.config';
+import { AI_MODELS, AI_LIMITS } from '../../config/ai-models.config';
 import { Injectable } from '@nestjs/common';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { ConfigService } from '@nestjs/config';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { AiUsage } from './entities/ai-usage.entity';
 
 @Injectable()
 export class AiService {
     private genAI: GoogleGenerativeAI;
 
-    constructor(private configService: ConfigService) {
+    constructor(
+        private configService: ConfigService,
+        @InjectRepository(AiUsage)
+        private aiUsageRepository: Repository<AiUsage>,
+    ) {
         const apiKey = this.configService.get<string>('GEMINI_API_KEY');
         this.genAI = new GoogleGenerativeAI(apiKey || '');
     }
@@ -39,6 +46,13 @@ export class AiService {
             const modelName = modelList[i];
             const isLastModel = i === modelList.length - 1;
 
+            // 1. KIỂM TRA CHỦ ĐỘNG (PROACTIVE CHECK)
+            const isAvailable = await this.checkAvailability(modelName);
+            if (!isAvailable && !isLastModel) {
+                console.warn(`[Quota Fallback] Model ${modelName} đã hết hạn mức trong DB. Đang thử model tiếp theo...`);
+                continue;
+            }
+
             try {
                 const model = this.genAI.getGenerativeModel({ model: modelName });
 
@@ -50,12 +64,14 @@ export class AiService {
                         throw new Error('AI không thể phản hồi yêu cầu này.');
                     }
 
+                    // 2. GHI NHẬN THÀNH CÔNG (TRACKING)
+                    await this.recordUsage(modelName);
+
                     const textResponse = response.text();
                     try {
                         const cleanJson = textResponse.replace(/```json|```/g, '').trim();
                         return JSON.parse(cleanJson);
                     } catch (e: any) {
-                        // Nếu là chấm bài mà JSON lỗi, có thể cần raw text hoặc báo lỗi định dạng
                         if (prompt.includes('STRICT JSON')) {
                             throw new Error('AI trả về định dạng JSON không hợp lệ.');
                         }
@@ -66,12 +82,16 @@ export class AiService {
                 lastError = error;
                 const status = error.status || (error.message?.includes('429') ? 429 : 0);
 
-                if (status === 429 && !isLastModel) {
-                    console.warn(`[Gemini Fallback] Model ${modelName} hết hạn mức (429). Đang chuyển sang model tiếp theo...`);
-                    continue; // Thử model tiếp theo
+                if (status === 429) {
+                    // 3. XỬ LÝ LỖI 429 (REACTIVE)
+                    await this.markAsExhausted(modelName);
+                    
+                    if (!isLastModel) {
+                        console.warn(`[Gemini Fallback] Model ${modelName} hết hạn mức (429). Đang chuyển sang model tiếp theo...`);
+                        continue;
+                    }
                 }
 
-                // Nếu là lỗi khác hoặc là model cuối cùng, báo lỗi
                 console.error(`[Gemini Error] Model ${modelName} gặp lỗi:`, error.message);
                 if (isLastModel) break;
             }
@@ -81,9 +101,98 @@ export class AiService {
     }
 
     /**
-     * [GENERIC] Gửi bất kỳ prompt tùy ý nào hỗ trợ nhóm model LIGHT.
+     * [HELPER] Lấy ngày hiện tại theo múi giờ VN (YYYY-MM-DD)
      */
-    async generateContent(prompt: string): Promise<any> {
-        return this.generateWithFallback(prompt, AI_MODELS.LIGHT);
+    private getTodayVN(): string {
+        return new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh' }).split(' ')[0];
+    }
+
+    /**
+     * [HELPER] Lấy hoặc khởi tạo bản ghi hạn mức trong DB. Xử lý logic Reset.
+     */
+    private async getUsage(modelName: string): Promise<AiUsage> {
+        let usage = await this.aiUsageRepository.findOne({ where: { modelName } });
+        const today = this.getTodayVN();
+        const now = new Date();
+
+        if (!usage) {
+            usage = this.aiUsageRepository.create({
+                modelName,
+                currentRPM: 0,
+                currentRPD: 0,
+                resetDayAt: today,
+                lastRequestAt: now,
+            });
+            return await this.aiUsageRepository.save(usage);
+        }
+
+        let needsSave = false;
+
+        // Logic Reset Ngày (00:00 VN)
+        if (usage.resetDayAt !== today) {
+            usage.currentRPD = 0;
+            usage.currentRPM = 0;
+            usage.resetDayAt = today;
+            needsSave = true;
+        }
+
+        // Logic Reset Phút (RPM) - Nếu cách request cuối > 60s thì reset RPM
+        const secondsSinceLastRequest = (now.getTime() - new Date(usage.lastRequestAt).getTime()) / 1000;
+        if (secondsSinceLastRequest > 60) {
+            usage.currentRPM = 0;
+            needsSave = true;
+        }
+
+        if (needsSave) {
+            return await this.aiUsageRepository.save(usage);
+        }
+
+        return usage;
+    }
+
+    /**
+     * [PROACTIVE] Kiểm tra xem model có còn hạn mức không trước khi gọi API Google.
+     */
+    private async checkAvailability(modelName: string): Promise<boolean> {
+        const usage = await this.getUsage(modelName);
+        const limits = AI_LIMITS[modelName];
+
+        if (!limits) return true; // Nếu không cấu hình limit thì cho qua
+
+        if (usage.currentRPD >= limits.rpd) {
+            console.warn(`[Quota] Model ${modelName} đã hết hạn mức ngày (RPD: ${usage.currentRPD}/${limits.rpd})`);
+            return false;
+        }
+
+        if (usage.currentRPM >= limits.rpm) {
+            console.warn(`[Quota] Model ${modelName} đang bận (RPM: ${usage.currentRPM}/${limits.rpm})`);
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * [TRACKING] Cập nhật bộ đếm sau khi gọi AI thành công.
+     */
+    private async recordUsage(modelName: string): Promise<void> {
+        const usage = await this.getUsage(modelName);
+        usage.currentRPM += 1;
+        usage.currentRPD += 1;
+        usage.lastRequestAt = new Date();
+        await this.aiUsageRepository.save(usage);
+    }
+
+    /**
+     * [REACTIVE] Xử lý khi gặp lỗi 429 từ Google - Cập nhật DB để các request sau tự động nhảy model.
+     */
+    private async markAsExhausted(modelName: string): Promise<void> {
+        const usage = await this.getUsage(modelName);
+        const limits = AI_LIMITS[modelName];
+        if (limits) {
+            usage.currentRPM = limits.rpm; // Giả lập đã đầy RPM để nhảy fallback
+            usage.lastRequestAt = new Date();
+            await this.aiUsageRepository.save(usage);
+        }
     }
 }
