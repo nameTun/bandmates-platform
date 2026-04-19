@@ -10,6 +10,7 @@ import { promptService } from '../services/prompt.service';
 import type { Prompt, CreatePromptDto } from '../services/prompt.service';
 import { TaskType } from '@/common/enums/task-type.enum';
 import * as XLSX from 'xlsx';
+import AdminPageHeader from '../components/AdminPageHeader';
 
 /**
  * Tự động viết hoa chữ cái đầu tiên của mỗi dòng trong đề bài 
@@ -70,6 +71,12 @@ const DeleteIcon = () => (
 const CheckIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-[14px] h-[14px]">
     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+  </svg>
+);
+
+const SparklesIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
   </svg>
 );
 
@@ -537,38 +544,38 @@ const PromptManagement: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-transparent text-slate-900 font-sans selection:bg-orange-500/20 selection:text-orange-900">
-      <div className="max-w-[1200px] mx-auto px-8 py-12">
+    <div className="min-h-screen bg-[#f8fafc] text-slate-900 font-sans selection:bg-orange-500/20 selection:text-orange-900">
+      <div className="max-w-7xl mx-auto px-8 py-12">
         {/* Header */}
-        <div className="flex items-center justify-between mb-10">
-          <div>
-            <h1 className="text-3xl font-semibold tracking-tight text-slate-900">Quản lý Đề thi</h1>
-            <p className="text-slate-600 mt-2 text-sm max-w-lg">
-              Hệ thống lưu trữ đề bài thông minh. Dữ liệu tại đây sẽ được AI sử dụng trực tiếp để sinh bài tập.
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-             <button
-              onClick={() => handleExport()}
-              className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 border border-slate-200 text-slate-900 text-sm font-medium rounded-lg hover:border-slate-300 transition-all active:scale-95"
-            >
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
-              </svg>
-              Export All
-            </button>
-            <button
-              onClick={() => {
-                setShowForm(!showForm);
-                if (showForm) setEditingFullPromptId(null);
-              }}
-              className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors shadow-md shadow-slate-200 active:scale-95"
-            >
-              <PlusIcon />
-              {showForm ? 'Đóng bảng' : (editingFullPromptId ? 'Đóng sửa Form' : 'Tạo mới')}
-            </button>
-          </div>
-        </div>
+        <AdminPageHeader
+          badgeText="Content Repository"
+          badgeColor="bg-violet-500"
+          title="Quản lý"
+          accentTitle="Đề thi"
+          accentColor="text-violet-600"
+          subtitle="Hệ thống lưu trữ đề bài thông minh. Dữ liệu tại đây sẽ được AI sử dụng trực tiếp để sinh bài tập và chấm điểm."
+          icon={<SparklesIcon />}
+        >
+          <button
+            onClick={() => handleExport()}
+            className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-600 text-xs font-bold rounded-xl hover:border-slate-300 hover:text-slate-900 transition-all shadow-sm active:scale-95 uppercase tracking-wider"
+          >
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
+            </svg>
+            Export All
+          </button>
+          <button
+            onClick={() => {
+              setShowForm(!showForm);
+              if (showForm) setEditingFullPromptId(null);
+            }}
+            className="flex items-center gap-2 px-6 py-2.5 bg-slate-900 text-white text-xs font-bold rounded-xl hover:bg-slate-800 transition-all shadow-lg shadow-slate-200 active:scale-95 uppercase tracking-wider"
+          >
+            <PlusIcon />
+            {showForm ? 'Đóng bảng' : (editingFullPromptId ? 'Đóng bản sửa' : 'Tạo đề mới')}
+          </button>
+        </AdminPageHeader>
 
         {/* --- DATA CENTER (Import/Export Specialized) --- */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-10">
@@ -928,7 +935,7 @@ const PromptManagement: React.FC = () => {
         }
       `}</style>
     </div>
-  );
+);
 };
 
 export default PromptManagement;

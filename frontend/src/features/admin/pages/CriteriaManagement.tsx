@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { message, Spin, Tabs, Tooltip, Input, Button } from 'antd';
 import { scoringCriteriaService, type ScoringCriteria } from '../services/criteria.service';
 import { TaskType } from '@/common/enums/task-type.enum';
+import AdminPageHeader from '../components/AdminPageHeader';
 
 const { TextArea } = Input;
 
@@ -12,8 +13,8 @@ const SaveIcon = () => (
     </svg>
 );
 
-const BoltIcon = () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5 text-indigo-600">
+const BoltIcon = ({ className }: { className?: string }) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className || "w-5 h-5"}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
     </svg>
 );
@@ -78,42 +79,37 @@ const CriteriaManagement: React.FC = () => {
     ];
 
     return (
-        <div className="min-h-screen bg-slate-50/50 pb-20">
-            {/* Header Hub */}
-            <div className="bg-white border-b border-slate-200 pt-10 pb-6 px-8 mb-8 shadow-sm">
-                <div className="max-w-7xl mx-auto">
-                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-                        <div className="max-w-3xl">
-                            <div className="flex items-center gap-2 mb-3">
-                                <div className="p-2 bg-indigo-50 rounded-xl">
-                                    <BoltIcon />
-                                </div>
-                                <span className="text-indigo-600 font-black text-[10px] uppercase tracking-[0.2em]">Prompt Engineering</span>
-                            </div>
-                            <h1 className="text-3xl font-black text-slate-900 tracking-tight mb-2">Tiêu chí chấm điểm AI</h1>
-                            <p className="text-slate-500 text-sm leading-relaxed max-w-2xl">
-                                Quản lý các chỉ dẫn (Instructions) cho AI khi chấm điểm. Mỗi thay đổi ở đây sẽ ảnh hưởng trực tiếp đến cách AI nhận xét và cho điểm các bài làm của học viên.
-                            </p>
-                        </div>
-                    </div>
+        <div className="min-h-screen bg-[#f8fafc] text-slate-900 font-sans selection:bg-orange-500/10">
+            <div className="max-w-7xl mx-auto px-8 py-12">
+                
+                {/* Header */}
+                <AdminPageHeader
+                    badgeText="Prompt Engineering"
+                    badgeColor="bg-yellow-300"
+                    title="Tiêu chí"
+                    accentTitle="Chấm điểm AI"
+                    accentColor="text-yellow-400"
+                    subtitle="Quản lý các chỉ dẫn (Instructions) cho AI khi chấm điểm. Mỗi thay đổi ở đây sẽ ảnh hưởng trực tiếp đến chất lượng nhận xét bài làm."
+                    icon={<BoltIcon />}
+                >
+                    {/* Các nút bấm khác nếu có */}
+                </AdminPageHeader>
 
-                    <div className="mt-8">
-                        <Tabs
-                            activeKey={activeTab}
-                            onChange={setActiveTab}
-                            className="admin-tabs"
-                            items={tabConfig.map(tab => ({
-                                key: tab.key,
-                                label: (
-                                    <span className="px-2 py-1 font-bold text-[13px] uppercase tracking-wide">
-                                        {tab.label}
-                                    </span>
-                                )
-                            }))}
-                        />
-                    </div>
+                <div className="mb-8 border-b border-slate-200">
+                    <Tabs
+                        activeKey={activeTab}
+                        onChange={setActiveTab}
+                        className="admin-tabs"
+                        items={tabConfig.map(tab => ({
+                            key: tab.key,
+                            label: (
+                                <span className="px-2 py-1 font-bold text-[13px] uppercase tracking-wide">
+                                    {tab.label}
+                                </span>
+                            )
+                        }))}
+                    />
                 </div>
-            </div>
 
             {/* Main Content */}
             <div className="max-w-7xl mx-auto px-8">
@@ -202,7 +198,8 @@ const CriteriaManagement: React.FC = () => {
                 )}
             </div>
         </div>
-    );
+    </div>
+);
 };
 
 export default CriteriaManagement;
