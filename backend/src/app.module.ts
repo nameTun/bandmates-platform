@@ -13,6 +13,7 @@ import { UserProfilesModule } from './modules/user-profiles/user-profiles.module
 import { AiModule } from './modules/ai/ai.module';
 import { ScoringCriteriaModule } from './modules/scoring-criteria/scoring-criteria.module';
 import { CloudinaryModule } from './modules/cloudinary/cloudinary.module';
+import { AnalyticsModule } from './modules/analytics/analytics.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { CloudinaryModule } from './modules/cloudinary/cloudinary.module';
     DatabaseModule,
     AiModule,
     CloudinaryModule,
+    AnalyticsModule,
     UsersModule,// for feature/auth
     UserProfilesModule,
     AuthModule,
