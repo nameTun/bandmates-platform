@@ -4,6 +4,7 @@ import { ExclamationCircleOutlined } from '@ant-design/icons';
 import { categoryService, type Category } from '../services/category.service';
 import { topicService, type Topic } from '../services/topic.service';
 import { TaskType } from '@/common/enums/task-type.enum';
+import AdminPageHeader from '../components/AdminPageHeader';
 
 /* ── UI COMPONENTS ── */
 const PlusIcon = () => (
@@ -52,6 +53,14 @@ const getTagColor = (name: string) => {
   }
   return TAG_COLORS[Math.abs(hash) % TAG_COLORS.length];
 };
+
+const LayersIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-4.477a2.25 2.25 0 012.092 0L22.25 12l-8.954 4.477a2.25 2.25 0 01-2.092 0L2.25 12z" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954 4.477a2.25 2.25 0 002.092 0L22.25 12" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 16.5l8.954 4.477a2.25 2.25 0 002.092 0l8.954-4.477" />
+  </svg>
+);
 
 const CategoryManagement: React.FC = () => {
   const [loading, setLoading] = useState(true);
@@ -265,46 +274,45 @@ const CategoryManagement: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-transparent text-slate-900 font-sans selection:bg-orange-500/20 selection:text-orange-900">
-      <div className="max-w-[1100px] mx-auto px-8 py-12">
+    <div className="min-h-screen bg-[#f8fafc] text-slate-900 font-sans selection:bg-orange-500/20 selection:text-orange-900">
+      <div className="max-w-7xl mx-auto px-8 py-12">
 
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight text-slate-900">Phân loại & Chủ đề</h1>
-            <p className="text-slate-500 mt-2 text-sm max-w-lg leading-relaxed">
-              Quản trị toàn bộ các danh mục phân loại và chủ đề nội dung.
-              Việc tổ chức dữ liệu khoa học giúp hệ thống AI chấm bài chính xác hơn.
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={handleExport}
-              className="flex items-center justify-center gap-2 px-4 py-3 bg-white border border-slate-200 text-slate-600 text-sm font-bold rounded-xl hover:border-slate-300 hover:text-slate-900 transition-all shadow-sm active:scale-95"
-            >
+        <AdminPageHeader
+          badgeText="System Configuration"
+          badgeColor="bg-indigo-500"
+          title="Phân loại &"
+          accentTitle="Chủ đề"
+          accentColor="text-indigo-600"
+          subtitle="Quản trị toàn bộ các danh mục phân loại và chủ đề nội dung. Việc tổ chức dữ liệu khoa học giúp hệ thống AI chấm bài chính xác hơn."
+          icon={<LayersIcon />}
+        >
+          <button
+            onClick={handleExport}
+            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-600 text-xs font-bold rounded-xl hover:border-slate-300 hover:text-slate-900 transition-all shadow-sm active:scale-95 uppercase tracking-wider"
+          >
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
+            </svg>
+            Export
+          </button>
+          <label className="cursor-pointer">
+            <input type="file" className="hidden" accept=".xlsx, .xls" onChange={handleImport} />
+            <div className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-600 text-xs font-bold rounded-xl hover:border-slate-300 hover:text-slate-900 transition-all shadow-sm active:scale-95 uppercase tracking-wider">
               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
+                <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242M12 12v9m-4-4l4 4 4-4" />
               </svg>
-              Export
-            </button>
-            <label className="cursor-pointer">
-              <input type="file" className="hidden" accept=".xlsx, .xls" onChange={handleImport} />
-              <div className="flex items-center justify-center gap-2 px-4 py-3 bg-white border border-slate-200 text-slate-600 text-sm font-bold rounded-xl hover:border-slate-300 hover:text-slate-900 transition-all shadow-sm active:scale-95">
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242M12 12v9m-4-4l4 4 4-4" />
-                </svg>
-                Import
-              </div>
-            </label>
-            <button
-              onClick={() => { setFormName(''); setFormDescription(''); setIsAddModalOpen(true); }}
-              className="flex items-center justify-center gap-2 px-6 py-3 bg-slate-900 text-white text-sm font-bold rounded-xl hover:bg-slate-800 transition-all shadow-lg shadow-slate-200 active:scale-95 flex-shrink-0"
-            >
-              <PlusIcon />
-              {activeTab === 'TOPICS' ? 'Tạo Chủ đề' : 'Tạo Dạng bài'}
-            </button>
-          </div>
-        </div>
+              Import
+            </div>
+          </label>
+          <button
+            onClick={() => { setFormName(''); setFormDescription(''); setIsAddModalOpen(true); }}
+            className="flex items-center justify-center gap-2 px-6 py-2.5 bg-slate-900 text-white text-xs font-bold rounded-xl hover:bg-slate-800 transition-all shadow-lg shadow-slate-200 active:scale-95 flex-shrink-0 uppercase tracking-wider"
+          >
+            <PlusIcon />
+            {activeTab === 'TOPICS' ? 'Tạo Chủ đề' : 'Tạo Dạng bài'}
+          </button>
+        </AdminPageHeader>
 
         {/* Main Tabs */}
         <div className="bg-white border border-slate-200 rounded-[24px] overflow-hidden shadow-xl shadow-slate-200/50">
@@ -580,7 +588,7 @@ const CategoryManagement: React.FC = () => {
                 .premium-modal .ant-modal-footer { border-top: none; padding: 0; margin-top: 8px; }
             `}</style>
     </div>
-  );
+);
 };
 
 export default CategoryManagement;

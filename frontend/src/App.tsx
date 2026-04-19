@@ -37,7 +37,7 @@ const SmartRedirect: React.FC = () => {
 
 const App: React.FC = () => {
   const { isLoading } = useAuth();
-  const { isAuthenticated, user } = useAuthStore();
+  const { isAuthenticated } = useAuthStore();
 
   if (isLoading) {
     return (
@@ -52,7 +52,7 @@ const App: React.FC = () => {
       <Routes>
 
         {/* ── 1. Routes chung (Cả Guest và User ) ── */}
-        <Route element={isAuthenticated && user?.role !== 'admin' ? <AuthenticatedLayout /> : <GuestLayout />}>
+        <Route element={isAuthenticated ? <AuthenticatedLayout /> : <GuestLayout />}>
           <Route path="/" element={isAuthenticated ? <SmartRedirect /> : <HomePage />} />
           <Route path="/practice" element={<PracticePage />} />
           <Route path="/vocabulary" element={<VocabularyPage />} />
@@ -67,7 +67,7 @@ const App: React.FC = () => {
         </Route>
 
         {/* ── 2. Routes riêng cho User đã đăng nhập  ── */}
-        {isAuthenticated && user?.role !== 'admin' && (
+        {isAuthenticated && (
           <Route element={<AuthenticatedLayout />}>
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/history" element={<HistoryPage />} />
