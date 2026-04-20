@@ -26,14 +26,26 @@ export interface UserListResponse {
     };
 }
 
-export const adminUserService = {
+export interface UserStatsResponse {
+    today: number;
+    month: number;
+    year: number;
+}
+
+export const adminUserManagerService = {
     getUsers: async (params: {
         page?: number;
         limit?: number;
         search?: string;
         role?: string;
+        provider?: string;
     }) => {
         const response = await api.get<UserListResponse>('/admin/users', { params });
+        return response.data;
+    },
+
+    getStats: async () => {
+        const response = await api.get<UserStatsResponse>('/admin/users/stats');
         return response.data;
     },
 
@@ -43,7 +55,7 @@ export const adminUserService = {
     },
 
     updateStatus: async (id: string, isActive: boolean) => {
-        const response = await api.patch(`/admin/users/${id}/status`, { isActive });
+        const response = await api.patch(`/admin/users/${id}/active`, { isActive });
         return response.data;
     },
 };

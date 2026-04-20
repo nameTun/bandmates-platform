@@ -17,13 +17,20 @@ export class UsersController {
         @Query('limit') limit: string,
         @Query('search') search?: string,
         @Query('role') role?: string,
+        @Query('provider') provider?: string,
     ) {
         return this.usersService.findAll({
             page: page ? parseInt(page) : 1,
             limit: limit ? parseInt(limit) : 10,
             search,
             role,
+            provider,
         });
+    }
+
+    @Get('stats')
+    async getStats() {
+        return this.usersService.getStats();
     }
 
     @Patch(':id/role')
@@ -34,7 +41,7 @@ export class UsersController {
         return this.usersService.updateUser(id, { role });
     }
 
-    @Patch(':id/status')
+    @Patch(':id/active')
     async updateStatus(
         @Param('id', new ParseUUIDPipe()) id: string,
         @Body('isActive') isActive: boolean,

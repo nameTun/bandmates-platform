@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
+import { Modal } from 'antd';
 import { useAuthStore } from '@/features/auth/store/useAuthStore';
 
 // Khởi tạo axios instance
@@ -90,6 +91,25 @@ api.interceptors.response.use(
             // Xử lý lỗi 429
             if (error.response.status === 429) {
                 console.warn('Rate limit exceeded for Guest');
+            }
+
+            // XỬ LÝ LỖI TÀI KHOẢN BỊ KHÓA (BANNED)
+            const errorMessage = error.response.data?.message || '';
+            if (errorMessage.includes('Tài khoản của bạn đã bị khóa')) {
+                // Hiển thị Modal thông báo chuyên nghiệp
+                Modal.warning({
+                    title: 'Tài khoản đã bị tạm khóa',
+                    content: 'Chúng tôi nhận thấy tài khoản của bạn đang vi phạm một số chính sách của hệ thống hoặc đang được quản trị viên bảo trì. Vui lòng liên hệ hỗ trợ để biết thêm chi tiết.',
+                    okText: 'Tôi đã hiểu',
+                    centered: true,
+                    maskClosable: false,
+                    className: 'banned-modal',
+                    onOk: () => {
+                        useAuthStore.getState().logout();
+                        window.location.href = '/login'; // Chuyển về trang login
+                    }
+                });
+                return Promise.reject(error);
             }
         }
 

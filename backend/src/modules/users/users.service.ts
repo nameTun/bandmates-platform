@@ -1,11 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, MoreThanOrEqual } from 'typeorm';
 import { User } from './entities/user.entity';
 import { UserProfile } from '../user-profiles/entities/user-profile.entity';
 
-// @Injectable: Đánh dấu class này là một Provider, có thể được "tiêm" (inject) vào các class khác 
-// như Controller hoặc Service khác thông qua Dependency Injection.
 @Injectable()
 export class UsersService {
     constructor(
@@ -97,8 +95,9 @@ export class UsersService {
         limit?: number;
         search?: string;
         role?: string;
+        provider?: string;
     }) {
-        const { page = 1, limit = 10, search, role } = query;
+        const { page = 1, limit = 10, search, role, provider } = query;
         const skip = (page - 1) * limit;
 
         const queryBuilder = this.usersRepository
@@ -134,6 +133,17 @@ export class UsersService {
         // Áp dụng bộ lọc vai trò
         if (role) {
             queryBuilder.andWhere('user.role = :role', { role });
+        }
+
+        // Áp dụng bộ lọc phương thức đăng nhập
+        if (provider) {
+            if (provider === 'google') {
+                queryBuilder.andWhere('user.googleId IS NOT NULL');
+            } else if (provider === 'facebook') {
+                queryBuilder.andWhere('user.facebookId IS NOT NULL');
+            } else if (provider === 'email') {
+                queryBuilder.andWhere('user.googleId IS NULL AND user.facebookId IS NULL');
+            }
         }
 
         // Thực hiện phân trang
@@ -179,5 +189,23 @@ export class UsersService {
             Object.assign(user.profile, data);
             await this.usersRepository.save(user);
         }
+    }
+
+    /**
+     * Lấy thống kê số lượng người dùng mới (Today, Month, Year)
+     */
+    async getStats() {
+        const now = new Date();
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const startOfYear = new Date(now.getFullYear(), 0, 1);
+
+        const [today, month, year] = await Promise.all([
+            this.usersRepository.count({ where: { createdAt: MoreThanOrEqual(startOfToday) } }),
+            this.usersRepository.count({ where: { createdAt: MoreThanOrEqual(startOfMonth) } }),
+            this.usersRepository.count({ where: { createdAt: MoreThanOrEqual(startOfYear) } }),
+        ]);
+
+        return { today, month, year };
     }
 }

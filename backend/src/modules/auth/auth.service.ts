@@ -49,9 +49,13 @@ export class AuthService {
         }
 
         // So sánh token gửi lên với token trong DB
-        // Ở production nên dùng argon2.verify(user.refreshToken, refreshToken)
         if (token !== user.refreshToken) {
             throw new ForbiddenException('Không xác thực được người dùng!');
+        }
+
+        // Kiểm tra xem người dùng có bị khóa tài khoản hay không
+        if (!user.isActive) {
+            throw new UnauthorizedException('Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.');
         }
 
         const tokens = await this.tokenService.getTokens(user);
@@ -91,6 +95,12 @@ export class AuthService {
                 await this.usersService.updateProfile(user.id, { avatarUrl: details.avatarUrl });
                 if (user.profile) user.profile.avatarUrl = details.avatarUrl;
             }
+
+            // Kiểm tra trạng thái hoạt động
+            if (!user.isActive) {
+                throw new UnauthorizedException('Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.');
+            }
+
             return user;
         }
 
@@ -116,6 +126,12 @@ export class AuthService {
                 await this.usersService.updateProfile(user.id, { avatarUrl: details.avatarUrl });
                 if (user.profile) user.profile.avatarUrl = details.avatarUrl;
             }
+
+            // Kiểm tra trạng thái hoạt động
+            if (!user.isActive) {
+                throw new UnauthorizedException('Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.');
+            }
+
             return user;
         }
 
@@ -150,6 +166,11 @@ export class AuthService {
 
         if (!user || !user.password) {
             throw new UnauthorizedException('Email hoặc password không đúng!');
+        }
+
+        // Kiểm tra trạng thái hoạt động
+        if (!user.isActive) {
+            throw new UnauthorizedException('Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.');
         }
 
         const isMatch = await bcrypt.compare(dto.password, user.password);

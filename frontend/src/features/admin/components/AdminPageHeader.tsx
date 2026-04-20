@@ -6,7 +6,7 @@ interface AdminPageHeaderProps {
   title: string;
   accentTitle?: string;
   accentColor?: string; // e.g., "text-orange-500"
-  subtitle: string;
+  subtitle: React.ReactNode;
   icon?: React.ReactNode;
   children?: React.ReactNode;
 }
@@ -22,7 +22,7 @@ const AdminPageHeader: React.FC<AdminPageHeaderProps> = ({
   children
 }) => {
   return (
-    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
+    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-6">
       <div>
         <div className="flex items-center gap-2 mb-2">
           {icon ? (

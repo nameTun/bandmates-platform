@@ -4,31 +4,37 @@
  * Passport sẽ tự động trích xuất Bearer Token từ Header, giải mã bằng Secret Key 
  * và gọi hàm `validate` nếu Token hợp lệ và còn hạn.
  */
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy, ExtractJwt } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
+import { UsersService } from '../../users/users.service';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-    constructor(configService: ConfigService) {
+    constructor(
+        configService: ConfigService,
+        private usersService: UsersService,
+    ) {
         super({
             jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-            ignoreExpiration: false, // Từ chối Token đã hết hạn
+            ignoreExpiration: false,
             secretOrKey: configService.get<string>('JWT_SECRET') || 'secret',
         });
     }
 
-    /**
-     * Chuyển đổi nội dung Payload đã giải mã thành đối tượng đại diện cho User.
-     * @param payload Dữ liệu đã được giải mã từ JWT
-     * @returns Đối tượng sẽ được Passport gán vào `req.user`
-     */
     async validate(payload: any) {
+        // Đây là "ngòi nổ" để chặn người dùng ngay lập tức
+        const user = await this.usersService.findUserById(payload.userId);
+        
+        if (!user || !user.isActive) {
+            throw new UnauthorizedException('Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.');
+        }
+
         return {
-            id: payload.userId,
-            role: payload.role,
-            email: payload.email
+            id: user.id,
+            role: user.role,
+            email: user.email
         };
     }
 }
