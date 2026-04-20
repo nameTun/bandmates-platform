@@ -255,9 +255,11 @@ const UserManagement: React.FC = () => {
     <div className="min-h-screen bg-[#f8fafc] text-slate-900 font-sans selection:bg-orange-500/20 selection:text-orange-900">
       <div className="max-w-7xl mx-auto px-8 py-12">
         <AdminPageHeader
-          badgeText="Quản trị"
+          badgeText="User Manager"
+          badgeColor="bg-emerald-400"
           title="Danh sách"
           accentTitle="Người dùng"
+          accentColor="text-emerald-500"
           subtitle={
             <span className="flex items-center gap-1.5">
               Quản lý và theo dõi hoạt động của
@@ -267,7 +269,7 @@ const UserManagement: React.FC = () => {
               học viên trên hệ thống.
             </span>
           }
-          icon={<Users className="w-6 h-6 text-indigo-500" />}
+          icon={<Users className="w-6 h-6 text-emerald-500" />}
         />
 
         {/* Summary & Filters Row */}

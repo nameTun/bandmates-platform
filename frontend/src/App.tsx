@@ -7,7 +7,7 @@ import LoginPage from '@/features/auth/pages/LoginPage';
 import RegisterPage from '@/features/auth/pages/RegisterPage';
 import PracticePage from '@/features/practice/pages/PracticePage';
 import HomePage from '@/features/home/pages/HomePage';
-import DashboardPage from '@/features/dashboard/pages/DashboardPage';
+import UserDashboardPage from '@/features/user-dashboard/pages/UserDashboardPage';
 import VocabularyPage from '@/features/vocabulary/pages/VocabularyPage';
 import HistoryPage from '@/features/history/pages/HistoryPage';
 import GuestLayout from '@/components/layout/GuestLayout';
@@ -69,7 +69,7 @@ const App: React.FC = () => {
         {/* ── 2. Routes riêng cho User đã đăng nhập  ── */}
         {isAuthenticated && (
           <Route element={<AuthenticatedLayout />}>
-            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/dashboard" element={<UserDashboardPage />} />
             <Route path="/history" element={<HistoryPage />} />
             <Route path="/history/:id" element={<PracticePage />} />
           </Route>

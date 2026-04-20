@@ -226,7 +226,7 @@ export class VocabularyService {
 
     async getHistory(userId: string, page: number = 1, limit: number = 20, isSavedOnly: boolean = false) {
         const skip = (page - 1) * limit;
-        const [data, total] = await this.vocabularyRepository.findAndCount({
+        const [items, total] = await this.vocabularyRepository.findAndCount({
             where: { 
                 user: { id: userId },
                 ...(isSavedOnly ? { isSaved: true } : {})
@@ -239,10 +239,13 @@ export class VocabularyService {
         });
 
         return {
-            data,
-            total,
-            page,
-            totalPages: Math.ceil(total / limit)
+            items,
+            meta: {
+                total,
+                page,
+                limit,
+                totalPages: Math.ceil(total / limit),
+            },
         };
     }
 

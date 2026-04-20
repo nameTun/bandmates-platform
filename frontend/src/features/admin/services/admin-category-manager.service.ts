@@ -17,6 +17,13 @@ export type CreateCategoryDto = {
   description?: string;
 }
 
+export type ImportResult = {
+  total: number;
+  created: number;
+  updated: number;
+  errors: string[];
+}
+
 export const categoryService = {
   /**
    * Lấy danh sách tất cả các dạng bài (Categories)
@@ -45,7 +52,7 @@ export const categoryService = {
   /**
    * Xóa một dạng bài (Soft Delete)
    */
-  deleteCategory: async (id: string): Promise<Category> => {
+  deleteCategory: async (id: string): Promise<void> => {
     const response = await api.delete(`/categories/${id}`);
     return response.data;
   },
@@ -53,7 +60,7 @@ export const categoryService = {
   /**
    * Vô hiệu hóa một dạng bài (Tương thích cũ)
    */
-  deactivateCategory: async (id: string): Promise<Category> => {
+  deactivateCategory: async (id: string): Promise<void> => {
     const response = await api.patch(`/categories/${id}/deactivate`);
     return response.data;
   },
@@ -61,7 +68,7 @@ export const categoryService = {
   /**
    * Import Danh mục từ Excel
    */
-  importCategories: async (file: File) => {
+  importCategories: async (file: File): Promise<ImportResult> => {
     const formData = new FormData();
     formData.append('file', file);
     const response = await api.post('/categories/import', formData, {
@@ -73,7 +80,7 @@ export const categoryService = {
   /**
    * Tải file Export Excel
    */
-  downloadExport: async () => {
+  downloadExport: async (): Promise<void> => {
     const response = await api.get('/categories/export', {
       responseType: 'blob',
     });

@@ -27,12 +27,12 @@ export interface UpdateUserProfileDto {
 }
 
 export const userProfilesService = {
-    getMe: async (): Promise<{ success: boolean; data: UserProfile }> => {
+    getMe: async (): Promise<UserProfile> => {
         const response = await api.get('/user-profiles/me');
         return response.data;
     },
     
-    completeOnboarding: async (data: UpdateUserProfileDto): Promise<{ success: boolean; data: UserProfile; message: string }> => {
+    completeOnboarding: async (data: UpdateUserProfileDto): Promise<UserProfile> => {
         const response = await api.post('/user-profiles/onboarding', data);
         return response.data;
     }

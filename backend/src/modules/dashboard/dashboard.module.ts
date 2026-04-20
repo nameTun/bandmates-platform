@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from '../users/entities/user.entity';
 import { Prompt } from '../prompts/entities/prompt.entity';
-import { ExamAttempt } from '../scoring/entities/exam-attempt.entity';
+import { PracticeAttempt } from '../practice/entities/practice-attempt.entity';
 import { Topic } from '../topics/entities/topic.entity';
 import { AiUsage } from '../ai/entities/ai-usage.entity';
 import { AiModule } from '../ai/ai.module';
@@ -17,7 +17,7 @@ import { UserDashboardController } from './user/user-dashboard.controller';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, Prompt, ExamAttempt, Topic, AiUsage]),
+    TypeOrmModule.forFeature([User, Prompt, PracticeAttempt, Topic, AiUsage]),
     AiModule,
   ],
   controllers: [AdminDashboardController, UserDashboardController],

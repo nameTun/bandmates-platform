@@ -15,7 +15,7 @@ const OnboardingModal: React.FC = () => {
     const [loading, setLoading] = useState(false);
 
     // Modal hiển thị khi user đã load xong profile nhưng isOnboardingCompleted là false
-    const open = profile !== null && !profile.isOnboardingCompleted;
+    const open = !!profile && !profile.isOnboardingCompleted;
 
     const onFinish = async (values: any) => {
         setLoading(true);
@@ -30,11 +30,9 @@ const OnboardingModal: React.FC = () => {
                 weakestSkill: values.weakestSkill,
             };
 
-            const response = await userProfilesService.completeOnboarding(dto);
-            if (response.success) {
-                message.success(response.message);
-                updateProfile(response.data); // Cập nhật lại Zustand store, modal tự động đóng
-            }
+            const updatedProfile = await userProfilesService.completeOnboarding(dto);
+            message.success('Đã hoàn thành khảo sát và cập nhật hồ sơ! 🎉');
+            updateProfile(updatedProfile); // Cập nhật lại Zustand store, modal tự động đóng
         } catch (error) {
             message.error('Có lỗi xảy ra, vui lòng kiểm tra lại kết nối!');
         } finally {

@@ -7,7 +7,7 @@ import { ScoringCriteriaService } from '../scoring-criteria/scoring-criteria.ser
 import { TaskType } from '../../common/enums/task-type.enum';
 
 @Injectable()
-export class ScoringService {
+export class PracticeService {
     constructor(
         private aiService: AiService,
         private criteriaService: ScoringCriteriaService

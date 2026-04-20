@@ -3,7 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { DatabaseModule } from './database/database.module';
 import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
-import { ScoringModule } from './modules/scoring/scoring.module';
+
 import { PromptsModule } from './modules/prompts/prompts.module';
 import { VocabularyModule } from './modules/vocabulary/vocabulary.module';
 import databaseConfig from './config/database.config';
@@ -16,6 +16,8 @@ import { CloudinaryModule } from './modules/cloudinary/cloudinary.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { CategoriesModule } from './modules/categories/categories.module';
 import { TopicsModule } from './modules/topics/topics.module';
+import { PracticeModule } from './modules/practice/practice.module';
+import {HistoryModule} from './modules/history/history.module';
 
 @Module({
   imports: [
@@ -41,7 +43,8 @@ import { TopicsModule } from './modules/topics/topics.module';
     CategoriesModule,     // Quản lý Danh mục đề thi (Task 1/2, Academic/General)
     TopicsModule,         // Quản lý Chủ đề (Education, Health, v.v.)
     ScoringCriteriaModule,// Tiêu chí chấm điểm IELTS
-    ScoringModule,        // Logic chấm bài & Lưu lịch sử
+    PracticeModule,       // Logic chấm bài (AI Scoring Engine)
+    HistoryModule,        // Lịch sử bài làm Essay & Từ vựng tra cứu
     PromptsModule,        // Quản lý kho đề thi (Tasks, Topics)
     VocabularyModule,     // Học từ vựng & AI Word Analysis
 

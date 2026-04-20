@@ -21,7 +21,7 @@ export interface DashboardStats {
   }[];
 }
 
-export const dashboardService = {
+export const userDashboardService = {
   /**
    * Lấy dữ liệu thống kê tổng quát cho User Dashboard
    */

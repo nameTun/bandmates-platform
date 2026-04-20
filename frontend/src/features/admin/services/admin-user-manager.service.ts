@@ -39,22 +39,22 @@ export const adminUserManagerService = {
         search?: string;
         role?: string;
         provider?: string;
-    }) => {
+    }): Promise<UserListResponse> => {
         const response = await api.get<UserListResponse>('/admin/users', { params });
         return response.data;
     },
 
-    getStats: async () => {
+    getStats: async (): Promise<UserStatsResponse> => {
         const response = await api.get<UserStatsResponse>('/admin/users/stats');
         return response.data;
     },
 
-    updateRole: async (id: string, role: UserRole) => {
+    updateRole: async (id: string, role: UserRole): Promise<AdminUser> => {
         const response = await api.patch(`/admin/users/${id}/role`, { role });
         return response.data;
     },
 
-    updateStatus: async (id: string, isActive: boolean) => {
+    updateStatus: async (id: string, isActive: boolean): Promise<AdminUser> => {
         const response = await api.patch(`/admin/users/${id}/active`, { isActive });
         return response.data;
     },

@@ -14,21 +14,12 @@ export class ScoringCriteriaController {
     @Get()
     @Roles(UserRole.ADMIN) // Chỉ Admin mới được xem cấu hình criteria
     async findAll() {
-        const criteria = await this.criteriaService.findAll();
-        return {
-            success: true,
-            data: criteria,
-        };
+        return this.criteriaService.findAll();
     }
 
     @Patch(':id')
     @Roles(UserRole.ADMIN)
     async update(@Param('id') id: string, @Body() dto: UpdateScoringCriteriaDto) {
-        const updated = await this.criteriaService.update(id, dto.description);
-        return {
-            success: true,
-            data: updated,
-            message: 'Cập nhật tiêu chí chấm điểm thành công',
-        };
+        return this.criteriaService.update(id, dto.description);
     }
 }

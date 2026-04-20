@@ -21,8 +21,8 @@ export const useProfileStore = create<ProfileState>((set) => ({
     fetchProfile: async () => {
         set({ isLoading: true, error: null });
         try {
-            const { data } = await userProfilesService.getMe();
-            set({ profile: data, isLoading: false, isInitialized: true });
+            const profileData = await userProfilesService.getMe();
+            set({ profile: profileData, isLoading: false, isInitialized: true });
         } catch (error: any) {
             set({ error: error.message, isLoading: false, isInitialized: true });
         }

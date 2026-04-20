@@ -3,8 +3,8 @@ import { User } from '../../users/entities/user.entity';
 import { Prompt } from '../../prompts/entities/prompt.entity';
 
 // Bảng lưu trữ lịch sử chấm điểm — là bảng trung tâm của hệ thống phân tích.
-@Entity('exam_attempts')
-export class ExamAttempt {
+@Entity('practice_attempts')
+export class PracticeAttempt {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 

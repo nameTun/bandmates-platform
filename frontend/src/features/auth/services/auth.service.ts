@@ -9,6 +9,7 @@ export interface User {
     role: UserRole;
     profile?: {
         displayName: string | null;
+        avatarUrl?: string | null;
         isOnboardingCompleted: boolean;
     };
 }
@@ -49,7 +50,7 @@ export const authService = {
     /**
      * Đăng xuất
      */
-    logout: async () => {
+    logout: async (): Promise<{ message: string }> => {
         const response = await api.post('/auth/logout');
         return response.data;
     },

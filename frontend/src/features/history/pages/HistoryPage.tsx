@@ -51,6 +51,20 @@ const HistoryPage: React.FC = () => {
   
   const [taskFilter, setTaskFilter] = useState<string>('all');
   const [isSavedOnly, setIsSavedOnly] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  // Fetch initial metadata (like total vocab count) on mount
+  useEffect(() => {
+    const fetchMetadata = async () => {
+      try {
+        const count = await vocabularyService.getVocabularyCount();
+        setTotalVocab(count);
+      } catch (err) {
+        console.error('Failed to fetch vocab count', err);
+      }
+    };
+    fetchMetadata();
+  }, []);
 
   useEffect(() => {
     if (tab === 'essays') {
@@ -66,7 +80,7 @@ const HistoryPage: React.FC = () => {
           }
 
           const response = await historyService.getMyHistory(queryParams);
-          const rawHistory = response.data || [];
+          const rawHistory = response.items;
           
           if (response.meta) {
             setTotalItems(response.meta.total);
@@ -101,10 +115,10 @@ const HistoryPage: React.FC = () => {
         try {
           const data = isSavedOnly 
             ? await vocabularyService.getSavedWords(vocabPage, 12)
-            : await vocabularyService.getHistory(vocabPage, 12);
+            : await historyService.getVocabularyHistory({ page: vocabPage, limit: 12 });
           
-          setWords(data.data);
-          setTotalVocab(data.total);
+          setWords(data.items);
+          setTotalVocab(data.meta.total);
         } catch (err) {
           console.error('Failed to fetch vocab history', err);
         } finally {
@@ -113,7 +127,7 @@ const HistoryPage: React.FC = () => {
       };
       fetchVocabHistory();
     }
-  }, [tab, currentPage, vocabPage, taskFilter, isSavedOnly]);
+  }, [tab, currentPage, vocabPage, taskFilter, isSavedOnly, refreshTrigger]);
 
   const handleDelete = (e: React.MouseEvent, id: string) => {
     e.stopPropagation(); // Ngăn sự kiện click lan ra làm đóng/mở essay card
@@ -129,8 +143,7 @@ const HistoryPage: React.FC = () => {
           await historyService.deleteAttempt(id);
           message.success('Đã xóa bài làm thành công!');
           // Refresh list
-          setCurrentPage(1); // Quay về trang 1 cho chắc chắn
-          setTaskFilter('all'); // Reset filter
+          setRefreshTrigger(prev => prev + 1);
         } catch (err) {
           message.error('Không thể xóa bài làm. Vui lòng thử lại.');
           console.error(err);
@@ -306,9 +319,9 @@ const HistoryPage: React.FC = () => {
                           {Object.entries(essay.scores).map(([key, val]) => (
                             <div key={key} className="bg-slate-50 rounded-xl p-3 border border-slate-100 text-center">
                               <p className="text-xs text-slate-500 font-medium mb-1">{criteriaLabel[key]}</p>
-                              <p className="text-xl font-extrabold text-slate-900">{val}.0</p>
+                              <p className="text-xl font-extrabold text-slate-900">{Number(val).toFixed(1).replace(/\.0$/, "")}</p>
                               <div className="mt-2 h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                                <div className={`h-full rounded-full ${criteriaColor(val)}`} style={{ width: `${(val / 9) * 100}%` }} />
+                                <div className={`h-full rounded-full ${criteriaColor(Number(val))}`} style={{ width: `${(Number(val) / 9) * 100}%` }} />
                               </div>
                             </div>
                           ))}
@@ -417,7 +430,7 @@ const HistoryPage: React.FC = () => {
                 {words.map((w) => (
                   <div
                     key={w.id}
-                    onClick={() => navigate(`/vocabulary?word=${w.word}`)}
+                    onClick={() => navigate(`/vocabulary?word=${w.word}`, { state: { from: 'history' } })}
                     className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm hover:shadow-md hover:border-indigo-200 transition-all cursor-pointer group"
                   >
                     <div className="flex items-start justify-between mb-2">

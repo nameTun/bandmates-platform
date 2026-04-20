@@ -12,20 +12,11 @@ export class UserProfilesController {
 
     @Get('me')
     async getMyProfile(@GetUser() user: User) {
-        const profile = await this.userProfilesService.getProfile(user.id);
-        return {
-            success: true,
-            data: profile
-        };
+        return this.userProfilesService.getProfile(user.id);
     }
 
     @Post('onboarding')
     async completeOnboarding(@GetUser() user: User, @Body() dto: UpdateUserProfileDto) {
-        const profile = await this.userProfilesService.updateProfile(user.id, dto);
-        return {
-            success: true,
-            message: 'Đã hoàn thành khảo sát và cập nhật hồ sơ!',
-            data: profile
-        };
+        return this.userProfilesService.updateProfile(user.id, dto);
     }
 }

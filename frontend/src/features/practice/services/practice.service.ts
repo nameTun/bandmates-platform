@@ -52,21 +52,30 @@ export interface AIResponse {
     betterVersion: string;
 }
 
+export interface UsageInfo {
+    limit: number;
+    used: number;
+    remaining: number;
+}
+
+export interface AIAnalysisResponse {
+    result: AIResponse;
+    usage: UsageInfo;
+    attemptId: string;
+}
+
 export const practiceService = {
     /**
-     * Gửi bài viết để AI chấm điểm chuẩn IELTS
+     * Gửi bài viết để AI chấm điểm
      */
-    checkIelts: async (text: string, promptId?: string, timeSpent?: number): Promise<{ result: AIResponse; usage: any }> => {
-        const response = await api.post('/scoring/check', {
+    checkIelts: async (text: string, promptId?: string, timeSpent?: number): Promise<AIAnalysisResponse> => {
+        const response = await api.post('/practice/check', {
             text,
             promptId,
-            timeSpent
+            timeSpent,
         });
 
-        return {
-            result: response.data.data,
-            usage: response.data.usage
-        };
+        return response.data;
     },
 
     /**

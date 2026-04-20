@@ -19,6 +19,13 @@ export type CreateTopicDto = {
 
 export type UpdateTopicDto = Partial<CreateTopicDto>;
 
+export type ImportResult = {
+  total: number;
+  created: number;
+  updated: number;
+  errors: string[];
+}
+
 export const topicService = {
   /**
    * Lấy danh sách tất cả các chủ đề (Topics)
@@ -40,10 +47,7 @@ export const topicService = {
    * Cập nhật chủ đề
    */
   updateTopic: async (id: string, data: UpdateTopicDto): Promise<Topic> => {
-    // Lưu ý: Hiện tại Backend chưa có endpoint Patch :id cho Topic, 
-    // Nếu chưa có ta sẽ dùng tạm create/update logic hoặc bổ sung sau.
-    // Tạm thời để định nghĩa cho UI sẵn sàng.
-    const response = await api.post('/topics', { ...data, id }); // Mocking logic if needed or assuming standard REST
+    const response = await api.patch(`/topics/${id}`, data);
     return response.data;
   },
 
@@ -51,20 +55,22 @@ export const topicService = {
    * Xoá hoàn toàn một chủ đề (Hard Delete)
    */
   deleteTopic: async (id: string): Promise<void> => {
-    await api.delete(`/topics/${id}`);
+    const response = await api.delete(`/topics/${id}`);
+    return response.data;
   },
 
   /**
    * Vô hiệu hóa một chủ đề (Legacy)
    */
   deactivateTopic: async (id: string): Promise<void> => {
-    await api.patch(`/topics/${id}/deactivate`);
+    const response = await api.patch(`/topics/${id}/deactivate`);
+    return response.data;
   },
 
   /**
    * Import Chủ đề từ Excel
    */
-  importTopics: async (file: File) => {
+  importTopics: async (file: File): Promise<ImportResult> => {
     const formData = new FormData();
     formData.append('file', file);
     const response = await api.post('/topics/import', formData, {
@@ -76,7 +82,7 @@ export const topicService = {
   /**
    * Tải file Export Excel
    */
-  downloadExport: async () => {
+  downloadExport: async (): Promise<void> => {
     const response = await api.get('/topics/export', {
       responseType: 'blob',
     });

@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '@/features/auth/store/useAuthStore';
-import { dashboardService } from '@/features/dashboard/services/dashboard.service';
-import type { DashboardStats } from '@/features/dashboard/services/dashboard.service';
+import { userDashboardService } from '@/features/user-dashboard/services/user-dashboard.service';
+import type { DashboardStats } from '@/features/user-dashboard/services/user-dashboard.service';
 import { 
   LineChart, 
   Line, 
@@ -20,8 +20,8 @@ const bandColor = (b: number) => {
   return 'text-red-600 bg-red-50';
 };
 
-/* ──── DASHBOARD ──── */
-const DashboardPage: React.FC = () => {
+/* ──── USER DASHBOARD ──── */
+const UserDashboardPage: React.FC = () => {
   const { user } = useAuthStore();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -31,7 +31,7 @@ const DashboardPage: React.FC = () => {
     const fetchDashboardStats = async () => {
       try {
         setLoading(true);
-        const data = await dashboardService.getDashboardStats();
+        const data = await userDashboardService.getDashboardStats();
         setStats(data);
       } catch (err) {
         const _err = err as any;
@@ -314,4 +314,4 @@ const DashboardPage: React.FC = () => {
   );
 };
 
-export default DashboardPage;
+export default UserDashboardPage;

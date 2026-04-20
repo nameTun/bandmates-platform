@@ -30,6 +30,13 @@ export type CreatePromptDto = {
   targetBand?: number;
 }
 
+export type ImportResult = {
+  total: number;
+  created: number;
+  updated: number;
+  errors: string[];
+}
+
 export const promptService = {
   /**
    * Lấy danh sách tất cả các đề bài dành cho Admin
@@ -67,13 +74,14 @@ export const promptService = {
    * Xoá một đề bài (Admin)
    */
   deletePrompt: async (id: string): Promise<void> => {
-    await api.delete(`/prompts/${id}`);
+    const response = await api.delete(`/prompts/${id}`);
+    return response.data;
   },
 
   /**
    * Import dữ liệu từ file Excel cho từng loại Task
    */
-  importPrompts: async (taskType: TaskType, file: File) => {
+  importPrompts: async (taskType: TaskType, file: File): Promise<ImportResult> => {
     const formData = new FormData();
     formData.append('file', file);
 
@@ -93,7 +101,7 @@ export const promptService = {
   /**
    * Tải file Export Excel (Có xác thực)
    */
-  downloadExport: async (taskType?: TaskType) => {
+  downloadExport: async (taskType?: TaskType): Promise<void> => {
     let endpoint = '/prompts/export/all';
     let filename = 'prompts-all.xlsx';
 

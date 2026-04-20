@@ -6,8 +6,8 @@ import { UserProfile } from '../src/modules/user-profiles/entities/user-profile.
 import { Prompt } from '../src/modules/prompts/entities/prompt.entity';
 import { Category } from '../src/modules/categories/entities/category.entity';
 import { Topic } from '../src/modules/topics/entities/topic.entity';
-import { ExamAttempt } from 'src/modules/scoring/entities/exam-attempt.entity';
-import { ScoringCriteria } from 'src/modules/scoring-criteria/entities/scoring-criteria.entity';
+import { PracticeAttempt } from '../src/modules/practice/entities/practice-attempt.entity';
+import { ScoringCriteria } from '../src/modules/scoring-criteria/entities/scoring-criteria.entity';
 dotenv.config();
 
 async function seed() {
@@ -18,7 +18,7 @@ async function seed() {
     username: process.env.DATABASE_USER || 'root',
     password: process.env.DATABASE_PASSWORD || '',
     database: process.env.DATABASE_NAME || 'test',
-    entities: [User, UserProfile, Prompt, Category, Topic, ExamAttempt, ScoringCriteria],
+    entities: [User, UserProfile, Prompt, Category, Topic, PracticeAttempt, ScoringCriteria],
     synchronize: false,
   });
 

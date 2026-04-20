@@ -104,7 +104,7 @@ export class UsersService {
             .createQueryBuilder('user')
             .leftJoinAndSelect('user.profile', 'profile')
             // Join với bảng ExamAttempt để tính toán các chỉ số
-            .leftJoin('exam_attempts', 'attempt', 'attempt.userId = user.id AND attempt.status = :status', { status: 'success' })
+            .leftJoin('practice_attempts', 'attempt', 'attempt.userId = user.id AND attempt.status = :status', { status: 'success' })
             .select([
                 'user.id',
                 'user.email',

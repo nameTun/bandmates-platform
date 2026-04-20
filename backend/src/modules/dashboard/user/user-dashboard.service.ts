@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
-import { ExamAttempt } from '../../scoring/entities/exam-attempt.entity';
+import { PracticeAttempt } from '../../practice/entities/practice-attempt.entity';
 import { UserDashboardStatsDto } from '../dto/user-dashboard-stats.dto';
 
 @Injectable()
@@ -10,8 +10,8 @@ export class UserDashboardService {
   constructor(
     @InjectRepository(User)
     private usersRepository: Repository<User>,
-    @InjectRepository(ExamAttempt)
-    private attemptsRepository: Repository<ExamAttempt>,
+    @InjectRepository(PracticeAttempt)
+    private attemptsRepository: Repository<PracticeAttempt>,
   ) {}
 
   async getUserDashboardStats(userId: string): Promise<UserDashboardStatsDto> {

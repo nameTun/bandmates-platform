@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User, UserRole } from '../../users/entities/user.entity';
 import { Prompt } from '../../prompts/entities/prompt.entity';
-import { ExamAttempt } from '../../scoring/entities/exam-attempt.entity';
+import { PracticeAttempt } from '../../practice/entities/practice-attempt.entity';
 import { TaskType } from '../../../common/enums/task-type.enum';
 import { AiUsage } from '../../ai/entities/ai-usage.entity';
 import { AI_LIMITS } from '../../../config/ai-models.config';
@@ -16,8 +16,8 @@ export class AdminDashboardService {
     private usersRepository: Repository<User>,
     @InjectRepository(Prompt)
     private promptsRepository: Repository<Prompt>,
-    @InjectRepository(ExamAttempt)
-    private attemptsRepository: Repository<ExamAttempt>,
+    @InjectRepository(PracticeAttempt)
+    private attemptsRepository: Repository<PracticeAttempt>,
     @InjectRepository(AiUsage)
     private aiUsageRepository: Repository<AiUsage>,
   ) {}

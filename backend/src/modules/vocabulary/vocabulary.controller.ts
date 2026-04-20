@@ -80,17 +80,6 @@ export class VocabularyController {
         return this.vocabularyService.toggleSave(user.id, word);
     }
 
-    /** Lấy lịch sử tra cứu của User - Có phân trang */
-    @Get('history')
-    @UseGuards(JwtAuthGuard)
-    async getHistory(
-        @GetUser() user: User,
-        @Query('page') page: string = '1',
-        @Query('limit') limit: string = '20'
-    ) {
-        return this.vocabularyService.getHistory(user.id, Number(page), Number(limit), false);
-    }
-
     /** Lấy danh sách từ đã lưu (Sổ tay) */
     @Get('saved')
     @UseGuards(JwtAuthGuard)

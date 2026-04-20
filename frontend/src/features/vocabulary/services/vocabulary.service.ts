@@ -96,14 +96,20 @@ export const vocabularyService = {
     },
 
     /** Lấy lịch sử tra cứu */
-    getHistory: async (page = 1, limit = 20) => {
-        const response = await api.get('/vocabulary/history', { params: { page, limit } });
+    getHistory: async (page = 1, limit = 20): Promise<{ items: any[]; meta: any }> => {
+        const response = await api.get('/history/vocabulary', { params: { page, limit } });
         return response.data;
     },
 
     /** Lấy danh sách từ đã lưu (Sổ tay) */
-    getSavedWords: async (page = 1, limit = 20) => {
+    getSavedWords: async (page = 1, limit = 20): Promise<{ items: any[]; meta: any }> => {
         const response = await api.get('/vocabulary/saved', { params: { page, limit } });
         return response.data;
     },
+
+    /** Lấy tổng số lượng từ vựng đã tra cứu */
+    getVocabularyCount: async (): Promise<number> => {
+        const response = await api.get('/history/vocabulary', { params: { page: 1, limit: 1 } });
+        return response.data.meta.total;
+    }
 };
