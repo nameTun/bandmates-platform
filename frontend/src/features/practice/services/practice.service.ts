@@ -57,10 +57,10 @@ export const practiceService = {
      * Gửi bài viết để AI chấm điểm chuẩn IELTS
      */
     checkIelts: async (text: string, promptId?: string, timeSpent?: number): Promise<{ result: AIResponse; usage: any }> => {
-        const response = await api.post('/scoring/check', { 
-            text, 
-            promptId, 
-            timeSpent 
+        const response = await api.post('/scoring/check', {
+            text,
+            promptId,
+            timeSpent
         });
 
         return {

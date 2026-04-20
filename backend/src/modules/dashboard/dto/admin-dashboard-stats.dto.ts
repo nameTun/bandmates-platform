@@ -1,6 +1,4 @@
-import api from '@/lib/api';
-
-export interface AdminStatistics {
+export class AdminDashboardStatsDto {
   users: {
     total: number;
   };
@@ -22,7 +20,7 @@ export interface AdminStatistics {
       task: string;
       topic: string;
       band: number;
-      createdAt: string;
+      createdAt: Date;
     }[];
   };
   topTopics: {
@@ -41,16 +39,6 @@ export interface AdminStatistics {
       limit: number;
       percent: number;
     };
-    lastRequestAt: string;
+    lastRequestAt: Date;
   }[];
 }
-
-export const adminService = {
-  /**
-   * Lấy dữ liệu thống kê tổng quát cho Dashboard
-   */
-  getStatistics: async (): Promise<AdminStatistics> => {
-    const response = await api.get('/admin/dashboard');
-    return response.data;
-  },
-};

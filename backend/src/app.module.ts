@@ -13,7 +13,9 @@ import { UserProfilesModule } from './modules/user-profiles/user-profiles.module
 import { AiModule } from './modules/ai/ai.module';
 import { ScoringCriteriaModule } from './modules/scoring-criteria/scoring-criteria.module';
 import { CloudinaryModule } from './modules/cloudinary/cloudinary.module';
-import { AnalyticsModule } from './modules/analytics/analytics.module';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { CategoriesModule } from './modules/categories/categories.module';
+import { TopicsModule } from './modules/topics/topics.module';
 
 @Module({
   imports: [
@@ -25,17 +27,24 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
       validate,
     }),
     DatabaseModule,
+    
+    // --- Infrastructure & Utilities ---
     AiModule,
     CloudinaryModule,
-    AnalyticsModule,
-    UsersModule,// for feature/auth
-    UserProfilesModule,
-    AuthModule,
-    UsageLimitAiModule,
-    ScoringCriteriaModule,
-    ScoringModule,
-    PromptsModule,
-    VocabularyModule,
+    
+    // --- Business Feature Modules ---
+    DashboardModule,      // Unified Admin & User Dashboard
+    UsersModule,          // Quản lý người dùng lõi
+    UserProfilesModule,   // Thông tin cá nhân (Bands, Display Name, v.v.)
+    AuthModule,           // Xử lý JWT, Login, Register, Social Auth
+    UsageLimitAiModule,   // Kiểm soát hạn mức gọi AI (RPM/RPD)
+    CategoriesModule,     // Quản lý Danh mục đề thi (Task 1/2, Academic/General)
+    TopicsModule,         // Quản lý Chủ đề (Education, Health, v.v.)
+    ScoringCriteriaModule,// Tiêu chí chấm điểm IELTS
+    ScoringModule,        // Logic chấm bài & Lưu lịch sử
+    PromptsModule,        // Quản lý kho đề thi (Tasks, Topics)
+    VocabularyModule,     // Học từ vựng & AI Word Analysis
+
   ],
   controllers: [],
   providers: [],

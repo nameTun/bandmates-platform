@@ -1,7 +1,7 @@
 import { Injectable, ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import { UsersService } from '../users/users.service';
 import { User } from '../users/entities/user.entity';
-import { TokenService } from './token.service';
+import { TokenService } from '../../common/services/token.service';
 import * as bcrypt from 'bcryptjs';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';

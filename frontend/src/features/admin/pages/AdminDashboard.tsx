@@ -34,6 +34,7 @@ const AdminDashboard: React.FC = () => {
       try {
         const data = await adminService.getStatistics();
         setStats(data);
+        console.log(data);
         
         // Mặc định chọn model đầu tiên nếu model preview không tồn tại
         if (data.aiUsage.length > 0 && !data.aiUsage.find(u => u.modelName === 'gemini-3.1-flash-lite-preview')) {
