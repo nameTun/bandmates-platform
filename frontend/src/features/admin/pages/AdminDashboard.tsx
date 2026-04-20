@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { vi } from 'date-fns/locale';
-import { adminService, type AdminStatistics } from '../services/admin.service';
+import { adminService, type AdminStatistics } from '../services/admin-dashboard.service';
 
 import AdminPageHeader from '../components/AdminPageHeader';
 

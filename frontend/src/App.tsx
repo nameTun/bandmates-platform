@@ -22,7 +22,7 @@ const AdminDashboard = lazy(() => import('@/features/admin/pages/AdminDashboard'
 const PromptManagement = lazy(() => import('@/features/admin/pages/PromptManagement'));
 const CategoryManagement = lazy(() => import('@/features/admin/pages/CategoryManagement'));
 const CriteriaManagement = lazy(() => import('@/features/admin/pages/CriteriaManagement'));
-
+const UserManagement = lazy(() => import('@/features/admin/pages/UserManagement'));
 /**
  * SmartRedirect - Chuyển hướng người dùng dựa trên vai trò (Role)
  */
@@ -89,6 +89,7 @@ const App: React.FC = () => {
             <Route path="prompts" element={<PromptManagement />} />
             <Route path="categories" element={<CategoryManagement />} />
             <Route path="criteria" element={<CriteriaManagement />} />
+            <Route path="users" element={<UserManagement />} />
           </Route>
         </Route>
 

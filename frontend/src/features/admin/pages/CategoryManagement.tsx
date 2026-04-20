@@ -1,8 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { message, Spin, Tabs, Badge, Tooltip, Modal, Input as AntInput } from 'antd';
 import { ExclamationCircleOutlined } from '@ant-design/icons';
-import { categoryService, type Category } from '../services/category.service';
-import { topicService, type Topic } from '../services/topic.service';
+import { categoryService, type Category } from '../services/admin-category-manager.service';
+import { topicService, type Topic } from '../services/admin-topic-manager.service';
 import { TaskType } from '@/common/enums/task-type.enum';
 import AdminPageHeader from '../components/AdminPageHeader';
 
@@ -588,7 +588,7 @@ const CategoryManagement: React.FC = () => {
                 .premium-modal .ant-modal-footer { border-top: none; padding: 0; margin-top: 8px; }
             `}</style>
     </div>
-);
+  );
 };
 
 export default CategoryManagement;

@@ -3,12 +3,12 @@ import { message, Spin, Tabs, Badge, Image, Tooltip, Input as AntInput, Table, S
 import { useLocation } from 'react-router-dom';
 import type { ColumnsType } from 'antd/es/table';
 import type { FilterValue } from 'antd/es/table/interface';
-import { categoryService } from '../services/category.service';
-import type { Category } from '../services/category.service';
-import { topicService } from '../services/topic.service';
-import type { Topic } from '../services/topic.service';
-import { promptService } from '../services/prompt.service';
-import type { Prompt, CreatePromptDto } from '../services/prompt.service';
+import { categoryService } from '../services/admin-category-manager.service';
+import type { Category } from '../services/admin-category-manager.service';
+import { topicService } from '../services/admin-topic-manager.service';
+import type { Topic } from '../services/admin-topic-manager.service';
+import { promptService } from '../services/admin-prompt-manager.service';
+import type { Prompt, CreatePromptDto } from '../services/admin-prompt-manager.service';
 import { TaskType } from '@/common/enums/task-type.enum';
 import * as XLSX from 'xlsx';
 import AdminPageHeader from '../components/AdminPageHeader';

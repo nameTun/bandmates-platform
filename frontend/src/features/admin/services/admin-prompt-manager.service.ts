@@ -1,7 +1,7 @@
 import api from '@/lib/api';
 import { TaskType } from '@/common/enums/task-type.enum';
-import type { Category } from './category.service';
-import type { Topic } from './topic.service';
+import type { Category } from './admin-category-manager.service';
+import type { Topic } from './admin-topic-manager.service';
 
 export type Prompt = {
   id: string;
@@ -121,7 +121,7 @@ export const promptService = {
     link.setAttribute('download', filename);
     document.body.appendChild(link);
     link.click();
-    
+
     // Dọn dẹp
     link.parentNode?.removeChild(link);
     window.URL.revokeObjectURL(url);
