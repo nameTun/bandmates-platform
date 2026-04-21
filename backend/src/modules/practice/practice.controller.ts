@@ -33,9 +33,11 @@ export class PracticeController {
         @VisitorId() visitorId: string,
         @Ip() ip: string,
     ) {
+        const realUserId = user?.id || (user as any)?.userId;
+
         // Kiểm tra hạn mức sử dụng trong file config backend/env
         const usage = await this.usageLimitService.checkAndRecordUsage(
-            user?.id,
+            realUserId,
             visitorId,
             ip,
             UsageAction.PRACTICE_ESSAY,
@@ -75,7 +77,6 @@ export class PracticeController {
             status: 'pending',
         });
 
-        const realUserId = user?.id || (user as any)?.userId;
         if (realUserId) {
             attempt.user = { id: realUserId } as any;
         } else if (visitorId) {
@@ -93,19 +94,22 @@ export class PracticeController {
             // --- 3. CẬP NHẬT TRẠNG THÁI SUCCESS ---
             Object.assign(attempt, {
                 aiResponse: aiResult,
-                overallScore: aiResult?.overallScore || null,
-                scoreTA: aiResult?.scoreTA || null,
-                scoreCC: aiResult?.scoreCC || null,
-                scoreLR: aiResult?.scoreLR || null,
-                scoreGRA: aiResult?.scoreGRA || null,
+                overallScore: aiResult?.overallScore || 0,
+                scoreTA: aiResult?.scoreTA || 0,
+                scoreCC: aiResult?.scoreCC || 0,
+                scoreLR: aiResult?.scoreLR || 0,
+                scoreGRA: aiResult?.scoreGRA || 0,
                 status: 'success',
             });
             await this.attemptRepository.save(attempt);
 
         } catch (error) {
-            // --- 4. CẬP NHẬT TRẠNG THÁI FAILED ---
+            // --- 4. CẬP NHẬT TRẠNG THÁI FAILED VÀ HOÀN LƯỢT DÙNG ---
             attempt.status = 'failed';
             await this.attemptRepository.save(attempt);
+            
+            // Refund the usage limit if AI fail
+            await this.usageLimitService.refundUsage(usage.usageRecordId);
 
             console.error("Practice Error for attempt", attempt.id, ":", error);
             throw new HttpException(

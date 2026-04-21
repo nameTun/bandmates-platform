@@ -103,11 +103,11 @@ export class VocabularyService {
      * [NÂNG CẤP] Làm giàu dữ liệu Họ từ bằng AI.
      * Chọn ra 1 từ tiêu biểu nhất cho mỗi loại (n, v, adj, adv) và tạo ví dụ IELTS.
      */
-    async getExampleWordFamilyAi(word: string, userId?: string, ip?: string, visitorId?: string, userProfile?: UserProfile | null): Promise<any> {
+    async getExampleWordFamilyAi(word: string, userId?: string, ip?: string, visitorId?: string, userProfile?: UserProfile | null, userRole?: string): Promise<any> {
         const cleanWord = word.trim().toLowerCase();
 
         // 1. Kiểm tra và ghi nhận hạn mức (Quay về cơ chế 24h rollback)
-        const usage = await this.usageLimitService.checkAndRecordUsage(userId, visitorId, ip, UsageAction.ANALYZE_WORD_FAMILY);
+        const usage = await this.usageLimitService.checkAndRecordUsage(userId, visitorId, ip, UsageAction.ANALYZE_WORD_FAMILY, userRole);
 
         // 2. [SNAPSHOT CHECK] Trả về ngay nếu đã có dữ liệu mẫu trong DB
         if (userId) {
@@ -115,6 +115,9 @@ export class VocabularyService {
                 where: { user: { id: userId }, word: cleanWord }
             });
             if (history && history.familyData) {
+                await this.usageLimitService.refundUsage(usage.usageRecordId);
+                usage.used = Math.max(0, usage.used - 1);
+                usage.remaining += 1;
                 return { result: history.familyData, usage };
             }
         }
@@ -171,18 +174,16 @@ export class VocabularyService {
             };
         } catch (error) {
             console.error('Gemini Word Family Enrichment Error:', error);
-            return {
-                result: { mainTranslation: '', familyData: [] },
-                usage
-            };
+            await this.usageLimitService.refundUsage(usage.usageRecordId);
+            throw error;
         }
     }
 
-    async getWordAnalysisAi(word: string, userId?: string, ip?: string, visitorId?: string, userProfile?: UserProfile | null): Promise<any> {
+    async getWordAnalysisAi(word: string, userId?: string, ip?: string, visitorId?: string, userProfile?: UserProfile | null, userRole?: string): Promise<any> {
         const cleanWord = word.trim().toLowerCase();
 
         // Kiểm tra và ghi nhận hạn mức
-        const usage = await this.usageLimitService.checkAndRecordUsage(userId, visitorId, ip, UsageAction.ANALYZE_WORD_STRUCTURE);
+        const usage = await this.usageLimitService.checkAndRecordUsage(userId, visitorId, ip, UsageAction.ANALYZE_WORD_STRUCTURE, userRole);
 
         // Trả về ngay nếu đã có phân tích AI trong DB
         if (userId) {
@@ -190,22 +191,31 @@ export class VocabularyService {
                 where: { user: { id: userId }, word: cleanWord }
             });
             if (history && history.aiNotes) {
+                await this.usageLimitService.refundUsage(usage.usageRecordId);
+                usage.used = Math.max(0, usage.used - 1);
+                usage.remaining += 1;
                 return { result: history.aiNotes, usage };
             }
         }
 
-        const aiData = await this.getIELTSAnalysis(cleanWord, userProfile);
-        const result = { word: cleanWord, ...aiData };
+        try {
+            const aiData = await this.getIELTSAnalysis(cleanWord, userProfile);
+            const result = { word: cleanWord, ...aiData };
 
-        // Cập nhật phân tích IELTS vào DB
-        if (userId && result.ieltsBand) {
-            await this.upsertHistory(userId, cleanWord, { aiNotes: result });
+            // Cập nhật phân tích IELTS vào DB
+            if (userId && result.ieltsBand) {
+                await this.upsertHistory(userId, cleanWord, { aiNotes: result });
+            }
+
+            return {
+                result: result,
+                usage
+            };
+        } catch (error) {
+            console.error('Gemini Word Analysis Error:', error);
+            await this.usageLimitService.refundUsage(usage.usageRecordId);
+            throw error;
         }
-
-        return {
-            result: result,
-            usage
-        };
     }
 
     async toggleSave(userId: string, word: string) {

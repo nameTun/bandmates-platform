@@ -30,15 +30,17 @@ export class VocabularyController {
         @VisitorId() visitorId: string,
         @GetUser() user: User | null
     ) {
+        const realUserId = user?.id || (user as any)?.userId;
+        const userRole = (user as any)?.role;
         let userProfile = null;
-        if (user && user.id) {
+        if (realUserId) {
             try {
-                userProfile = await this.userProfilesService.getProfile(user.id);
+                userProfile = await this.userProfilesService.getProfile(realUserId);
             } catch (e) {
-                console.warn(`[Word-Analysis] Không lấy được profile cho user ${user.id}, dùng mặc định.`);
+                console.warn(`[Word-Analysis] Không lấy được profile cho user ${realUserId}, dùng mặc định.`);
             }
         }
-        const usage = await this.vocabularyService.getWordAnalysisAi(word, user?.id, ip, visitorId, userProfile);
+        const usage = await this.vocabularyService.getWordAnalysisAi(word, realUserId, ip, visitorId, userProfile, userRole);
         return usage; // Bây giờ Service đã trả về { result, usage }
     }
 
@@ -57,16 +59,18 @@ export class VocabularyController {
         @VisitorId() visitorId: string,
         @GetUser() user: User | null
     ) {
+        const realUserId = user?.id || (user as any)?.userId;
+        const userRole = (user as any)?.role;
         let userProfile = null;
-        if (user && user.id) {
+        if (realUserId) {
             try {
-                userProfile = await this.userProfilesService.getProfile(user.id);
+                userProfile = await this.userProfilesService.getProfile(realUserId);
             } catch (e) {
                 // Thầm lặng sử dụng mặc định nếu không có profile
-                console.warn(`[Word-Family] Không lấy được profile cho user ${user.id}, dùng mặc định.`);
+                console.warn(`[Word-Family] Không lấy được profile cho user ${realUserId}, dùng mặc định.`);
             }
         }
-        const usage = await this.vocabularyService.getExampleWordFamilyAi(word, user?.id, ip, visitorId, userProfile);
+        const usage = await this.vocabularyService.getExampleWordFamilyAi(word, realUserId, ip, visitorId, userProfile, userRole);
         return usage; // Bây giờ Service đã trả về { result, usage }
     }
 
