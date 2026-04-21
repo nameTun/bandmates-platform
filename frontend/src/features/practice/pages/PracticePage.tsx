@@ -60,6 +60,10 @@ const PracticePage: React.FC = () => {
           if (attemptId) navigate('/history');
           else setSelectedTask(null);
         }}
+        onReset={() => {
+          setReviewAttempt(null);
+          if (attemptId) navigate('/practice', { replace: true });
+        }}
         onError={(status, msg, extraData) => {
           const finalMessage = typeof msg === 'string' ? msg : 'Bạn đã hết lượt sử dụng AI hôm nay.';
           const finalUserLimit = (extraData as any)?.userLimit;

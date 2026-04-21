@@ -11,6 +11,7 @@ export interface BaseEditorProps {
   wordCount: number;
   minWords: number;
   reviewAttempt?: any;
+  isTimeUp?: boolean;
 }
 
 const EditorTextarea: React.FC<BaseEditorProps> = ({
@@ -19,9 +20,10 @@ const EditorTextarea: React.FC<BaseEditorProps> = ({
   isEnough,
   wordCount,
   minWords,
-  reviewAttempt
+  reviewAttempt,
+  isTimeUp
 }) => (
-  <div className="bg-white rounded-2xl border border-slate-200 shadow-sm min-h-[450px] flex-1 relative flex flex-col focus-within:ring-4 focus-within:ring-indigo-500/10 focus-within:border-indigo-400 transition-all">
+  <div className={`bg-white rounded-2xl border ${isTimeUp ? 'border-red-300 ring-2 ring-red-100' : 'border-slate-200'} shadow-sm min-h-[450px] flex-1 relative flex flex-col focus-within:ring-4 focus-within:ring-indigo-500/10 focus-within:border-indigo-400 transition-all`}>
     <div className="flex items-center gap-1 p-3 border-b border-slate-100 bg-slate-50/50 rounded-t-2xl">
       <div className="flex-1" />
       <span className={`text-[11px] px-3 font-bold uppercase tracking-wider transition-colors ${isEnough ? 'text-emerald-500' : 'text-slate-400'}`}>
@@ -31,10 +33,10 @@ const EditorTextarea: React.FC<BaseEditorProps> = ({
     </div>
     <textarea
       value={text}
-      readOnly={!!reviewAttempt}
+      readOnly={!!reviewAttempt || isTimeUp}
       onChange={(e) => setText(e.target.value)}
-      placeholder="Bắt đầu viết bài của bạn tại đây..."
-      className="flex-1 w-full p-8 text-[15px] leading-relaxed text-slate-800 bg-white border-0 rounded-2xl shadow-sm focus:ring-0 resize-none outline-none"
+      placeholder={isTimeUp ? "Đã hết thời gian làm bài!" : "Bắt đầu viết bài của bạn tại đây..."}
+      className="flex-1 w-full p-8 text-[15px] leading-relaxed text-slate-800 bg-white border-0 rounded-2xl shadow-sm focus:ring-0 resize-none outline-none disabled:bg-slate-50"
     />
   </div>
 );
