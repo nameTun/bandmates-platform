@@ -95,8 +95,8 @@ const features = [
     badge: 'Core Feature',
     badgeColor: 'bg-indigo-100 text-indigo-700',
     title: 'IELTS Writing Scorer',
-    description: 'Nộp bài và nhận điểm Band Score tức thì. AI phân tích sâu từng tiêu chí: Task Response, Coherence, Lexical Resource, Grammatical Range.',
-    highlights: ['Task 1 & Task 2', 'Band 4.0 → 9.0', 'Chỉ ra lỗi theo danh mục'],
+    description: 'Chấm điểm AI chuẩn xác kèm phân tích sâu từng tiêu chí chấm điểm. Hệ thống chỉ rõ lỗi sai, gợi ý sửa đổi và cung cấp phiên bản bài viết hoàn hảo theo Band điểm mục tiêu của bạn.',
+    highlights: ['Phân tích tiêu chí chuẩn', 'Gợi ý nâng Band', 'Bài mẫu cá nhân hóa'],
     color: 'from-indigo-50 to-blue-50',
     border: 'border-indigo-200/70',
     iconBg: 'bg-indigo-500',
@@ -111,8 +111,8 @@ const features = [
     badge: 'Smart Dictionary',
     badgeColor: 'bg-emerald-100 text-emerald-700',
     title: 'Tra cứu từ vựng thông minh',
-    description: 'Tra bất kỳ từ nào và nhận ngay phiên âm IPA, từ loại, đồng nghĩa, trái nghĩa và ví dụ thực tế trong văn phong học thuật.',
-    highlights: ['Phiên âm IPA', 'Đồng / Trái nghĩa', 'Ví dụ thực tế'],
+    description: 'Tra cứu thông minh tích hợp ví dụ Word Family đa dạng. Đột phá với tính năng gợi ý cấu trúc nâng Band điểm cá nhân hóa, giúp bạn nâng tầm văn phong học thuật tức thì.',
+    highlights: ['Ví dụ Word Family', 'Cấu trúc nâng Band', 'Văn phong chuyên môn'],
     color: 'from-emerald-50 to-teal-50',
     border: 'border-emerald-200/70',
     iconBg: 'bg-emerald-500',
@@ -137,18 +137,18 @@ const features = [
   {
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
       </svg>
     ),
     badge: 'Coming Soon',
-    badgeColor: 'bg-purple-100 text-purple-700',
-    title: 'Học từ vựng theo chủ đề',
-    description: 'Bộ từ vựng được chuẩn hóa theo chủ đề (Environment, Technology...) và theo Band điểm mục tiêu, giúp bạn học có hệ thống.',
-    highlights: ['Theo chủ đề', 'Theo Band điểm', 'Lộ trình cá nhân'],
-    color: 'from-purple-50 to-violet-50',
-    border: 'border-purple-200/70',
-    iconBg: 'bg-purple-500',
-    shadow: 'shadow-purple-100',
+    badgeColor: 'bg-rose-100 text-rose-700',
+    title: 'Tự nhập đề bài (Custom Prompt)',
+    description: 'Cho phép người dùng tự động nhập và mô phỏng mọi loại đề bài (Cambridge, Actual Tests...). Trải nghiệm sự linh hoạt tuyệt đối mà không bị giới hạn bởi thư viện có sẵn. Đề của bạn nhưng được chấm bằng công thức chuẩn IELTS.',
+    highlights: ['Nhập đề tự do', 'Chấm điểm độc lập', 'Thống kê thực tế'],
+    color: 'from-rose-50 to-pink-50',
+    border: 'border-rose-200/70',
+    iconBg: 'bg-rose-500',
+    shadow: 'shadow-rose-100',
     comingSoon: true,
   },
 ];
@@ -200,81 +200,83 @@ const HomePage: React.FC = () => {
   return (
     <div className="min-h-screen bg-white">
 
-      {/* ═══════════════ HERO ═══════════════ */}
+      {/* ═══════════════ HERO (Premium Interactive) ═══════════════ */}
       <MouseGlow
-        className="bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 text-white"
-        glowColor="rgba(129,140,248,0.12)"
-        glowSize={600}
+        className="bg-[#020617] text-white overflow-hidden relative"
+        glowColor="rgba(99, 102, 241, 0.2)"
+        glowSize={1000}
       >
-        {/* Floating particles / decorations */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-40 -right-40 w-96 h-96 bg-indigo-500/20 rounded-full blur-3xl animate-pulse" />
-          <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-violet-500/15 rounded-full blur-3xl" />
-          <div className="absolute top-1/3 left-1/4 w-2 h-2 bg-indigo-400/60 rounded-full animate-ping" style={{ animationDuration: '3s' }} />
-          <div className="absolute top-1/2 right-1/3 w-1.5 h-1.5 bg-violet-400/50 rounded-full animate-ping" style={{ animationDuration: '4s', animationDelay: '1s' }} />
-          <div className="absolute bottom-1/4 left-1/3 w-1 h-1 bg-sky-400/40 rounded-full animate-ping" style={{ animationDuration: '5s', animationDelay: '2s' }} />
-          {/* Grid pattern */}
-          <div
-            className="absolute inset-0 opacity-[0.03]"
-            style={{
-              backgroundImage: 'linear-gradient(rgba(255,255,255,.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.1) 1px, transparent 1px)',
-              backgroundSize: '60px 60px',
-            }}
-          />
-        </div>
+        {/* Dynamic Abstract Background with Reverse Parallax */}
+        <TiltCard tiltDeg={-3} className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-indigo-600/30 rounded-full blur-[120px] animate-pulse" style={{ animationDuration: '8s' }} />
+          <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-violet-600/30 rounded-full blur-[150px] animate-pulse" style={{ animationDuration: '10s', animationDelay: '2s' }} />
+          <div className="absolute top-[20%] right-[10%] w-8 h-8 bg-indigo-400/40 rounded-full blur-md animate-float" style={{ animationDuration: '6s' }} />
+          <div className="absolute bottom-[30%] left-[15%] w-12 h-12 bg-violet-400/30 rounded-full blur-lg animate-float" style={{ animationDuration: '8s', animationDelay: '1s' }} />
+          <div className="absolute top-[40%] left-[5%] w-3 h-3 bg-sky-400/60 rounded-full animate-ping" style={{ animationDuration: '4s' }} />
 
-        <div className="relative max-w-6xl mx-auto px-6 py-28 md:py-40 text-center">
-          {/* Badge with glow */}
-          <div className="inline-flex items-center gap-2 bg-indigo-500/15 border border-indigo-400/25 text-indigo-300 text-xs font-bold px-4 py-1.5 rounded-full uppercase tracking-wider mb-8 backdrop-blur-sm shadow-lg shadow-indigo-500/10">
-            <span className="relative flex h-2 w-2">
+          {/* Subtle Grid with fade out mask */}
+          <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_60%_at_50%_50%,#000_70%,transparent_100%)]" />
+        </TiltCard>
+
+        <TiltCard tiltDeg={6} className="relative z-10 max-w-5xl mx-auto px-6 py-32 md:py-48 text-center flex flex-col items-center justify-center min-h-[90vh]">
+          {/* Badge */}
+          <div className="inline-flex items-center gap-2.5 bg-white/[0.03] border border-white/10 px-5 py-2 rounded-full mb-10 backdrop-blur-md shadow-2xl shadow-indigo-500/10 hover:bg-white/[0.08] hover:border-indigo-400/30 hover:-translate-y-1 transition-all duration-300 cursor-default group">
+            <span className="relative flex h-2.5 w-2.5">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-400" />
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-indigo-500 group-hover:bg-indigo-400 transition-colors" />
             </span>
-            AI-Powered IELTS Writing Coach
+            <span className="text-indigo-200 text-xs font-black uppercase tracking-[0.2em] group-hover:text-white transition-colors" style={{ textShadow: '0 0 10px rgba(129,140,248,0.3)' }}>
+              AI-Powered IELTS Writing Coach
+            </span>
           </div>
 
           {/* Headline */}
-          <h1 className="text-5xl md:text-7xl font-extrabold leading-tight tracking-tight mb-6">
+          <h1 className="text-5xl md:text-7xl lg:text-[5.5rem] font-extrabold leading-[1.1] tracking-tighter mb-8 text-white drop-shadow-2xl">
             Chinh phục{' '}
-            <span className="relative">
-              <span className="bg-gradient-to-r from-indigo-400 via-violet-400 to-sky-400 bg-clip-text text-transparent">
-                Band 7+
+            <span className="relative inline-block group">
+              <span className="bg-gradient-to-r from-indigo-400 via-violet-400 to-indigo-400 bg-clip-text text-transparent bg-[length:200%_auto] animate-aurora filter drop-shadow-[0_0_15px_rgba(129,140,248,0.5)]">
+                Band 8+
               </span>
-              {/* Underline glow */}
-              <span className="absolute -bottom-2 left-0 right-0 h-1 bg-gradient-to-r from-indigo-400 via-violet-400 to-sky-400 rounded-full opacity-50 blur-sm" />
+              <span className="absolute -bottom-2 left-0 right-0 h-1.5 bg-gradient-to-r from-indigo-500 via-violet-500 to-indigo-500 rounded-full opacity-50 group-hover:opacity-100 blur-[2px] group-hover:blur-[4px] transition-all duration-500" />
             </span>
-            <br />với AI Writing Coach
+            <br />
+            <span className="opacity-90">với AI Writing Coach</span>
           </h1>
 
-          <p className="text-slate-400 text-lg md:text-xl max-w-2xl mx-auto mb-10 leading-relaxed">
-            Nộp bài viết IELTS và nhận phân tích chi tiết tức thì — Band Score, lỗi sai có giải thích,
-            gợi ý cải thiện. Không cần chờ giáo viên.
+          <p className="text-slate-400 text-lg md:text-xl max-w-2xl mx-auto mb-14 leading-relaxed font-medium">
+            Nộp bài viết IELTS và nhận phân tích chi tiết tức thì — <span className="text-indigo-300">Band Score</span>, lỗi sai có giải thích, gợi ý nâng điểm. <span className="text-white">Không cần chờ đợi giáo viên.</span>
           </p>
 
           {/* CTAs */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+          <div className="flex flex-col sm:flex-row gap-5 justify-center items-center w-full sm:w-auto">
             {isAuthenticated ? (
               <Link
                 to="/practice"
-                className="group px-8 py-4 bg-indigo-500 hover:bg-indigo-400 text-white font-bold text-base rounded-xl shadow-2xl shadow-indigo-500/30 hover:shadow-indigo-400/40 transition-all active:scale-95 flex items-center gap-2"
+                className="group relative px-10 py-5 bg-white text-indigo-950 font-black text-lg rounded-2xl shadow-[0_0_40px_rgba(99,102,241,0.3)] hover:shadow-[0_0_60px_rgba(99,102,241,0.5)] transition-all active:scale-95 flex items-center gap-3 w-full sm:w-auto justify-center overflow-hidden"
               >
-                <svg className="w-5 h-5 group-hover:rotate-12 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <div className="absolute inset-0 w-1/2 h-full bg-indigo-500/10 skew-x-[-25deg] -translate-x-[150%] group-hover:animate-shine" />
+                <svg className="w-6 h-6 group-hover:rotate-12 group-hover:scale-110 transition-all text-indigo-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                 </svg>
-                Bắt đầu luyện tập
+                <span className="relative">Bắt đầu luyện tập</span>
               </Link>
             ) : (
               <>
                 <Link
                   to="/register"
-                  className="group relative px-8 py-4 bg-indigo-500 hover:bg-indigo-400 text-white font-bold text-base rounded-xl shadow-2xl shadow-indigo-500/30 hover:shadow-indigo-400/50 transition-all active:scale-95 overflow-hidden"
+                  className="group relative px-10 py-5 bg-white text-indigo-950 hover:bg-slate-50 font-black text-lg rounded-2xl shadow-[0_0_40px_rgba(99,102,241,0.2)] hover:shadow-[0_0_60px_rgba(99,102,241,0.4)] transition-all duration-300 active:scale-95 flex justify-center w-full sm:w-auto overflow-hidden"
                 >
-                  <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-                  <span className="relative">Đăng ký trả nghiệm</span>
+                  <div className="absolute inset-0 w-1/2 h-full bg-indigo-500/10 skew-x-[-25deg] -translate-x-[150%] group-hover:animate-shine" />
+                  <span className="relative flex items-center gap-2">
+                    Đăng ký trải nghiệm
+                    <svg className="w-5 h-5 group-hover:translate-x-1.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                    </svg>
+                  </span>
                 </Link>
                 <Link
                   to="/practice"
-                  className="px-8 py-4 bg-white/10 text-white font-semibold text-base rounded-xl border border-white/20 hover:border-white/30 hover:bg-red-400 transition-all backdrop-blur-sm hover:shadow-lg hover:shadow-white/5"
+                  className="px-10 py-5 bg-white/5 text-white font-bold text-lg rounded-2xl border border-white/10 hover:border-indigo-400/50 hover:bg-indigo-500/10 transition-all duration-300 backdrop-blur-md hover:shadow-2xl hover:shadow-indigo-500/20 flex justify-center w-full sm:w-auto"
                 >
                   Thử ngay miễn phí
                 </Link>
@@ -282,64 +284,96 @@ const HomePage: React.FC = () => {
             )}
           </div>
 
-          <p className="text-slate-500 text-md mt-8">
-            Miễn phí 1 lần chấm bài tự động không cần đăng nhập.
+          <p className="text-slate-500 text-sm mt-10 font-medium">
+            Miễn phí 2 lần mỗi ngày chấm bài tự động không cần đăng nhập.
           </p>
-        </div>
+        </TiltCard>
       </MouseGlow>
 
-      {/* ═══════════════ STATS ═══════════════ */}
-      <section className="border-b border-slate-100 bg-slate-50/80">
-        <div className="max-w-4xl mx-auto px-6 py-14 grid grid-cols-3 gap-8 text-center">
+      {/* ═══════════════ STATS (Floating Premium Bar) ═══════════════ */}
+      <section className="relative z-20 -mt-16 md:-mt-20 mb-20 px-6 pointer-events-none">
+        <div className="max-w-5xl mx-auto bg-white/70 backdrop-blur-2xl border border-white/80 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.1)] shadow-indigo-500/5 rounded-[2rem] sm:rounded-[3rem] p-10 sm:p-12 flex flex-col md:flex-row justify-between items-center gap-10 md:gap-0 divide-y md:divide-y-0 md:divide-x divide-slate-200/60 pointer-events-auto transition-transform hover:shadow-[0_25px_60px_-15px_rgba(0,0,0,0.15)] hover:shadow-indigo-500/10 duration-500">
           {stats.map(s => (
-            <div key={s.label} className="group">
-              <div className="text-4xl font-extrabold text-slate-900 mb-1 group-hover:text-indigo-600 transition-colors">{s.value}</div>
-              <div className="text-sm font-semibold text-slate-700">{s.label}</div>
-              <div className="text-xs text-slate-500 mt-0.5">{s.sub}</div>
+            <div key={s.label} className="group w-full md:w-1/3 text-center px-6 hover:-translate-y-2 transition-transform duration-500">
+              <div className="text-5xl md:text-6xl font-black bg-gradient-to-br from-slate-800 to-slate-400 bg-clip-text text-transparent group-hover:from-indigo-600 group-hover:to-violet-500 transition-all duration-500 mb-3 drop-shadow-sm group-hover:drop-shadow-md">
+                {s.value}
+              </div>
+              <div className="text-[13px] font-black text-slate-800 uppercase tracking-[0.15em] mb-1.5 group-hover:text-indigo-950 transition-colors">
+                {s.label}
+              </div>
+              <div className="text-xs font-semibold text-slate-500 group-hover:text-indigo-500/70 transition-colors">
+                {s.sub}
+              </div>
             </div>
           ))}
         </div>
       </section>
 
-      {/* ═══════════════ FEATURES ═══════════════ */}
-      <section className="max-w-6xl mx-auto px-6 py-28">
-        <div className="text-center mb-16">
-          <p className="text-indigo-600 text-sm font-bold uppercase tracking-widest mb-3">Tính năng</p>
-          <h2 className="text-4xl md:text-5xl font-extrabold text-slate-900 tracking-tight">
-            Mọi thứ bạn cần để cải thiện Writing
-          </h2>
+      {/* ═══════════════ FEATURES (Compact Viewport Layout) ═══════════════ */}
+      <section className="max-w-7xl mx-auto px-4 md:px-8 py-20 relative overflow-hidden">
+        {/* Decorative Ambient Orbs */}
+        <div className="absolute top-1/2 left-0 -translate-y-1/2 w-64 h-64 bg-indigo-500/5 rounded-full blur-[80px] pointer-events-none" />
+        <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-rose-500/5 rounded-full blur-[120px] pointer-events-none" />
+
+        {/* Header - Compact & Left Aligned */}
+        <div className="flex flex-col md:flex-row justify-between items-end gap-3 mb-6 relative z-10">
+          <div>
+            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-indigo-50 border border-indigo-100 text-indigo-700 text-[9px] font-black uppercase tracking-[0.2em] mb-3 shadow-sm">
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
+              Tất cả trong một
+            </div>
+            <h2 className="text-2xl md:text-3xl lg:text-4xl font-black text-slate-900 tracking-tight leading-tight">
+              Hệ sinh thái <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-600">IELTS Writing</span>
+            </h2>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-7">
-          {features.map(f => (
+        {/* GRID: Symmetric 2x2 - Ultra Compact */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-5 relative z-10 auto-rows-fr">
+          {features.map((f) => (
             <TiltCard
               key={f.title}
-              className={`relative rounded-2xl border ${f.border} bg-gradient-to-br ${f.color} p-8 ${f.comingSoon ? 'opacity-70' : `hover:shadow-xl ${f.shadow} cursor-default`} transition-all duration-300`}
-              tiltDeg={f.comingSoon ? 0 : 5}
+              className={`group relative rounded-[1.5rem] md:rounded-[2rem] border-t-2 border-white/90 border-x border-white/60 border-b border-black/5 bg-gradient-to-br ${f.color} p-5 lg:p-6 ${f.comingSoon ? 'opacity-85 grayscale-[15%]' : `hover:shadow-xl hover:-translate-y-2 ${f.shadow} cursor-default`} transition-all duration-500 overflow-hidden shadow-lg shadow-slate-200/40 flex flex-col hover:z-20`}
+              tiltDeg={f.comingSoon ? 0 : 10}
             >
+              {/* Shine effect optimized for small cards */}
+              <div className="absolute inset-0 bg-gradient-to-br from-white/80 via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none mix-blend-overlay" />
+
               {f.comingSoon && (
-                <div className="absolute top-4 right-4 bg-slate-800 text-white text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wide animate-pulse">
+                <div className="absolute top-4 right-4 bg-slate-900 text-white text-[8px] font-black px-2 py-1 rounded-full uppercase tracking-widest animate-pulse shadow-lg z-10 border border-slate-700 ring-1 ring-white/10">
                   Sắp ra mắt
                 </div>
               )}
-              <div className="flex items-start gap-4 mb-5">
-                <div className={`${f.iconBg} text-white p-3 rounded-xl shadow-lg flex-shrink-0`}>
+
+              <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 mb-4 relative z-10">
+                <div className={`relative ${f.iconBg} text-white p-2.5 rounded-[1.25rem] flex-shrink-0 group-hover:-translate-y-2 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 shadow-xl ring-2 ring-white/60 group-hover:ring-white/90`}>
+                  <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-25 rounded-[1.25rem] transition-opacity animate-pulse" />
                   {f.icon}
                 </div>
-                <div>
-                  <span className={`text-[11px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full ${f.badgeColor}`}>
+                <div className="text-center sm:text-left group-hover:translate-x-1 transition-transform duration-500">
+                  <span className={`inline-block text-[8px] font-black uppercase tracking-[0.2em] px-2.5 py-1 rounded-full mb-1.5 ${f.badgeColor} ring-1 ring-inset ring-black/5 shadow-sm group-hover:-translate-y-0.5 transition-transform duration-500`}>
                     {f.badge}
                   </span>
-                  <h3 className="text-xl font-bold text-slate-900 mt-2">{f.title}</h3>
+                  <h3 className="text-lg font-black text-slate-900 leading-tight group-hover:text-indigo-950 transition-colors drop-shadow-sm">{f.title}</h3>
                 </div>
               </div>
-              <p className="text-slate-600 leading-relaxed mb-5">{f.description}</p>
-              <ul className="flex flex-wrap gap-2">
-                {f.highlights.map(h => (
-                  <li key={h} className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 bg-white/80 px-3 py-1.5 rounded-full border border-white shadow-sm">
-                    <svg className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                    </svg>
+
+              <p className="text-slate-600 text-[13.5px] leading-snug mb-5 flex-1 text-center sm:text-left font-medium group-hover:text-slate-900 transition-colors duration-300 relative z-10">
+                {f.description}
+              </p>
+
+              <ul className="flex flex-wrap justify-center sm:justify-start gap-1.5 relative z-10 mt-auto">
+                {f.highlights.map((h, idx) => (
+                  <li
+                    key={h}
+                    className="group/highlight flex items-center gap-1.5 text-[11px] font-bold text-slate-700 bg-white/70 hover:bg-white px-2.5 py-1.5 rounded-xl border border-white shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 cursor-default"
+                    style={{ transitionDelay: `${idx * 30}ms` }}
+                  >
+                    <div className="w-4 h-4 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 group-hover/highlight:bg-emerald-500 group-hover/highlight:text-white transition-colors duration-300">
+                      <svg className="w-2.5 h-2.5 group-hover/highlight:scale-110 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
                     {h}
                   </li>
                 ))}
@@ -349,41 +383,62 @@ const HomePage: React.FC = () => {
         </div>
       </section>
 
-      {/* ═══════════════ HOW IT WORKS ═══════════════ */}
+      {/* ═══════════════ HOW IT WORKS (Sparkling Dark Glass) ═══════════════ */}
       <MouseGlow
-        className="bg-slate-950 text-white py-28"
-        glowColor="rgba(129,140,248,0.08)"
-        glowSize={500}
+        className="bg-[#020617] text-white py-20 relative overflow-hidden"
+        glowColor="rgba(129,140,248,0.12)"
+        glowSize={800}
       >
-        <div className="relative max-w-5xl mx-auto px-6">
-          <div className="text-center mb-16">
-            <p className="text-indigo-400 text-sm font-bold uppercase tracking-widest mb-3">Cách hoạt động</p>
-            <h2 className="text-4xl font-extrabold tracking-tight">3 bước, nhận điểm ngay</h2>
+        {/* Abstract Space Elements & Starry Grid */}
+        <div className="absolute top-1/4 right-1/4 w-[400px] h-[400px] bg-indigo-500/10 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute bottom-1/4 left-1/4 w-[500px] h-[500px] bg-violet-600/10 rounded-full blur-[150px] pointer-events-none" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.08)_1px,transparent_1px)] bg-[size:32px_32px] [mask-image:linear-gradient(to_bottom,black_40%,transparent)] pointer-events-none" />
+
+        <div className="relative max-w-5xl mx-auto px-6 z-10">
+          <div className="text-center mb-20">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-indigo-300 text-[10px] font-black uppercase tracking-[0.2em] mb-6 shadow-[0_0_20px_rgba(129,140,248,0.15)] ring-1 ring-white/5">
+              <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse shadow-[0_0_10px_rgba(129,140,248,0.8)]" />
+              Cách hoạt động
+            </div>
+            <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight bg-gradient-to-br from-white via-indigo-50 to-slate-400 bg-clip-text text-transparent drop-shadow-2xl">
+              3 bước, nhận điểm ngay
+            </h2>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {steps.map((step, i) => (
-              <div key={step.num} className="relative">
-                {/* Connector line */}
-                {i < steps.length - 1 && (
-                  <div className="hidden md:block absolute top-14 left-[calc(50%+40px)] w-[calc(100%-80px)] h-px">
-                    <div className="h-full bg-gradient-to-r from-indigo-500/50 via-indigo-400/30 to-transparent" />
-                    <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-indigo-400/50 rounded-full" />
-                  </div>
-                )}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12 relative">
+            {/* Continuous Light Beam Connector */}
+            <div className="hidden md:block absolute top-[4.5rem] left-[15%] right-[15%] h-[2px] bg-gradient-to-r from-transparent via-indigo-500/20 to-transparent z-0">
+              <div className="absolute top-0 left-1/3 w-32 h-full bg-gradient-to-r from-transparent via-indigo-400 to-transparent blur-[1px] animate-[pulse_3s_ease-in-out_infinite] opacity-80" />
+            </div>
+
+            {steps.map((step) => (
+              <div key={step.num} className="relative z-10">
                 {/* Card */}
                 <TiltCard
-                  className="relative z-10 group bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] hover:border-indigo-400/30 rounded-2xl p-8 text-center transition-all duration-300 hover:shadow-2xl hover:shadow-indigo-500/10 backdrop-blur-sm"
-                  tiltDeg={8}
+                  className="group bg-slate-900/40 hover:bg-slate-800/60 border border-white/5 hover:border-indigo-400/30 rounded-[2.5rem] p-8 md:p-10 text-center transition-all duration-500 hover:shadow-[0_0_50px_-15px_rgba(99,102,241,0.4)] hover:-translate-y-3 backdrop-blur-xl overflow-hidden flex flex-col items-center cursor-default"
+                  tiltDeg={15}
                 >
-                  {/* Icon */}
-                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-indigo-500/15 group-hover:bg-indigo-500/25 text-indigo-400 group-hover:text-indigo-300 mb-5 transition-all duration-300 border border-indigo-400/10 group-hover:border-indigo-400/20 shadow-lg shadow-indigo-500/5">
-                    {step.icon}
+                  {/* Exquisite Top Glare Line */}
+                  <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+
+                  {/* Subtle Inner Ambient Shine */}
+                  <div className="absolute inset-0 bg-gradient-to-b from-indigo-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none mix-blend-overlay" />
+
+                  {/* Icon Block */}
+                  <div className="relative inline-flex items-center justify-center w-20 h-20 rounded-[1.5rem] bg-slate-950 border border-white/10 group-hover:border-indigo-400/50 text-indigo-400 group-hover:text-white mb-8 transition-all duration-500 shadow-2xl group-hover:shadow-[0_0_40px_rgba(99,102,241,0.6)] group-hover:-translate-y-2 group-hover:scale-110">
+                    <div className="absolute inset-0 bg-indigo-500/30 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                    <div className="relative z-10">
+                      {step.icon}
+                    </div>
                   </div>
-                  {/* Step number */}
-                  <div className="text-xs font-black text-indigo-500/50 uppercase tracking-[0.2em] mb-2">Bước {step.num}</div>
-                  <h3 className="text-lg font-bold text-white mb-3 group-hover:text-indigo-200 transition-colors">{step.title}</h3>
-                  <p className="text-slate-400 text-sm leading-relaxed group-hover:text-slate-300 transition-colors">{step.desc}</p>
+
+                  {/* Step Badge */}
+                  <div className="inline-flex items-center justify-center px-4 py-1 bg-white/5 rounded-full border border-white/10 text-[9px] font-black text-indigo-300 uppercase tracking-[0.3em] mb-4 group-hover:bg-indigo-500/20 group-hover:border-indigo-400/50 transition-all duration-300 group-hover:text-white shadow-sm ring-1 ring-inset ring-white/5">
+                    Bước {step.num}
+                  </div>
+
+                  <h3 className="text-xl md:text-2xl font-bold text-slate-100 mb-4 group-hover:text-white transition-colors drop-shadow-sm">{step.title}</h3>
+                  <p className="text-slate-400 text-sm leading-relaxed group-hover:text-slate-300 transition-colors font-medium relative z-10">{step.desc}</p>
                 </TiltCard>
               </div>
             ))}
@@ -391,41 +446,86 @@ const HomePage: React.FC = () => {
         </div>
       </MouseGlow>
 
-      {/* ═══════════════ CTA ═══════════════ */}
-      <section className="max-w-4xl mx-auto px-6 py-28 text-center">
-        <TiltCard
-          className="bg-gradient-to-br from-indigo-500 via-indigo-600 to-violet-600 rounded-3xl p-14 shadow-2xl shadow-indigo-200 relative overflow-hidden"
-          tiltDeg={3}
-        >
-          {/* Decorative circles */}
-          <div className="absolute -top-20 -right-20 w-60 h-60 bg-white/10 rounded-full blur-2xl pointer-events-none" />
-          <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-violet-400/20 rounded-full blur-2xl pointer-events-none" />
+      {/* ═══════════════ CTA (Premium Social Proof) ═══════════════ */}
+      <section className="relative py-24 md:py-20 bg-slate-50 overflow-hidden border-t border-indigo-50">
+        {/* Light ambient decorations to softly compliment the white background */}
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-indigo-500/5 rounded-full blur-[100px] pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-violet-500/5 rounded-full blur-[100px] pointer-events-none" />
+        
+        {/* Background ambient light */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-[800px] h-[500px] bg-indigo-600/15 rounded-[100%] blur-[120px] pointer-events-none" />
 
-          <div className="relative z-10">
-            <h2 className="text-3xl md:text-4xl font-extrabold text-white mb-4">
-              Sẵn sàng nâng Band Score?
-            </h2>
-            <p className="text-indigo-100 mb-8 text-base max-w-lg mx-auto">
-              Tạo tài khoản miễn phí và bắt đầu luyện ngay hôm nay.
-              Không giới hạn thời gian, không cam kết.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link
-                to="/register"
-                className="group relative px-8 py-4 bg-white text-indigo-600 font-extrabold rounded-xl hover:bg-indigo-50 transition-all active:scale-95 shadow-xl overflow-hidden"
-              >
-                <span className="absolute inset-0 bg-gradient-to-r from-transparent via-indigo-100/50 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-                <span className="relative">Đăng ký miễn phí</span>
-              </Link>
-              <Link
-                to="/practice"
-                className="px-8 py-4 bg-white/15 text-white font-bold rounded-xl border border-white/25 hover:bg-white/25 hover:border-white/40 transition-all backdrop-blur-sm hover:shadow-lg"
-              >
-                Thử không cần đăng ký
-              </Link>
+        <div className="relative z-10 max-w-5xl mx-auto px-6">
+          <TiltCard
+            className="group relative p-[1px] rounded-[3rem] overflow-hidden"
+            tiltDeg={5}
+          >
+            {/* Animated Gradient Border */}
+            <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/80 via-violet-500/80 to-indigo-500/80 bg-[length:200%_auto] animate-aurora opacity-70 group-hover:opacity-100 transition-opacity duration-700" />
+            
+            {/* Inner Card content with distinct vibrant dark glass */}
+            <div className="relative bg-gradient-to-br from-indigo-950/90 via-slate-900/95 to-violet-950/90 backdrop-blur-3xl rounded-[3rem] p-10 md:p-16 lg:p-20 text-center overflow-hidden border-t border-white/10 shadow-2xl shadow-indigo-950/50">
+              
+              {/* Inner ambient glow */}
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[80%] h-[60%] bg-gradient-to-b from-indigo-500/20 to-transparent blur-3xl pointer-events-none opacity-50 group-hover:opacity-100 group-hover:translate-y-4 transition-all duration-700" />
+              
+              <div className="relative z-10">
+                {/* Avatars Stack (Social Proof) */}
+                <div className="flex flex-col items-center justify-center mb-10">
+                  <div className="flex -space-x-3 mb-4 group-hover:scale-105 transition-transform duration-500">
+                    <img className="w-12 h-12 rounded-full border-2 border-[#020617] object-cover ring-2 ring-indigo-500/20 shadow-lg" src="https://api.dicebear.com/7.x/notionists/svg?seed=Felix&backgroundColor=e0e7ff" alt="User 1" />
+                    <img className="w-12 h-12 rounded-full border-2 border-[#020617] object-cover ring-2 ring-indigo-500/20 shadow-lg" src="https://api.dicebear.com/7.x/notionists/svg?seed=Aneka&backgroundColor=dbeafe" alt="User 2" />
+                    <img className="w-12 h-12 rounded-full border-2 border-[#020617] object-cover ring-2 ring-indigo-500/20 shadow-lg" src="https://api.dicebear.com/7.x/notionists/svg?seed=Jack&backgroundColor=c7d2fe" alt="User 3" />
+                    <img className="w-12 h-12 rounded-full border-2 border-[#020617] object-cover ring-2 ring-indigo-500/20 shadow-lg" src="https://api.dicebear.com/7.x/notionists/svg?seed=Mimi&backgroundColor=a5b4fc" alt="User 4" />
+                    <div className="w-12 h-12 rounded-full border-2 border-[#020617] bg-indigo-500/20 backdrop-blur-md flex items-center justify-center text-[11px] font-black text-indigo-300 ring-2 ring-indigo-500/20 shadow-lg relative z-10">
+                      5k+
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 text-slate-300 text-sm font-semibold bg-white/5 px-4 py-1.5 rounded-full border border-white/5 shadow-inner backdrop-blur-sm">
+                    <div className="flex gap-0.5 text-amber-400">
+                      {[...Array(5)].map((_, i) => (
+                        <svg key={i} className="w-3.5 h-3.5 fill-current drop-shadow-md" viewBox="0 0 20 20">
+                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                        </svg>
+                      ))}
+                    </div>
+                    <span className="tracking-wide">4.9/5 tính trên dữ liệu học viên</span>
+                  </div>
+                </div>
+
+                <h2 className="text-4xl md:text-5xl lg:text-[3.5rem] font-black text-transparent bg-clip-text bg-gradient-to-br from-white via-indigo-100 to-slate-400 mb-6 tracking-tight drop-shadow-2xl leading-[1.15]">
+                  Tham gia cộng đồng<br />luyện thi thông minh
+                </h2>
+                
+                <p className="text-slate-400 text-base md:text-lg mb-12 max-w-2xl mx-auto font-medium leading-relaxed">
+                  Thay vì học mù mờ, hơn <span className="text-indigo-300 font-bold">5,000 bài luận</span> đã được AI của chúng tôi phân tích thành công. Trải nghiệm hệ thống chấm điểm chuẩn quỹ đạo không giới hạn.
+                </p>
+                
+                <div className="flex flex-col sm:flex-row gap-5 justify-center items-center">
+                  <Link
+                    to="/register"
+                    className="group/btn relative px-10 py-5 bg-white text-indigo-950 hover:bg-indigo-50 font-black text-lg rounded-2xl shadow-[0_0_40px_rgba(255,255,255,0.2)] hover:shadow-[0_0_60px_rgba(255,255,255,0.4)] transition-all duration-300 active:scale-95 flex items-center justify-center overflow-hidden w-full sm:w-auto ring-4 ring-white/10"
+                  >
+                    <div className="absolute inset-0 w-1/2 h-full bg-indigo-500/15 skew-x-[-25deg] -translate-x-[150%] group-hover/btn:animate-shine" />
+                    <span className="relative flex items-center gap-2">
+                      Tạo tài khoản miễn phí
+                      <svg className="w-6 h-6 group-hover/btn:translate-x-1.5 transition-transform text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                      </svg>
+                    </span>
+                  </Link>
+                  
+                  <Link
+                    to="/practice"
+                    className="px-10 py-5 bg-white/5 text-white font-bold text-lg rounded-2xl border border-white/10 hover:border-indigo-400/50 hover:bg-indigo-500/10 transition-all duration-300 backdrop-blur-md hover:shadow-2xl hover:shadow-indigo-500/20 w-full sm:w-auto"
+                  >
+                    Xem thử bài mẫu AI chấm
+                  </Link>
+                </div>
+              </div>
             </div>
-          </div>
-        </TiltCard>
+          </TiltCard>
+        </div>
       </section>
 
     </div>
