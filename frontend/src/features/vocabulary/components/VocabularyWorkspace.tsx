@@ -183,6 +183,8 @@ export const VocabularyWorkspace: React.FC = () => {
 
     const handleEnrichFamilyAI = async () => {
         if (!result || familyAiLoading) return;
+        if (enrichedFamilyData) return; // Prevent duplicate API requests if already enriched
+
         setFamilyAiLoading(true);
         setAiError(null);
         try {

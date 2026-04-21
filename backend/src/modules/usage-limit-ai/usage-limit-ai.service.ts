@@ -1,7 +1,7 @@
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ConfigService } from '@nestjs/config';
-import { Repository, MoreThanOrEqual } from 'typeorm';
+import { Repository, MoreThanOrEqual, IsNull } from 'typeorm';
 import { UsageLimitAi } from './entities/usage-limit-ai.entity';
 
 export enum UsageAction {
@@ -27,14 +27,14 @@ export class UsageLimitAiService {
     ip?: string,
     action: UsageAction = UsageAction.PRACTICE_ESSAY,
     userRole?: string,
-  ): Promise<{ limit: number; used: number; remaining: number }> {
+  ): Promise<{ limit: number; used: number; remaining: number; usageRecordId: string }> {
     // 1. Chuẩn hóa IP: Đảm bảo IPv4 và IPv6 (ví dụ ::1 và 127.0.0.1) được xử lý nhất quán
     // Tránh việc cùng một máy nhưng được tính nhiều lượt do khác định dạng IP.
     const normalizedIp = this.normalizeIp(ip);
-    
+
     // Sử dụng cơ chế cửa sổ 24 giờ cuốn chiếu (Rolling Window) 
     // thay vì mốc 0h sáng cố định để tránh lỗi lệch múi giờ giữa App và DB.
-    const timeWindowStart = new Date(Date.now() - 24 * 60 * 60 * 1000); 
+    const timeWindowStart = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
     // Xác định hạn mức dựa trên Role và Action
     const isGuest = !userId; // Nếu không có userId thì là khách vãng lai
@@ -42,8 +42,8 @@ export class UsageLimitAiService {
 
     // Nếu là Admin thì không giới hạn lượt dùng
     if (isAdmin) {
-      await this.recordUsage(userId, visitorId, ip, action);
-      return { limit: 999, used: 0, remaining: 999 }; // Admin thì không giới hạn số lượt
+      const record = await this.recordUsage(userId, visitorId, ip, action);
+      return { limit: 999, used: 0, remaining: 999, usageRecordId: record.id }; // Admin thì không giới hạn số lượt
     }
 
     const limit = this.getLimit(action, isGuest);
@@ -62,15 +62,15 @@ export class UsageLimitAiService {
 
       // 1. Nếu có ID trình duyệt (visitorId), thêm vào danh sách kiểm tra
       if (visitorId) {
-        conditions.push({ visitorId, action, createdAt: MoreThanOrEqual(timeWindowStart) });
+        conditions.push({ visitorId, userId: IsNull(), action, createdAt: MoreThanOrEqual(timeWindowStart) });
       }
 
       // 2. Nếu có IP mạng, thêm vào danh sách kiểm tra để "bọc lót"
       if (normalizedIp) {
-        conditions.push({ ipAddress: normalizedIp, action, createdAt: MoreThanOrEqual(timeWindowStart) });
+        conditions.push({ ipAddress: normalizedIp, userId: IsNull(), action, createdAt: MoreThanOrEqual(timeWindowStart) });
       }
 
-      // Chỉ thực hiện đếm nếu có ít nhất 1 thông tin định danh (VisitorId hoặc IP), nếu 2 người sử dụng chung ipAddress (ip mạng) thì sẽ bị ảnh hưởng
+      // Chỉ thực hiện đếm nếu có ít nhất 1 thông tin định danh (VisitorId hoặc IP)
       if (conditions.length > 0) {
         currentUsageCount = await this.usageRepository.count({ where: conditions });
       }
@@ -91,7 +91,7 @@ export class UsageLimitAiService {
     }
 
     // Ghi lại lượt sử dụng mới (sử dụng IP đã chuẩn hóa)
-    await this.recordUsage(userId, visitorId, normalizedIp, action);
+    const record = await this.recordUsage(userId, visitorId, normalizedIp, action);
 
     // Trả về thông tin hạn mức sau khi đã cộng thêm lượt vừa dùng
     const usedCount = currentUsageCount + 1;
@@ -99,19 +99,29 @@ export class UsageLimitAiService {
       limit,
       used: usedCount,
       remaining: Math.max(0, limit - usedCount),
+      usageRecordId: record.id,
     };
+  }
+
+  /**
+   * Hoàn lại lượt dùng (Xóa bản ghi) nếu như có sự cố (ví dụ AI lỗi).
+   */
+  async refundUsage(usageRecordId?: string) {
+    if (usageRecordId) {
+      await this.usageRepository.delete(usageRecordId);
+    }
   }
 
   private getLimit(action: UsageAction, isGuest: boolean): number {
     switch (action) {
       case UsageAction.PRACTICE_ESSAY:
-        return isGuest 
-          ? Number(this.configService.get('AI_LIMIT_PRACTICE_GUEST') || 2) 
+        return isGuest
+          ? Number(this.configService.get('AI_LIMIT_PRACTICE_GUEST') || 2)
           : Number(this.configService.get('AI_LIMIT_PRACTICE_USER') || 6);
       case UsageAction.ANALYZE_WORD_STRUCTURE:
       case UsageAction.ANALYZE_WORD_FAMILY:
-        return isGuest 
-          ? Number(this.configService.get('AI_LIMIT_VOCAB_GUEST') || 5) 
+        return isGuest
+          ? Number(this.configService.get('AI_LIMIT_VOCAB_GUEST') || 5)
           : Number(this.configService.get('AI_LIMIT_VOCAB_USER') || 10);
       default:
         return 0;
@@ -127,11 +137,11 @@ export class UsageLimitAiService {
     }
   }
   // tăng thêm 1 lần sử dụng bằng cách tăng thêm 1 bản ghi lượt dùng
-  private async recordUsage(userId?: string, visitorId?: string, ip?: string, action?: string) {
-    await this.usageRepository.save({
+  private async recordUsage(userId?: string, visitorId?: string, ip?: string, action?: string): Promise<UsageLimitAi> {
+    return await this.usageRepository.save({
       userId,
-      visitorId,
-      ipAddress: ip, // IP đã được chuẩn hóa
+      visitorId: userId ? undefined : visitorId,
+      ipAddress: userId ? undefined : ip, // Chỉ lưu IP nếu là Guest
       action: action || 'UNKNOWN',
     });
   }

@@ -109,7 +109,6 @@ export const WritingWorkspace: React.FC<WritingWorkspaceProps> = ({ promptObj, o
 
   const isTask1 = promptObj.taskType !== TaskType.TASK_2;
   const minWords = isTask1 ? 150 : 250;
-  const time = isTask1 ? '20 phút' : '40 phút';
 
   const wordCount = text.trim() ? text.trim().split(/\s+/).length : 0;
   const isEnough = wordCount >= minWords;
@@ -393,9 +392,19 @@ export const WritingWorkspace: React.FC<WritingWorkspaceProps> = ({ promptObj, o
                   <div className="flex flex-col gap-4">
                     {result.corrections.length === 0 ? (
                       <div className="text-center py-16 bg-white rounded-2xl border border-slate-100">
-                        <div className="text-5xl mb-4">🎉</div>
-                        <p className="text-[15px] font-bold text-slate-700">Perfect! Không tìm thấy lỗi nào!</p>
-                        <p className="text-sm text-slate-500 mt-2">Bài viết của bạn rất chuẩn chỉnh về mặt ngữ pháp và từ vựng.</p>
+                        {result.overallScore >= 8 ? (
+                          <>
+                            <div className="text-5xl mb-4">🎉</div>
+                            <p className="text-[15px] font-bold text-slate-700">Perfect! Không tìm thấy lỗi nào!</p>
+                            <p className="text-sm text-slate-500 mt-2">Bài viết của bạn rất chuẩn chỉnh về mặt ngữ pháp và từ vựng.</p>
+                          </>
+                        ) : (
+                          <>
+                            <div className="text-5xl mb-4">⚠️</div>
+                            <p className="text-[15px] font-bold text-slate-700">Cần kiểm tra lại nội dung!</p>
+                            <p className="text-sm text-slate-500 mt-2 px-6">Tuy không tìm thấy lỗi ngữ pháp cụ thể, nhưng điểm số của bạn thấp (Band {result.overallScore}). Có thể bài viết bị lạc đề hoặc không đủ nội dung học thuật.</p>
+                          </>
+                        )}
                       </div>
                     ) : (
                       result.corrections.map((c, i) => {
