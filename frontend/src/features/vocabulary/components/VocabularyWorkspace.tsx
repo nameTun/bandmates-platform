@@ -37,6 +37,11 @@ export const VocabularyWorkspace: React.FC = () => {
     const [familyAiLoading, setFamilyAiLoading] = useState(false);
     const [enrichedFamilyData, setEnrichedFamilyData] = useState<any[] | null>(null);
 
+    // Draggable Sidebar states
+    const [isPanelExpanded, setIsPanelExpanded] = useState(true);
+    const [panelWidth, setPanelWidth] = useState(380);
+    const [isDragging, setIsDragging] = useState(false);
+
     const [searchParams, setSearchParams] = useSearchParams();
     const urlWord = searchParams.get('word');
     const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -239,12 +244,12 @@ export const VocabularyWorkspace: React.FC = () => {
                     </div>
                 )}
 
-                {/* ── MAIN CONTENT GRID ── */}
+                {/* ── MAIN CONTENT FLEX ── */}
                 {result && !loading && (
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start animate-in fade-in slide-in-from-bottom-5 duration-700 mt-4 relative">
+                    <div className="flex flex-col lg:flex-row gap-5 lg:gap-8 items-start animate-in fade-in slide-in-from-bottom-5 duration-700 mt-4 relative">
                         
-                        {/* COLUMN 1 & 2 WRAPPER */}
-                        <div className={`transition-all duration-700 ${isExpanded ? 'lg:col-span-9 grid grid-cols-1 xl:grid-cols-2 gap-8' : 'lg:col-span-12 grid grid-cols-1 md:grid-cols-12 gap-8'}`}>
+                        {/* COLUMN 1 & 2 WRAPPER (Fluid flex) */}
+                        <div className={`flex-1 w-full grid grid-cols-1 ${isExpanded ? 'xl:grid-cols-2 gap-5 lg:gap-8' : 'lg:grid-cols-12 gap-5 lg:gap-8'} transition-all`}>
                             
                             {/* COLUMN 1: DICTIONARY CORE */}
                             <div className={`${isExpanded ? 'xl:col-span-1' : 'md:col-span-7'}`}>
@@ -259,7 +264,7 @@ export const VocabularyWorkspace: React.FC = () => {
                             </div>
 
                             {/* COLUMN 2: WORD FAMILY */}
-                            <div className={`${isExpanded ? 'xl:col-span-1' : 'md:col-span-5'}`}>
+                            <div className={`${isExpanded ? 'xl:col-span-1' : 'lg:col-span-5'}`}>
                                 <WordFamilyExplorer 
                                     familyData={result.wordFamilyData || []}
                                     enrichedFamilyData={enrichedFamilyData}
@@ -272,44 +277,34 @@ export const VocabularyWorkspace: React.FC = () => {
 
                         </div>
 
-                        {/* COLUMN 3: AI INSIGHTS */}
-                        <div className={`transition-all duration-700 ease-in-out origin-right ${isExpanded ? 'lg:col-span-3 opacity-100 scale-100 lg:sticky lg:top-8' : 'hidden opacity-0 scale-95'}`}>
-                            {isExpanded && (
-                                <AIInsightsSidebar 
-                                    isExpanded={isExpanded}
-                                    loading={aiLoading}
-                                    error={aiError}
-                                    aiNotes={aiNotes}
-                                    onAnalyze={handleAnalyzeIELTS}
-                                />
-                            )}
-                        </div>
+                        {/* COLUMN 3: AI INSIGHTS SIDEBAR */}
+                        {isExpanded && (
+                            <AIInsightsSidebar 
+                                loading={aiLoading}
+                                error={aiError}
+                                aiNotes={aiNotes}
+                                onAnalyze={handleAnalyzeIELTS}
+                                isPanelExpanded={isPanelExpanded}
+                                setIsPanelExpanded={setIsPanelExpanded}
+                                panelWidth={panelWidth}
+                                setPanelWidth={setPanelWidth}
+                                isDragging={isDragging}
+                                setIsDragging={setIsDragging}
+                            />
+                        )}
 
-                        {/* TOGGLE BUTTON FOR AI SIDEBAR (When closed) */}
+                        {/* TOGGLE BUTTON FOR AI SIDEBAR (When not even analyzed) */}
                         {!isExpanded && !loading && result && (
-                            <div className="hidden lg:block absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 z-50">
+                            <div className="hidden lg:block fixed right-0 top-1/2 -translate-y-1/2 z-[60]">
                                 <button 
                                     onClick={handleAnalyzeIELTS}
-                                    className="w-12 h-24 bg-indigo-600 rounded-l-2xl shadow-[-8px_0_15px_-3px_rgba(0,0,0,0.1)] flex items-center justify-center hover:bg-slate-900 group transition-all"
+                                    className="w-12 h-24 bg-indigo-600 rounded-l-2xl shadow-[-8px_0_15px_-3px_rgba(0,0,0,0.1)] flex flex-col items-center justify-center gap-1 hover:bg-slate-900 group transition-all"
                                     title="Mở bảng phân tích AI"
                                 >
-                                    <svg className="w-6 h-6 text-indigo-200 group-hover:text-white transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <svg className="w-5 h-5 text-indigo-300 group-hover:text-white transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
                                     </svg>
-                                </button>
-                            </div>
-                        )}
-                        {/* TOGGLE CLOSE BUTTON FOR AI SIDEBAR (When open) */}
-                        {isExpanded && !loading && result && (
-                            <div className="hidden lg:block absolute right-[24%] top-1/2 -translate-y-1/2 z-50">
-                                <button 
-                                    onClick={() => setIsExpanded(false)}
-                                    className="w-8 h-16 bg-slate-800 rounded-l-xl shadow-[-4px_0_10px_-2px_rgba(0,0,0,0.3)] flex items-center justify-center hover:bg-slate-700 group transition-colors border border-r-0 border-slate-700"
-                                    title="Đóng bảng AI"
-                                >
-                                    <svg className="w-5 h-5 text-slate-400 group-hover:text-white transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-                                    </svg>
+                                    <span className="text-[10px] font-black text-indigo-200 group-hover:text-white" style={{ writingMode: 'vertical-rl' }}>AI</span>
                                 </button>
                             </div>
                         )}
