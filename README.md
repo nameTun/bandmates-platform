@@ -1,121 +1,157 @@
 # BandMates AI ✍️
-**A Comprehensive AI-Driven IELTS Learning & Management Ecosystem**
+**AI-Driven IELTS Learning & Management Platform**
 
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)]()
 [![NestJS](https://img.shields.io/badge/Backend-NestJS-red.svg)]()
 [![React](https://img.shields.io/badge/Frontend-React%2019-blue.svg)]()
 [![Docker](https://img.shields.io/badge/Container-Docker-blue.svg)]()
+[![MySQL](https://img.shields.io/badge/Database-MySQL%208-blue.svg)]()
 [![Gemini AI](https://img.shields.io/badge/AI-Gemini--3.0--Pro-orange.svg)]()
 
-BandMates AI is more than just a writing tool; it is a full-scale educational platform designed to bridge the gap between AI intelligence and IELTS academic standards. Highlighting a **Modular Monolith** architecture, a **Role-Based Access Control (RBAC)** admin system, and a sophisticated **Vocabulary Intelligence Hub**, this project showcases production-ready solutions for complex educational challenges.
+BandMates AI is a full-stack educational platform integrating generative AI with IELTS academic standards. Built with a focus on system resilience and maintainability, this project implements a **Modular Monolith** architecture, **Role-Based Access Control (RBAC)**, and a custom **AI Quota & Rate Limiting Engine**. It serves as a showcase of production-ready patterns for scalable backend development.
 
 ---
 
 ## 📖 Table of Contents
-1. [Core Features Showcase](#-core-features-showcase)
-2. [Administrative Command Center (CMS)](#-administrative-command-center-cms)
-3. [Technical Deep Dives](#-technical-deep-dives)
-   - [Auth & Session](#1-secure-authentication--session-lifecycle)
-   - [AI Prompt Engineering](#2-strategic-ai-prompt-engineering)
-   - [Guest vs User Management](#3-multi-tiered-usage-management)
+1. [Features Showcase](#-features-showcase)
+2. [Administrative CMS](#-administrative-cms)
+3. [Engineering Highlights](#-engineering-highlights)
 4. [Design Philosophy](#-design-philosophy)
 5. [System Architecture](#-system-architecture)
-6. [Project Structure](#-project-structure)
-7. [Database Schema (ERD)](#-database-schema-erd)
-8. [Tech Stack](#-tech-stack)
+6. [Database Schema](#-database-schema)
+7. [Tech Stack](#-tech-stack)
+8. [Project Structure](#-project-structure)
 9. [Installation & Setup](#-installation--setup)
-10. [Authors](#-authors)
 
 ---
 
-## 🌟 Core Features Showcase
+## 🌟 Features Showcase
 
 ### 1. Intelligent Writing Coach
-Evaluating essays based on official IELTS descriptors. The AI doesn't just grade—it coaches by providing a **"Better Version"** at a strategic difficulty level to push the student further.
-> *[INSERT SCREENSHOT: Practice Essay Analysis]*
+Evaluates essays strictly against IELTS criteria. The AI engine provides actionable feedback and generates an optimized "Better Version" dynamically scaled to the user's target proficiency level.
+
+![Practice Essay Analysis UI](./assets/images/essay.png)
+
+<details>
+<summary><b>🎬 View User Workflow Demo</b></summary>
+<video src="./assets/gifs/user.mov" controls="controls" style="width: 100%; max-width: 800px; border-radius: 8px; margin-top: 10px;"></video>
+</details>
 
 ### 2. Vocabulary Intelligence Hub
-Go beyond simple definitions. This module leverages AI to provide:
-- **Automatic Word-Family Expansion**: Helping students learn related nouns, verbs, and adjectives.
-- **Contextual Academic Usage**: Real-world examples tailored to the user's specific **Target Band** and **Study Purpose** (Business, Education, or Immigration).
-- **Vietnamese Bilingual Explanations**: Ensuring zero ambiguity for learners.
-> *[INSERT SCREENSHOT: Vocabulary Analysis Hub]*
+An AI-powered lexicon featuring:
+- **Automated Word-Family Expansion**: Retrieves and contextualizes related nouns, verbs, and adjectives.
+- **Context-Aware Definitions**: Generates academic examples tailored to the user's `targetBand` and `studyPurpose`.
+- **Bilingual Mapping**: High-fidelity exact translations for academic terms.
+
+![Vocabulary Analysis Hub UI](./assets/images/vocabulary.png)
 
 ---
 
-## 🛠️ Administrative Command Center (CMS)
-A robust internal tool for content managers to orchestrate the platform's educational material.
-- **Content Hierarchy Management**: Manage Categories, Topics, and Prompts through a protected CRUD interface.
-- **Role-Based Access Control (RBAC)**: Secure separation between Student interfaces and Administrative controls.
-- **Real-time Moderation**: Immediate updates to practice materials without redeploying the backend.
-> *[INSERT SCREENSHOT: Admin Dashboard / Prompt Management]*
+## 🛠️ Administrative CMS
+A robust internal dashboard for content orchestration.
+- **Content Hierarchy**: Protected CRUD operations for Categories, Topics, and Prompts.
+- **RBAC Matrix**: Strict separation between Student and Administrative privileges.
+- **Real-time Modulation**: Allows dynamic updates to learning materials without backend redeployment.
+
+![Admin Dashboard UI](./assets/images/admin.png)
+
+<details>
+<summary><b>🎬 View Admin CMS Demo</b></summary>
+<video src="./assets/gifs/admin.mov" controls="controls" style="width: 100%; max-width: 800px; border-radius: 8px; margin-top: 10px;"></video>
+</details>
 
 ---
 
-## 🔥 Technical Deep Dives
+## 🔥 Engineering Highlights
 
-### 1. Secure Authentication & Session Lifecycle
-- **JWT Rotation Policy**: Short-lived Access Tokens paired with stateful Refresh Tokens.
-- **Security-First Storage**: Refresh Tokens are persisted in **HttpOnly, Secure, SameSite Cookies**, providing a defense-in-depth against XSS and CSRF.
-- **Silent Refresh Interceptors**: A custom frontend interceptor pattern handles expired sessions automatically, ensuring zero friction for the user.
+This project emphasizes backend stability, resource protection, and high availability.
 
-### 2. Strategic AI Prompt Engineering
-- **Personalization Engine**: Prompts are dynamically injected with user profile data (`targetBand`, `studyPurpose`) to ensure feedback is neither too easy nor too difficult.
-- **Resource Guarding**: A custom database-driven usage tracking system prevents AI quota abuse and ensures service sustainability.
+### 1. Intelligent Rate Limiting & Quota Engine
+An internal mechanism designed to enforce API limits and calculate resource consumption dynamically:
+- **Algorithmic Rate Limiting (RPM/RPD)**: Implemented a custom application-layer algorithm to enforce both **Requests Per Minute (RPM)** and **Requests Per Day (RPD)** constraints simultaneously, preventing API exhaustion without relying on external cache nodes.
+- **Dual-Layer Identity Tracking (VisitorID + IP)**: Engineered a hybrid guest identification system synthesizing client-generated `x-visitor-id` headers with strict server-side `ipAddress` normalization (mitigating IPv6 anomalies). This effectively counters basic cookie-wiping evasions.
+- **Rolling Time-Window Calculation**: Utilizes a precision mathematical sliding window (`Date.now() - 24h`) for quota resets, eliminating the timezone desynchronization flaws common to static 0:00 midnight cron tasks.
 
-### 3. Multi-Tiered Usage Management
-The system differentiates between **Guests** and **Authenticated Users** to balance service accessibility with resource costs:
-- **Guest Access**: IP-based rate limiting, allowing limited AI evaluation without registration.
-- **Authenticated Access**: Tiered usage quotas, persistent history tracking, and personalized learning profiles.
-- **Quota Guard**: A custom background logic that resets limits periodically and prevents API over-utilization.
+### 2. High-Availability Generative AI Integration (LLM Resilience)
+Handling non-deterministic LLM responses safely within a strict REST API environment:
+- **Dynamic Model Fallback Strategy**: Engineered a self-healing pipeline where a `503 Service Unavailable` or overload error from the primary Gemini model instantly triggers a fallback mechanism to a secondary LLM tier, ensuring zero-downtime service availability.
+- **Automated Compensation Transactions (Refunds)**: If the system completely fails to communicate with the AI network or intercepts a local DB cache-hit, the backend rigidly enforces a Rollback/Refund protocol to restore the user's deducted RPM/RPD quotas before returning the payload.
+- **JSON Serialization & Sanitation**: Intercepts unpredictable AI outputs using strict RegEx sanitation layers to strip markdown hallucinations (` ```json `). This guarantees the TypeORM database ingests strictly valid JSON payloads, neutralizing potential data persistence anomalies.
+
+### 3. Secure Authentication Lifecycle
+- **Hybrid Token Rotation**: Secures session data by distributing short-lived Access Tokens in-memory while encapsulating stateful Refresh Tokens deep within **HttpOnly, SameSite, Secure Cookies** to mitigate XSS and CSRF attack surfaces.
+- **Silent Interceptor Mesh**: A frontend network middleware designed to intercept `401 Unauthorized` responses mid-flight, secretly executing a token rotation protocol, and replaying the failed API requests without breaking the UX state.
 
 ---
 
 ## 🎯 Design Philosophy
 
-This project is built with a focus on long-term maintainability and scalability, adhering to industry-standard design principles:
+Built adhering strictly to standard software design patterns:
 
-- **Modular Monolith**: Organized by self-contained domain modules (`Auth`, `Scoring`, `Vocabulary`) to ensure a high level of **Separation of Concerns (SoC)**.
-- **Dependency Injection (DI)**: Leveraging NestJS's core DI container to produce loosely coupled and highly testable components.
-- **Single Responsibility Principle (SRP)**: Distinct separation between HTTP delivery layers (Controllers) and Business Logic layers (Services).
-- **Clean API Design**: Standardized JSON response structures and centralized error handling via Global Exception Filters for a consistent developer experience.
+- **Modular Monolith**: Codebase is separated into bounded domain modules (`Auth`, `Scoring`, `Vocabulary`, `UsageLimit`) to enforce strict **Separation of Concerns (SoC)**.
+- **Dependency Injection (DI)**: Utilizes NestJS's DI container to decouple services, enhancing testability.
+- **Single Responsibility Principle (SRP)**: Controllers strictly map HTTP input/output; Services process business logic; Entities exclusively bind data models.
+- **Standardized API Contracts**: Enforces uniform JSON response payloads globally via custom exception filters and interceptors.
 
 ---
 
 ## 🏗️ System Architecture
 
-### Request & Authorization Flow
+<details>
+<summary><b>Click to expand: Request & Authorization Flow</b></summary>
+
 ```mermaid
 sequenceDiagram
-    participant Student
-    participant Admin
-    participant Frontend
-    participant Guards (RBAC)
-    participant Backend
-    participant AI/Database
+    participant Client as Frontend / User
+    participant Interceptor as Axios Interceptor
+    participant Gate as NestJS Guards (RBAC)
+    participant Core as Domain Controllers
+    participant DB as MySQL (TypeORM)
+    participant AI as Gemini Service
 
-    Student->>Frontend: Access Writing Tools
-    Admin->>Frontend: Access CMS
+    Client->>Interceptor: Request protected route
+    Interceptor->>Gate: Forward with Bearer Token
     
-    Frontend->>Guards (RBAC): Validate Token & Role (@Roles)
-    Guards (RBAC)-->>Frontend: Deny (403) or Allow
+    alt Token Expired
+        Gate-->>Interceptor: 401 Unauthorized
+        Interceptor->>Gate: /auth/refresh (Reads HttpOnly Cookie)
+        Gate-->>Interceptor: 200 OK + New Token
+        Interceptor->>Gate: Retry original request
+    end
+
+    Gate->>Core: Roles & Auth Validated
+    Core->>DB: Pre-check Quota/Rate Limit
+    DB-->>Core: Quota Deducted
+    Core->>AI: Context-Aware Prompt Execution
     
-    Frontend->>Backend: Request Domain Action
-    Backend->>AI/Database: Process Transaction
-    AI/Database-->>Backend: Result
-    Backend-->>Frontend: Standardized JSON Body
+    alt AI Timeout / Error
+        AI-->>Core: 503 Error
+        Core->>DB: Rollback/Refund Quota
+        Core-->>Client: Custom Error JSON
+    else AI Success
+        AI-->>Core: Unstructured Text
+        Core->>Core: Sanitize & Parse JSON
+        Core->>DB: Save Attempt History
+        Core-->>Client: Standardized Payload
+    end
 ```
+</details>
 
 ---
 
-## 📊 Database Schema (ERD)
+## 📊 Database Schema
+
+Modeled strictly with TypeORM focusing on index optimization and relational integrity.
+
+<details>
+<summary><b>Click to expand: Show Entity Relationship Diagram</b></summary>
 
 ```mermaid
 erDiagram
-    Users ||--o| UserProfiles : "defines"
-    Users ||--o{ ExamAttempts : "submits"
-    Users ||--o{ VocabularyHistory : "saves"
-    Users ||--o| UsageLimits : "quots"
+    Users ||--o| UserProfiles : "1:1 defines"
+    Users ||--o{ PracticeAttempts : "1:N submits"
+    Users ||--o{ VocabularyHistory : "1:N saves"
+    Users ||--o| UsageLimits : "1:1 quotas"
     
     Users {
         uuid id "PK"
@@ -125,7 +161,7 @@ erDiagram
 
     Categories ||--o{ Topics : "contains"
     Topics ||--o{ Prompts : "presents"
-    ExamAttempts }o--|| Topics : "related_to"
+    PracticeAttempts }o--|| Prompts : "answers"
 
     Prompts {
         uuid id "PK"
@@ -139,94 +175,80 @@ erDiagram
     }
 
     VocabularyHistory {
-        string word "UK"
+        string word "Indexed"
         json aiData
     }
+    
+    UsageLimits {
+        int limitCount
+        string visitorId "Indexed"
+        datetime resetTime
+    }
 ```
-
----
-
-## 📂 Project Structure
-
-The project follows a **Layered Architecture** within a **Modular Monolith** structure, ensuring that business logic is decoupled from technical implementation.
-
-### Backend Overview
-```bash
-backend/src/
-├── modules/           # Feature-based modules (Domain-driven)
-│   ├── auth/          # Authentication & Security logic
-│   ├── scoring/       # AI Scoring & Evaluation domain
-│   ├── vocabulary/    # Vocabulary AI Hub domain
-│   └── .../           # Other self-contained modules
-├── common/            # Cross-cutting concerns (Global scope)
-│   ├── guards/        # Authentication & RBAC protectors
-│   ├── filters/       # Global exception handling
-│   └── decorators/    # Custom metadata decorators
-├── config/            # Strict environment validation schema
-└── main.ts            # Application bootstrap & middleware config
-```
-
-### Applied Design Patterns
-- **Provider Pattern**: Leveraging NestJS's DI to manage service lifetimes.
-- **Factory Pattern**: Used in AI module configuration to initialize different models dynamically.
-- **Decorator Pattern**: Extensive use of TypeScript decorators for metadata-driven development (e.g., `@Roles`, `@GetUser`).
-- **Data Mapper Pattern**: TypeORM entities separation from business logic for cleaner data transitions.
+</details>
 
 ---
 
 ## 🛠️ Tech Stack
 
-### Infrastructure & DevOps
-- **Containerization**: **Docker** & **Docker Compose** for seamless database orchestration.
-- **Framework**: **NestJS (TypeScript)** - Scalable Modular Monolith architecture.
+### Infrastructure
+- **Containerization**: **Docker** & **Docker Compose**
+- **Framework**: **NestJS (TypeScript)**
 - **Runtime**: Node.js (v18+)
 
 ### Persistence & Security
-- **Database**: **MySQL** + **TypeORM** (Relational Integrity).
+- **Database**: **MySQL 8.0**
+- **ORM**: **TypeORM** for robust schema mapping.
 - **Authentication**: Passport.js with **JWT Strategy**.
-- **Middleware**: Helmet (Security Headers), Cookie-Parser.
+- **Security Middleware**: Helmet, Cookie-Parser, CORS.
 
-### AI & Frontend
-- **AI Core**: Google Gemini 3.0 Pro (Strategic AI Orchestration).
-- **State Management**: **Zustand** (Predictable State).
-- **UI System**: React 19 + Vite + Tailwind CSS + Ant Design.
+### AI & Client
+- **AI Integration**: Google Gemini 3.0 Pro SDK
+- **State Management**: **Zustand**
+- **UI Framework**: React 19 + Vite + Tailwind CSS + Ant Design.
+
+---
+
+## 📂 Project Structure
+
+```bash
+backend/src/
+├── modules/           # Feature-based bounded contexts
+│   ├── auth/          # Authentication & Token Rotation Logic
+│   ├── usage-limit-ai/# AI Quota Engine & Guest Tracking
+│   ├── practice/      # Practice Execution & Essay Validation
+│   ├── vocabulary/    # Vocabulary Enrichment AI Hub
+│   └── .../           
+├── common/            # Cross-cutting concerns
+│   ├── guards/        # Authentication & RBAC protectors
+│   ├── filters/       # Uniform exception handling
+│   └── decorators/    # Custom metadata extraction (e.g., @VisitorId)
+├── config/            # Environment validation schemas
+└── main.ts            # Application bootstrap & middleware configs
+```
 
 ---
 
 ## ⚡ Installation & Setup
 
-### 1. Prerequisite
-Ensure you have **Node.js 18+** and **Docker Desktop** installed and running on your machine.
+Ensure **Node.js 18+** and **Docker Desktop** are installed.
 
-### 2. Infrastructure Setup (Docker First)
-The project uses Docker to orchestrate the database environment. Run the following command to start the infrastructure:
 ```bash
-# Start MySQL 8.0 container in detached mode
+# 1. Start MySQL infrastructure
 docker-compose up -d
 
-# Verify that the container is running
-docker ps
-```
-
-### 3. Application Installation
-Once the database is up, install dependencies for both layers:
-```bash
-# Clone the repository
+# 2. Clone repository & install dependencies
 git clone https://github.com/nameTun/bandmates-platform.git
-
-# Install Backend & Frontend dependencies
 cd backend && npm install
 cd ../frontend && npm install
-```
 
-### 4. Configuration & Launch
-1. Create a `.env` file in the `backend` folder (refer to `.env.example`).
-2. Launch the development servers:
-```bash
-# Terminal 1: Backend
+# 3. Configure backend & frontend environments
+# Duplicate the example templates and provide your API keys
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env
+
+# 4. Launch applications
 cd backend && npm run start:dev
-
-# Terminal 2: Frontend
 cd frontend && npm run dev
 ```
 
@@ -234,7 +256,7 @@ cd frontend && npm run dev
 
 ## 📬 Contact
 **Phan Đình Tuân**  
-*Backend Developer Specializing in Node.js & AI Systems*
+*Backend Developer*
 
 - [tuanktvn2001@gmail.com](mailto:tuanktvn2001@gmail.com)
 - [LinkedIn Profile](https://www.linkedin.com/in/phan-dinh-tuan)
