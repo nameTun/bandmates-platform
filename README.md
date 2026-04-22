@@ -34,7 +34,7 @@ Evaluates essays strictly against IELTS criteria. The AI engine provides actiona
 
 <details>
 <summary><b>🎬 View User Workflow Demo</b></summary>
-<video src="./assets/gifs/user.mov" controls="controls" style="width: 100%; max-width: 800px; border-radius: 8px; margin-top: 10px;"></video>
+<img src="./assets/gifs/0422user.gif" style="width: 100%; max-width: 800px; border-radius: 8px; margin-top: 10px;" alt="User Workflow Demo" />
 </details>
 
 ### 2. Vocabulary Intelligence Hub
@@ -57,7 +57,7 @@ A robust internal dashboard for content orchestration.
 
 <details>
 <summary><b>🎬 View Admin CMS Demo</b></summary>
-<video src="./assets/gifs/admin.mov" controls="controls" style="width: 100%; max-width: 800px; border-radius: 8px; margin-top: 10px;"></video>
+<img src="./assets/gifs/0422admin.gif" style="width: 100%; max-width: 800px; border-radius: 8px; margin-top: 10px;" alt="Admin CMS Demo" />
 </details>
 
 ---
