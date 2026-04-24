@@ -5,9 +5,11 @@ services:
     image: mysql:8.0
     container_name: bandmates_db
     restart: always
+    command: --default-time-zone='+07:00'
     environment:
       MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: english_scorer
+      MYSQL_DATABASE: bandmates_db
+      TZ: Asia/Ho_Chi_Minh
     ports:
       - "3306:3306"
     volumes:

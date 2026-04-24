@@ -51,8 +51,6 @@ export class ScoringCriteriaService implements OnModuleInit {
         const count = await this.criteriaRepository.count();
         if (count > 0) return;
 
-        console.log('--- Seeding Scoring Criteria ---');
-
         const defaultCriteria = [
             // ── TASK 2 ──────────────────────────────────────────────────────────────
             {
@@ -200,7 +198,5 @@ Provide a "Gap Analysis". Identify the student's current overall band score. Cle
         for (const criteria of defaultCriteria) {
             await this.criteriaRepository.save(this.criteriaRepository.create(criteria));
         }
-
-        console.log('--- Scoring Criteria Seeded Successfully ---');
     }
 }
