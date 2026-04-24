@@ -18,7 +18,7 @@ async function seed() {
     username: process.env.DATABASE_USER || 'root',
     password: process.env.DATABASE_PASSWORD || '',
     database: process.env.DATABASE_NAME || 'test',
-    entities: [User, UserProfile, Prompt, Category, Topic, PracticeAttempt, ScoringCriteria],
+    entities: [__dirname + '/../src/**/*.entity{.ts,.js}'],
     synchronize: false,
   });
 
@@ -26,7 +26,7 @@ async function seed() {
 
   const adminEmail = 'admin@gmail.com';
   const adminPass = 'Admin123456';
-  const adminName = 'System Admin';
+  const adminName = 'Nguyễn Văn A Min';
 
   try {
     const existingAdmin = await userRepository.findOne({ where: { email: adminEmail } });

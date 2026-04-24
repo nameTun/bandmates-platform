@@ -8,5 +8,5 @@ export default registerAs('database', () => ({
     password: process.env.DATABASE_PASSWORD || '',
     database: process.env.DATABASE_NAME || 'test',
     entities: [__dirname + '/../**/*.entity{.ts,.js}'],
-    synchronize: true, // Should be false in production
+    synchronize: process.env.NODE_ENV !== 'production', // Auto-disabled on production
 }));
