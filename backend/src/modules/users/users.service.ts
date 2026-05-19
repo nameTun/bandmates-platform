@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThanOrEqual } from 'typeorm';
 import { User } from './entities/user.entity';
 import { UserProfile } from '../user-profiles/entities/user-profile.entity';
+import { GetUsersQueryDto } from './dto/get-users-query.dto';
 
 @Injectable()
 export class UsersService {
@@ -90,13 +91,7 @@ export class UsersService {
     /**
      * Lấy danh sách người dùng với các thông số phân tích (dành cho Admin)
      */
-    async findAll(query: {
-        page?: number;
-        limit?: number;
-        search?: string;
-        role?: string;
-        provider?: string;
-    }) {
+    async findAll(query: GetUsersQueryDto) {
         const { page = 1, limit = 10, search, role, provider } = query;
         const skip = (page - 1) * limit;
 

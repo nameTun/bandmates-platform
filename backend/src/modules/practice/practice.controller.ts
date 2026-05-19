@@ -18,11 +18,11 @@ export class PracticeController {
     constructor(
         private practiceService: PracticeService,
         private userProfilesService: UserProfilesService,
+        private usageLimitService: UsageLimitAiService,
         @InjectRepository(PracticeAttempt)
         private attemptRepository: Repository<PracticeAttempt>,
         @InjectRepository(Prompt)
         private promptRepository: Repository<Prompt>,
-        private usageLimitService: UsageLimitAiService,
     ) { }
 
     @Post('check')

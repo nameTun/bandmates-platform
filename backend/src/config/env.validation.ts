@@ -49,7 +49,7 @@ class EnvironmentVariables {
  * @param config Bản ghi chứa các biến môi trường thô
  * @returns Đối tượng config đã được xác thực và ép kiểu
  */
-export function validate(config: Record<string, unknown>) {
+export function validateEnvConfig(config: Record<string, unknown>) {
     const validatedConfig = plainToInstance(
         EnvironmentVariables,
         config,
