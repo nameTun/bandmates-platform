@@ -4,6 +4,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { UserRole } from './entities/user.entity';
+import { GetUsersQueryDto } from './dto/get-users-query.dto';
 
 @Controller('admin/users')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -12,20 +13,8 @@ export class UsersController {
     constructor(private readonly usersService: UsersService) {}
 
     @Get()
-    async findAll(
-        @Query('page') page: string,
-        @Query('limit') limit: string,
-        @Query('search') search?: string,
-        @Query('role') role?: string,
-        @Query('provider') provider?: string,
-    ) {
-        return this.usersService.findAll({
-            page: page ? parseInt(page) : 1,
-            limit: limit ? parseInt(limit) : 10,
-            search,
-            role,
-            provider,
-        });
+    async findAll(@Query() query: GetUsersQueryDto) {
+        return this.usersService.findAll(query);
     }
 
     @Get('stats')

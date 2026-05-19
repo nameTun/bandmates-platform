@@ -29,7 +29,7 @@ export class AuthController {
         const { tokens } = await this.authService.login(user);
 
         // Set Refresh Token as HttpOnly Cookie
-        setCookies(res, tokens.refreshToken);
+        setCookies(this.configService, res, tokens.refreshToken);
 
         // Redirect to Frontend
         const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:5173';
@@ -45,7 +45,7 @@ export class AuthController {
     async facebookAuthRedirect(@GetUser() user: any, @Res() res: Response) {
         const { tokens } = await this.authService.login(user);
 
-        setCookies(res, tokens.refreshToken);
+        setCookies(this.configService, res, tokens.refreshToken);
 
         const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:5173';
         return res.redirect(`${frontendUrl}/login?status=success`);
@@ -53,7 +53,7 @@ export class AuthController {
 
     @Post('refresh')
     async refresh(
-        @Cookies('refreshToken') refreshToken: string, 
+        @Cookies('refreshToken') refreshToken: string,
         @Res({ passthrough: true }) res: Response
     ) {
         if (!refreshToken) {
@@ -65,7 +65,7 @@ export class AuthController {
             payload = this.jwtService.verify(
                 refreshToken,
                 {
-                    secret: process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET
+                    secret: this.configService.get<string>('JWT_REFRESH_SECRET')
                 });
         } catch (e) {
             throw new UnauthorizedException('Invalid refresh token');
@@ -79,7 +79,7 @@ export class AuthController {
         const { tokens, user } = await this.authService.refreshTokens(payload.userId, refreshToken);
 
         // Rotate Refresh Token
-        setCookies(res, tokens.refreshToken);
+        setCookies(this.configService, res, tokens.refreshToken);
 
         return { accessToken: tokens.accessToken, user };
     }
@@ -88,7 +88,7 @@ export class AuthController {
     @UseGuards(AuthGuard('jwt'))
     async logout(@GetUser('id') userId: string, @Res({ passthrough: true }) res: Response) {
         await this.authService.logoutUser(userId);
-        clearCookie(res);
+        clearCookie(this.configService, res);
         return { message: 'Logged out' };
     }
 
@@ -96,7 +96,7 @@ export class AuthController {
     async register(@Body() dto: RegisterDto, @Res({ passthrough: true }) res: Response) {
         const { tokens, user } = await this.authService.registerUser(dto);
 
-        setCookies(res, tokens.refreshToken);
+        setCookies(this.configService, res, tokens.refreshToken);
 
         return { accessToken: tokens.accessToken, user };
     }
@@ -105,8 +105,8 @@ export class AuthController {
     async login(@Body() dto: LoginDto, @Res({ passthrough: true }) res: Response) {
         const { tokens, user } = await this.authService.loginUser(dto);
 
-        setCookies(res, tokens.refreshToken);
+        setCookies(this.configService, res, tokens.refreshToken);
 
-        return { accessToken: tokens.accessToken, user};
+        return { accessToken: tokens.accessToken, user };
     }
 }
