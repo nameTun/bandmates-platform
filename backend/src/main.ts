@@ -5,6 +5,7 @@ import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 /**
  * bootstrap() là hàm khởi động trung tâm của ứng dụng NestJS.
@@ -61,6 +62,17 @@ async function bootstrap() {
     origin: process.env.FRONTEND_URL || 'http://localhost:5173', // Linh hoạt theo biến môi trường
     credentials: true,
   });
+
+  // --- Cấu hình Swagger ---
+  const config = new DocumentBuilder()
+    .setTitle('BandMates API')
+    .setDescription('Tài liệu API cho dự án BandMates Platform')
+    .setVersion('1.0')
+    .addBearerAuth()
+    .build();
+
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api/docs', app, document);
 
   await app.listen(process.env.PORT ?? 3000);
 }
