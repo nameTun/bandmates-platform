@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Prompt } from './entities/prompt.entity';
@@ -20,14 +24,16 @@ export class PromptsService {
     @InjectRepository(Category)
     private categoriesRepository: Repository<Category>,
     private cloudinaryService: CloudinaryService,
-  ) { }
+  ) {}
 
   // --- QUẢN LÝ ĐỀ BÀI (Prompt) ---
   async create(createPromptDto: CreatePromptDto): Promise<Prompt> {
     const { categoryId, topicId, ...promptData } = createPromptDto;
 
     // 1. Tìm Category (Bắt buộc)
-    const category = await this.categoriesRepository.findOne({ where: { id: categoryId } });
+    const category = await this.categoriesRepository.findOne({
+      where: { id: categoryId },
+    });
     if (!category) {
       throw new BadRequestException('Danh mục không hợp lệ');
     }
@@ -35,7 +41,9 @@ export class PromptsService {
     // 2. Tìm Topic (Tuỳ chọn cho Task 1, thường bắt buộc cho Task 2)
     let topic: Topic | undefined = undefined;
     if (topicId) {
-      const foundTopic = await this.topicsRepository.findOne({ where: { id: topicId } });
+      const foundTopic = await this.topicsRepository.findOne({
+        where: { id: topicId },
+      });
       if (!foundTopic) {
         throw new BadRequestException('Chủ đề không hợp lệ');
       }
@@ -59,7 +67,9 @@ export class PromptsService {
 
     // 1. Nếu có categoryId mới
     if (categoryId) {
-      const category = await this.categoriesRepository.findOne({ where: { id: categoryId } });
+      const category = await this.categoriesRepository.findOne({
+        where: { id: categoryId },
+      });
       if (!category) throw new BadRequestException('Danh mục không hợp lệ');
       prompt.category = category;
     }
@@ -69,7 +79,9 @@ export class PromptsService {
       if (topicId === null || topicId === '') {
         prompt.topic = null as any;
       } else {
-        const topic = await this.topicsRepository.findOne({ where: { id: topicId } });
+        const topic = await this.topicsRepository.findOne({
+          where: { id: topicId },
+        });
         if (!topic) throw new BadRequestException('Chủ đề không học lệ');
         prompt.topic = topic;
       }
@@ -84,15 +96,20 @@ export class PromptsService {
   // Xoá đề bài
   async remove(id: string): Promise<void> {
     const prompt = await this.findOne(id);
-    
+
     // Nếu có ảnh Cloudinary, thực hiện xóa ảnh trên Cloud
     if (prompt.imageUrl && prompt.imageUrl.includes('cloudinary.com')) {
-      const publicId = this.cloudinaryService.extractPublicIdFromUrl(prompt.imageUrl);
+      const publicId = this.cloudinaryService.extractPublicIdFromUrl(
+        prompt.imageUrl,
+      );
       if (publicId) {
         try {
           await this.cloudinaryService.deleteImage(publicId);
         } catch (error) {
-          console.error(`Không thể xóa ảnh trên Cloudinary cho đề bài ${id}:`, error);
+          console.error(
+            `Không thể xóa ảnh trên Cloudinary cho đề bài ${id}:`,
+            error,
+          );
         }
       }
     }
@@ -129,7 +146,11 @@ export class PromptsService {
    */
   async importPromptsTask2(fileBuffer: Buffer) {
     const data = this.parseExcelSheet(fileBuffer);
-    return this.processImport(data, TaskType.TASK_2, ['topic', 'category', 'context']);
+    return this.processImport(data, TaskType.TASK_2, [
+      'topic',
+      'category',
+      'context',
+    ]);
   }
 
   /**
@@ -138,7 +159,11 @@ export class PromptsService {
    */
   async importPromptsTask1Academic(fileBuffer: Buffer) {
     const data = this.parseExcelSheet(fileBuffer);
-    return this.processImport(data, TaskType.TASK_1_ACADEMIC, ['imageurl', 'category', 'prompt']);
+    return this.processImport(data, TaskType.TASK_1_ACADEMIC, [
+      'imageurl',
+      'category',
+      'prompt',
+    ]);
   }
 
   /**
@@ -147,7 +172,10 @@ export class PromptsService {
    */
   async importPromptsTask1General(fileBuffer: Buffer) {
     const data = this.parseExcelSheet(fileBuffer);
-    return this.processImport(data, TaskType.TASK_1_GENERAL, ['category', 'context']);
+    return this.processImport(data, TaskType.TASK_1_GENERAL, [
+      'category',
+      'context',
+    ]);
   }
 
   /**
@@ -163,26 +191,48 @@ export class PromptsService {
   /**
    * Logic xử lý Import chung cho tất cả các loại Task
    */
-  private async processImport(data: any[], taskType: TaskType, requiredFields: string[]) {
-    const results = { total: 0, created: 0, updated: 0, errors: [] as string[] };
+  private async processImport(
+    data: any[],
+    taskType: TaskType,
+    requiredFields: string[],
+  ) {
+    const results = {
+      total: 0,
+      created: 0,
+      updated: 0,
+      errors: [] as string[],
+    };
 
     for (const [index, rawRow] of data.entries()) {
       try {
         results.total++;
-        
+
         // Chuyển tất cả key về chữ thường, xoá dấu cách và SMART MAPPING
         const row: any = {};
         for (const key of Object.keys(rawRow)) {
           const cleanKey = key.toLowerCase().replace(/\s+/g, ''); // Xoá hết dấu cách
           row[cleanKey] = rawRow[key];
-          
+
           // Smart Mapping (Chỉ cần chứa từ khoá là được)
-          if (cleanKey.includes('topic') || cleanKey.includes('chủđề')) row.topic = rawRow[key];
-          if (cleanKey.includes('category') || cleanKey.includes('dạngbài')) row.category = rawRow[key];
-          if (cleanKey.includes('prompt') || cleanKey.includes('question') || cleanKey.includes('đềbài') || cleanKey.includes('nộidung')) {
+          if (cleanKey.includes('topic') || cleanKey.includes('chủđề'))
+            row.topic = rawRow[key];
+          if (cleanKey.includes('category') || cleanKey.includes('dạngbài'))
+            row.category = rawRow[key];
+          if (
+            cleanKey.includes('prompt') ||
+            cleanKey.includes('question') ||
+            cleanKey.includes('đềbài') ||
+            cleanKey.includes('nộidung')
+          ) {
             row.prompt = rawRow[key];
           }
-          if (cleanKey.includes('url') || cleanKey.includes('image') || cleanKey.includes('ảnh') || cleanKey.includes('graphic') || cleanKey.includes('media')) {
+          if (
+            cleanKey.includes('url') ||
+            cleanKey.includes('image') ||
+            cleanKey.includes('ảnh') ||
+            cleanKey.includes('graphic') ||
+            cleanKey.includes('media')
+          ) {
             row.imageurl = rawRow[key];
           }
           if (cleanKey.includes('target') || cleanKey.includes('band')) {
@@ -191,43 +241,53 @@ export class PromptsService {
         }
 
         // 1. Lấy nội dung đề bài (Đã được map ở trên)
-        const content = row.prompt || row.content || row.context || row.question;
+        const content =
+          row.prompt || row.content || row.context || row.question;
         const imageUrl = row.imageurl || row.url || row.imageUrl;
 
         // 2. Validate các trường bắt buộc
-        const missingFields = requiredFields.filter(f => {
+        const missingFields = requiredFields.filter((f) => {
           const field = f.toLowerCase();
           // Kiểm tra xem đã được map vào các key chuẩn chưa
-          if (field === 'context' || field === 'content' || field === 'prompt') return !content;
+          if (field === 'context' || field === 'content' || field === 'prompt')
+            return !content;
           if (field === 'topic') return !row.topic;
           if (field === 'category') return !row.category;
-          if (field === 'url' || field === 'imageurl' || field === 'image_url') return !imageUrl;
+          if (field === 'url' || field === 'imageurl' || field === 'image_url')
+            return !imageUrl;
           return !row[field];
         });
 
         if (missingFields.length > 0) {
-          results.errors.push(`Dòng ${index + 2}: Thiếu các cột (${missingFields.join(', ')}) | Prompt preview: ${content?.substring(0, 20)}...`);
+          results.errors.push(
+            `Dòng ${index + 2}: Thiếu các cột (${missingFields.join(', ')}) | Prompt preview: ${content?.substring(0, 20)}...`,
+          );
           continue;
         }
 
         // 2. Tìm hoặc tạo Category (Tìm theo name + taskType để tránh lỗi Unique Name)
         let category: Category | undefined = undefined;
         if (row.category) {
-          category = await this.categoriesRepository.findOne({ 
-            where: { name: row.category, taskType } 
-          }) as Category;
-          
+          category = (await this.categoriesRepository.findOne({
+            where: { name: row.category, taskType },
+          })) as Category;
+
           if (!category) {
             // Nếu không tìm thấy category cho TASK này, nhưng có category trùng tên ở task khác?
             // Vì name là UNIQUE, chúng ta phải kiểm tra xem có ai dùng tên này chưa
-            const globalCategory = await this.categoriesRepository.findOne({ where: { name: row.category } });
-            
+            const globalCategory = await this.categoriesRepository.findOne({
+              where: { name: row.category },
+            });
+
             if (globalCategory) {
-              // Nếu tên đã tồn tại nhưng cho task khác, chúng ta tạm thời dùng chính nó 
+              // Nếu tên đã tồn tại nhưng cho task khác, chúng ta tạm thời dùng chính nó
               // (Hoặc bạn có thể đổi unique sang name + taskType ở DB sau này)
               category = globalCategory;
             } else {
-              category = this.categoriesRepository.create({ name: row.category, taskType });
+              category = this.categoriesRepository.create({
+                name: row.category,
+                taskType,
+              });
               await this.categoriesRepository.save(category);
             }
           }
@@ -236,7 +296,9 @@ export class PromptsService {
         // 3. Tìm hoặc tạo Topic (Chỉ áp dụng nếu taskType là TASK_2 hoặc nếu có dữ liệu topic)
         let topic: Topic | undefined = undefined;
         if (row.topic) {
-          topic = await this.topicsRepository.findOne({ where: { name: row.topic } }) as Topic;
+          topic = (await this.topicsRepository.findOne({
+            where: { name: row.topic },
+          })) as Topic;
           if (!topic) {
             topic = this.topicsRepository.create({ name: row.topic, taskType });
             await this.topicsRepository.save(topic);
@@ -245,7 +307,7 @@ export class PromptsService {
 
         // 4. Kiểm tra trùng lặp (Upsert logic)
         const existingPrompt = await this.promptsRepository.findOne({
-          where: { content, taskType }
+          where: { content, taskType },
         });
 
         const promptData = {
@@ -255,7 +317,10 @@ export class PromptsService {
           topic,
           imageUrl: row.imageurl || row.url || row.imageUrl || undefined,
           targetBand: row.targetband ? Number(row.targetband) : undefined,
-          isFreeSample: row.isFreeSample === 'TRUE' || row.isFreeSample === true || row.isFreeSample === 'yes'
+          isFreeSample:
+            row.isFreeSample === 'TRUE' ||
+            row.isFreeSample === true ||
+            row.isFreeSample === 'yes',
         };
 
         if (existingPrompt) {
@@ -280,24 +345,24 @@ export class PromptsService {
     if (taskType) {
       query.where = { taskType };
     }
-    
+
     const prompts = await this.promptsRepository.find(query);
     const workbook = XLSX.utils.book_new();
 
     const taskTypes = [
       { type: TaskType.TASK_2, name: 'Task 2' },
       { type: TaskType.TASK_1_ACADEMIC, name: 'Task 1 Academic' },
-      { type: TaskType.TASK_1_GENERAL, name: 'Task 1 General' }
+      { type: TaskType.TASK_1_GENERAL, name: 'Task 1 General' },
     ];
 
     // Lọc loại task cần xuất
-    const tasksToExport = taskType 
-      ? taskTypes.filter(t => t.type === taskType)
+    const tasksToExport = taskType
+      ? taskTypes.filter((t) => t.type === taskType)
       : taskTypes;
 
     for (const task of tasksToExport) {
-      const taskPrompts = prompts.filter(p => p.taskType === task.type);
-      const sheetData = taskPrompts.map(p => {
+      const taskPrompts = prompts.filter((p) => p.taskType === task.type);
+      const sheetData = taskPrompts.map((p) => {
         const row: any = {};
         if (task.type === TaskType.TASK_2) {
           row.topic = p.topic?.name;

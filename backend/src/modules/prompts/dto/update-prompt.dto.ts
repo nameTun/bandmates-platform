@@ -1,4 +1,11 @@
-import { IsEnum, IsOptional, IsString, IsUrl, IsUUID, IsBoolean } from 'class-validator';
+import {
+  IsEnum,
+  IsOptional,
+  IsString,
+  IsUrl,
+  IsUUID,
+  IsBoolean,
+} from 'class-validator';
 import { TaskType } from '../../../common/enums/task-type.enum';
 
 export class UpdatePromptDto {

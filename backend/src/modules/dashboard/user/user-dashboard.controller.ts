@@ -10,7 +10,9 @@ export class UserDashboardController {
   constructor(private readonly userDashboardService: UserDashboardService) {}
 
   @Get('dashboard')
-  async getDashboardStats(@GetUser('id') userId: string): Promise<UserDashboardStatsDto> {
+  async getDashboardStats(
+    @GetUser('id') userId: string,
+  ): Promise<UserDashboardStatsDto> {
     return this.userDashboardService.getUserDashboardStats(userId);
   }
 }

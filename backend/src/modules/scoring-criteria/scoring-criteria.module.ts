@@ -5,11 +5,9 @@ import { ScoringCriteriaController } from './scoring-criteria.controller';
 import { ScoringCriteriaService } from './scoring-criteria.service';
 
 @Module({
-    imports: [
-        TypeOrmModule.forFeature([ScoringCriteria]),
-    ],
-    controllers: [ScoringCriteriaController],
-    providers: [ScoringCriteriaService],
-    exports: [ScoringCriteriaService, TypeOrmModule],
+  imports: [TypeOrmModule.forFeature([ScoringCriteria])],
+  controllers: [ScoringCriteriaController],
+  providers: [ScoringCriteriaService],
+  exports: [ScoringCriteriaService, TypeOrmModule],
 })
-export class ScoringCriteriaModule { }
+export class ScoringCriteriaModule {}

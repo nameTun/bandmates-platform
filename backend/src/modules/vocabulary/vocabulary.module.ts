@@ -9,18 +9,18 @@ import { UsageLimitAiModule } from '../usage-limit-ai/usage-limit-ai.module';
 import { UserProfilesModule } from '../user-profiles/user-profiles.module';
 
 @Module({
-    imports: [
-        TypeOrmModule.forFeature([VocabularyHistory]),
-        HttpModule.register({
-            timeout: 5000,
-            maxRedirects: 5,
-        }),
-        AiModule,
-        UsageLimitAiModule,
-        UserProfilesModule,
-    ],
-    controllers: [VocabularyController],
-    providers: [VocabularyService],
-    exports: [VocabularyService],
+  imports: [
+    TypeOrmModule.forFeature([VocabularyHistory]),
+    HttpModule.register({
+      timeout: 5000,
+      maxRedirects: 5,
+    }),
+    AiModule,
+    UsageLimitAiModule,
+    UserProfilesModule,
+  ],
+  controllers: [VocabularyController],
+  providers: [VocabularyService],
+  exports: [VocabularyService],
 })
-export class VocabularyModule { }
+export class VocabularyModule {}

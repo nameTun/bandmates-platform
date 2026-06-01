@@ -1,4 +1,16 @@
-import { Controller, Get, Post, Body, Param, UseGuards, UseInterceptors, UploadedFile, Res, Patch, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  UseGuards,
+  UseInterceptors,
+  UploadedFile,
+  Res,
+  Patch,
+  Delete,
+} from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import * as express from 'express';
 import { PromptsService } from './prompts.service';
@@ -16,7 +28,7 @@ import { User } from '../users/entities/user.entity';
 
 @Controller('prompts')
 export class PromptsController {
-  constructor(private readonly promptsService: PromptsService) { }
+  constructor(private readonly promptsService: PromptsService) {}
 
   // API thêm đề bài thủ công - Chỉ dành cho Admin
   @Post()
@@ -30,7 +42,10 @@ export class PromptsController {
   @Patch(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
-  async update(@Param('id') id: string, @Body() updatePromptDto: UpdatePromptDto) {
+  async update(
+    @Param('id') id: string,
+    @Body() updatePromptDto: UpdatePromptDto,
+  ) {
     return this.promptsService.update(id, updatePromptDto);
   }
 
@@ -101,21 +116,38 @@ export class PromptsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   async exportTask1Academic(@Res() res: express.Response) {
-    const buffer = await this.promptsService.exportToExcel(TaskType.TASK_1_ACADEMIC);
-    return this.sendExcelResponse(res, buffer, 'prompts-task1-academic-export.xlsx');
+    const buffer = await this.promptsService.exportToExcel(
+      TaskType.TASK_1_ACADEMIC,
+    );
+    return this.sendExcelResponse(
+      res,
+      buffer,
+      'prompts-task1-academic-export.xlsx',
+    );
   }
 
   @Get('export/task1-general')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   async exportTask1General(@Res() res: express.Response) {
-    const buffer = await this.promptsService.exportToExcel(TaskType.TASK_1_GENERAL);
-    return this.sendExcelResponse(res, buffer, 'prompts-task1-general-export.xlsx');
+    const buffer = await this.promptsService.exportToExcel(
+      TaskType.TASK_1_GENERAL,
+    );
+    return this.sendExcelResponse(
+      res,
+      buffer,
+      'prompts-task1-general-export.xlsx',
+    );
   }
 
-  private sendExcelResponse(res: express.Response, buffer: Buffer, filename: string) {
+  private sendExcelResponse(
+    res: express.Response,
+    buffer: Buffer,
+    filename: string,
+  ) {
     res.set({
-      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Type':
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       'Content-Disposition': `attachment; filename="${filename}"`,
       'Content-Length': buffer.length,
     });

@@ -1,4 +1,16 @@
-import { Controller, Get, Post, Body, Param, UseGuards, Patch, Delete, Res, UseInterceptors, UploadedFile } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  UseGuards,
+  Patch,
+  Delete,
+  Res,
+  UseInterceptors,
+  UploadedFile,
+} from '@nestjs/common';
 import { TopicsService } from './topics.service';
 import { CreateTopicDto } from './dto/create-topic.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -61,7 +73,8 @@ export class TopicsController {
   async exportTopics(@Res() res: express.Response) {
     const buffer = await this.topicsService.exportToExcel();
     res.set({
-      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Type':
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       'Content-Disposition': 'attachment; filename="topics-export.xlsx"',
       'Content-Length': buffer.length,
     });

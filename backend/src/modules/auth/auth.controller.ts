@@ -1,4 +1,12 @@
-import { Controller, Get, Res, UseGuards, Post, UnauthorizedException, Body } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Res,
+  UseGuards,
+  Post,
+  UnauthorizedException,
+  Body,
+} from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { AuthService } from './auth.service';
 import type { Response } from 'express';
@@ -12,101 +20,113 @@ import { Cookies } from '../../common/decorators/cookies.decorator';
 
 @Controller('auth')
 export class AuthController {
-    constructor(
-        private authService: AuthService,
-        private jwtService: JwtService,
-        private configService: ConfigService
-    ) { }
+  constructor(
+    private authService: AuthService,
+    private jwtService: JwtService,
+    private configService: ConfigService,
+  ) { }
 
-    @Get('google')
-    @UseGuards(AuthGuard('google'))
-    async googleAuth() { }
+  @Get('google')
+  @UseGuards(AuthGuard('google'))
+  async googleAuth() { }
 
-    @Get('google/callback')
-    @UseGuards(AuthGuard('google'))
-    async googleAuthRedirect(@GetUser() user: any, @Res() res: Response) {
-        // Login -> Get Tokens
-        const { tokens } = await this.authService.login(user);
+  @Get('google/callback')
+  @UseGuards(AuthGuard('google'))
+  async googleAuthRedirect(@GetUser() user: any, @Res() res: Response) {
+    // Login -> Get Tokens
+    const { tokens } = await this.authService.login(user);
 
-        // Set Refresh Token as HttpOnly Cookie
-        setCookies(this.configService, res, tokens.refreshToken);
+    // Set Refresh Token as HttpOnly Cookie
+    setCookies(this.configService, res, tokens.refreshToken);
 
-        // Redirect to Frontend
-        const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:5173';
-        return res.redirect(`${frontendUrl}/login?status=success`);
+    // Redirect to Frontend
+    const frontendUrl =
+      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:5173' || 'http://127.0.0.1:5173';
+    return res.redirect(`${frontendUrl}/login?status=success`);
+  }
+
+  @Get('facebook')
+  @UseGuards(AuthGuard('facebook'))
+  async facebookAuth() { }
+
+  @Get('facebook/callback')
+  @UseGuards(AuthGuard('facebook'))
+  async facebookAuthRedirect(@GetUser() user: any, @Res() res: Response) {
+    const { tokens } = await this.authService.login(user);
+
+    setCookies(this.configService, res, tokens.refreshToken);
+
+    const frontendUrl =
+      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:5173' || 'http://127.0.0.1:5173';
+    return res.redirect(`${frontendUrl}/login?status=success`);
+  }
+
+  @Post('refresh')
+  async refresh(
+    @Cookies('refreshToken') refreshToken: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    if (!refreshToken) {
+      throw new UnauthorizedException('No refresh token');
     }
 
-    @Get('facebook')
-    @UseGuards(AuthGuard('facebook'))
-    async facebookAuth() { }
-
-    @Get('facebook/callback')
-    @UseGuards(AuthGuard('facebook'))
-    async facebookAuthRedirect(@GetUser() user: any, @Res() res: Response) {
-        const { tokens } = await this.authService.login(user);
-
-        setCookies(this.configService, res, tokens.refreshToken);
-
-        const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:5173';
-        return res.redirect(`${frontendUrl}/login?status=success`);
+    let payload;
+    try {
+      payload = this.jwtService.verify(refreshToken, {
+        secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
+      });
+    } catch (e) {
+      throw new UnauthorizedException('Invalid refresh token');
     }
 
-    @Post('refresh')
-    async refresh(
-        @Cookies('refreshToken') refreshToken: string,
-        @Res({ passthrough: true }) res: Response
-    ) {
-        if (!refreshToken) {
-            throw new UnauthorizedException('No refresh token');
-        }
-
-        let payload;
-        try {
-            payload = this.jwtService.verify(
-                refreshToken,
-                {
-                    secret: this.configService.get<string>('JWT_REFRESH_SECRET')
-                });
-        } catch (e) {
-            throw new UnauthorizedException('Invalid refresh token');
-        }
-
-        if (!payload || !payload.userId) {
-            throw new UnauthorizedException('Invalid refresh token payload');
-        }
-
-        // 3. Tiến hành cấp lại token mới
-        const { tokens, user } = await this.authService.refreshTokens(payload.userId, refreshToken);
-
-        // Rotate Refresh Token
-        setCookies(this.configService, res, tokens.refreshToken);
-
-        return { accessToken: tokens.accessToken, user };
+    if (!payload || !payload.userId) {
+      throw new UnauthorizedException('Invalid refresh token payload');
     }
 
-    @Post('logout')
-    @UseGuards(AuthGuard('jwt'))
-    async logout(@GetUser('id') userId: string, @Res({ passthrough: true }) res: Response) {
-        await this.authService.logoutUser(userId);
-        clearCookie(this.configService, res);
-        return { message: 'Logged out' };
-    }
+    // 3. Tiến hành cấp lại token mới
+    const { tokens, user } = await this.authService.refreshTokens(
+      payload.userId,
+      refreshToken,
+    );
 
-    @Post('register')
-    async register(@Body() dto: RegisterDto, @Res({ passthrough: true }) res: Response) {
-        const { tokens, user } = await this.authService.registerUser(dto);
+    // Rotate Refresh Token
+    setCookies(this.configService, res, tokens.refreshToken);
 
-        setCookies(this.configService, res, tokens.refreshToken);
+    return { accessToken: tokens.accessToken, user };
+  }
 
-        return { accessToken: tokens.accessToken, user };
-    }
+  @Post('logout')
+  @UseGuards(AuthGuard('jwt'))
+  async logout(
+    @GetUser('id') userId: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    await this.authService.logoutUser(userId);
+    clearCookie(this.configService, res);
+    return { message: 'Logged out' };
+  }
 
-    @Post('login')
-    async login(@Body() dto: LoginDto, @Res({ passthrough: true }) res: Response) {
-        const { tokens, user } = await this.authService.loginUser(dto);
+  @Post('register')
+  async register(
+    @Body() dto: RegisterDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const { tokens, user } = await this.authService.registerUser(dto);
 
-        setCookies(this.configService, res, tokens.refreshToken);
+    setCookies(this.configService, res, tokens.refreshToken);
 
-        return { accessToken: tokens.accessToken, user };
-    }
+    return { accessToken: tokens.accessToken, user };
+  }
+
+  @Post('login')
+  async login(
+    @Body() dto: LoginDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const { tokens, user } = await this.authService.loginUser(dto);
+
+    setCookies(this.configService, res, tokens.refreshToken);
+
+    return { accessToken: tokens.accessToken, user };
+  }
 }

@@ -10,7 +10,8 @@ export class CloudinaryService {
    */
   async uploadImage(
     file: Express.Multer.File,
-    folder: string = process.env.CLOUDINARY_FOLDER || 'BandMates/Task_1_academic'
+    folder: string = process.env.CLOUDINARY_FOLDER ||
+      'BandMates/Task_1_academic',
   ): Promise<UploadApiResponse | UploadApiErrorResponse> {
     return new Promise((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
@@ -20,7 +21,12 @@ export class CloudinaryService {
         },
         (error, result) => {
           if (error) return reject(error);
-          if (!result) return reject(new BadRequestException('Upload to Cloudinary failed, no result received'));
+          if (!result)
+            return reject(
+              new BadRequestException(
+                'Upload to Cloudinary failed, no result received',
+              ),
+            );
           resolve(result);
         },
       );
@@ -55,7 +61,10 @@ export class CloudinaryService {
 
       // Lấy phần sau /v12345/ (skip version nếu có)
       const relevantParts = parts.slice(uploadIndex + 1);
-      if (relevantParts[0].startsWith('v') && !isNaN(Number(relevantParts[0].substring(1)))) {
+      if (
+        relevantParts[0].startsWith('v') &&
+        !isNaN(Number(relevantParts[0].substring(1)))
+      ) {
         relevantParts.shift();
       }
 

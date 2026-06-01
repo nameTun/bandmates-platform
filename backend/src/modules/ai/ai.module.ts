@@ -6,11 +6,8 @@ import { AiUsage } from './entities/ai-usage.entity';
 
 @Global()
 @Module({
-    imports: [
-        ConfigModule,
-        TypeOrmModule.forFeature([AiUsage])
-    ],
-    providers: [AiService],
-    exports: [AiService, TypeOrmModule],
+  imports: [ConfigModule, TypeOrmModule.forFeature([AiUsage])],
+  providers: [AiService],
+  exports: [AiService, TypeOrmModule],
 })
 export class AiModule {}

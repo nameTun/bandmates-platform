@@ -33,7 +33,10 @@ export class CategoriesService {
     return category;
   }
 
-  async update(id: string, updateCategoryDto: UpdateCategoryDto): Promise<Category> {
+  async update(
+    id: string,
+    updateCategoryDto: UpdateCategoryDto,
+  ): Promise<Category> {
     const category = await this.findOne(id);
     Object.assign(category, updateCategoryDto);
     return this.categoriesRepository.save(category);
@@ -56,7 +59,12 @@ export class CategoriesService {
     const worksheet = workbook.Sheets[workbook.SheetNames[0]];
     const rawData: any[] = XLSX.utils.sheet_to_json(worksheet);
 
-    const results = { total: 0, created: 0, updated: 0, errors: [] as string[] };
+    const results = {
+      total: 0,
+      created: 0,
+      updated: 0,
+      errors: [] as string[],
+    };
 
     for (const [index, row] of rawData.entries()) {
       try {
@@ -71,8 +79,8 @@ export class CategoriesService {
         }
 
         // Kiểm tra xem đã tồn tại chưa (theo tên và loại task)
-        let category = await this.categoriesRepository.findOne({ 
-          where: { name, taskType } 
+        let category = await this.categoriesRepository.findOne({
+          where: { name, taskType },
         });
 
         if (category) {
@@ -100,11 +108,11 @@ export class CategoriesService {
    */
   async exportToExcel() {
     const categories = await this.findAll();
-    const sheetData = categories.map(c => ({
-      'Tên': c.name,
+    const sheetData = categories.map((c) => ({
+      Tên: c.name,
       'Loại Task': c.taskType,
       'Mô tả': c.description,
-      'Số lượng đề bài': (c as any).promptsCount || 0,
+      'Số lượng đề bài': c.promptsCount || 0,
       'Ngày tạo': c.createdAt,
     }));
 

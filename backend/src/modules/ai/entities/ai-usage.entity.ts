@@ -2,21 +2,21 @@ import { Entity, Column, PrimaryColumn, UpdateDateColumn } from 'typeorm';
 
 @Entity('ai_usage')
 export class AiUsage {
-    @PrimaryColumn()
-    modelName: string;
+  @PrimaryColumn()
+  modelName: string;
 
-    @Column({ default: 0 })
-    currentRPM: number;
+  @Column({ default: 0 })
+  currentRPM: number;
 
-    @Column({ default: 0 })
-    currentRPD: number;
+  @Column({ default: 0 })
+  currentRPD: number;
 
-    @UpdateDateColumn()
-    lastRequestAt: Date;
+  @UpdateDateColumn()
+  lastRequestAt: Date;
 
-    @Column({ type: 'varchar', length: 10, default: '' })
-    resetDayAt: string; // Định dạng YYYY-MM-DD
+  @Column({ type: 'varchar', length: 10, default: '' })
+  resetDayAt: string; // Định dạng YYYY-MM-DD
 
-    @Column({ default: 0 })
-    lastMinuteId: number; // Định dạng Epoch Minute (Date.now() / 60000)
+  @Column({ default: 0 })
+  lastMinuteId: number; // Định dạng Epoch Minute (Date.now() / 60000)
 }

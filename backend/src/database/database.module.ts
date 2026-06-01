@@ -8,7 +8,9 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: async (configService: ConfigService) =>
-        configService.get<TypeOrmModuleOptions>('database') as TypeOrmModuleOptions,
+        configService.get<TypeOrmModuleOptions>(
+          'database',
+        ) as TypeOrmModuleOptions,
     }),
   ],
 })

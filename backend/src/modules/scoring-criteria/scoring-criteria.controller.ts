@@ -9,17 +9,17 @@ import { UpdateScoringCriteriaDto } from './dto/update-scoring-criteria.dto';
 @Controller('scoring-criteria')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class ScoringCriteriaController {
-    constructor(private readonly criteriaService: ScoringCriteriaService) {}
+  constructor(private readonly criteriaService: ScoringCriteriaService) {}
 
-    @Get()
-    @Roles(UserRole.ADMIN) // Chỉ Admin mới được xem cấu hình criteria
-    async findAll() {
-        return this.criteriaService.findAll();
-    }
+  @Get()
+  @Roles(UserRole.ADMIN) // Chỉ Admin mới được xem cấu hình criteria
+  async findAll() {
+    return this.criteriaService.findAll();
+  }
 
-    @Patch(':id')
-    @Roles(UserRole.ADMIN)
-    async update(@Param('id') id: string, @Body() dto: UpdateScoringCriteriaDto) {
-        return this.criteriaService.update(id, dto.description);
-    }
+  @Patch(':id')
+  @Roles(UserRole.ADMIN)
+  async update(@Param('id') id: string, @Body() dto: UpdateScoringCriteriaDto) {
+    return this.criteriaService.update(id, dto.description);
+  }
 }

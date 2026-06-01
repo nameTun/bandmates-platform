@@ -30,10 +30,10 @@ async function bootstrap() {
    * - transform: Tự động chuyển đổi kiểu dữ liệu (VD: từ string trong URL sang number trong code).
    */
   app.useGlobalPipes(
-      new ValidationPipe({
-          whitelist: true, 
-          transform: true, 
-      })
+    new ValidationPipe({
+      whitelist: true,
+      transform: true,
+    }),
   );
 
   /**
@@ -59,7 +59,11 @@ async function bootstrap() {
    * CORS Configuration:
    */
   app.enableCors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173', // Linh hoạt theo biến môi trường
+    origin: [
+      process.env.FRONTEND_URL,
+      'http://localhost:5173',
+      'http://127.0.0.1:5173',
+    ].filter(Boolean) as string[],
     credentials: true,
   });
 

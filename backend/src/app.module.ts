@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { CacheModule } from '@nestjs/cache-manager';
+import { createKeyv } from '@keyv/redis';
 import { DatabaseModule } from './database/database.module';
 import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
@@ -17,7 +19,7 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { CategoriesModule } from './modules/categories/categories.module';
 import { TopicsModule } from './modules/topics/topics.module';
 import { PracticeModule } from './modules/practice/practice.module';
-import {HistoryModule} from './modules/history/history.module';
+import { HistoryModule } from './modules/history/history.module';
 
 @Module({
   imports: [
@@ -29,27 +31,40 @@ import {HistoryModule} from './modules/history/history.module';
       validate: validateEnvConfig,
     }),
     DatabaseModule,
-    
+
+    // --- Redis Cache ---
+    CacheModule.registerAsync({
+      isGlobal: true,
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: async (configService: ConfigService) => {
+        const host = configService.get<string>('REDIS_HOST', 'localhost');
+        const port = configService.get<number>('REDIS_PORT', 6379);
+        return {
+          stores: [createKeyv(`redis://${host}:${port}`)],
+        };
+      },
+    }),
+
     // --- Infrastructure & Utilities ---
     AiModule,
     CloudinaryModule,
-    
-    // --- Business Feature Modules ---
-    DashboardModule,      // Unified Admin & User Dashboard
-    UsersModule,          // Quản lý người dùng lõi
-    UserProfilesModule,   // Thông tin cá nhân (Bands, Display Name, v.v.)
-    AuthModule,           // Xử lý JWT, Login, Register, Social Auth
-    UsageLimitAiModule,   // Kiểm soát hạn mức gọi AI (RPM/RPD)
-    CategoriesModule,     // Quản lý Danh mục đề thi (Task 1/2, Academic/General)
-    TopicsModule,         // Quản lý Chủ đề (Education, Health, v.v.)
-    ScoringCriteriaModule,// Tiêu chí chấm điểm IELTS
-    PracticeModule,       // Logic chấm bài (AI Scoring Engine)
-    HistoryModule,        // Lịch sử bài làm Essay & Từ vựng tra cứu
-    PromptsModule,        // Quản lý kho đề thi (Tasks, Topics)
-    VocabularyModule,     // Học từ vựng & AI Word Analysis
 
+    // --- Business Feature Modules ---
+    DashboardModule, // Unified Admin & User Dashboard
+    UsersModule, // Quản lý người dùng lõi
+    UserProfilesModule, // Thông tin cá nhân (Bands, Display Name, v.v.)
+    AuthModule, // Xử lý JWT, Login, Register, Social Auth
+    UsageLimitAiModule, // Kiểm soát hạn mức gọi AI (RPM/RPD)
+    CategoriesModule, // Quản lý Danh mục đề thi (Task 1/2, Academic/General)
+    TopicsModule, // Quản lý Chủ đề (Education, Health, v.v.)
+    ScoringCriteriaModule, // Tiêu chí chấm điểm IELTS
+    PracticeModule, // Logic chấm bài (AI Scoring Engine)
+    HistoryModule, // Lịch sử bài làm Essay & Từ vựng tra cứu
+    PromptsModule, // Quản lý kho đề thi (Tasks, Topics)
+    VocabularyModule, // Học từ vựng & AI Word Analysis
   ],
   controllers: [],
   providers: [],
 })
-export class AppModule { }
+export class AppModule {}

@@ -1,4 +1,11 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, Unique } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+  Unique,
+} from 'typeorm';
 import { TaskType } from '../../../common/enums/task-type.enum';
 
 // Bảng lưu trữ hướng dẫn chấm điểm cho AI.
@@ -8,24 +15,24 @@ import { TaskType } from '../../../common/enums/task-type.enum';
 @Entity('scoring_criteria')
 @Unique(['taskType', 'criteriaKey']) // Đảm bảo không có 2 bản ghi trùng (task_2, TA)
 export class ScoringCriteria {
-    @PrimaryGeneratedColumn('uuid')
-    id: string;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
-    // Loại Task mà tiêu chí này áp dụng (task_1_academic, task_1_general, task_2).
-    @Column({ type: 'enum', enum: TaskType })
-    taskType: TaskType;
+  // Loại Task mà tiêu chí này áp dụng (task_1_academic, task_1_general, task_2).
+  @Column({ type: 'enum', enum: TaskType })
+  taskType: TaskType;
 
-    // Mã tiêu chí: TA (Task Achievement/Response), CC, LR, GRA.
-    @Column()
-    criteriaKey: string;
+  // Mã tiêu chí: TA (Task Achievement/Response), CC, LR, GRA.
+  @Column()
+  criteriaKey: string;
 
-    // Nội dung chi tiết — sẽ được gửi trực tiếp cho AI đọc khi chấm bài.
-    @Column({ type: 'text' })
-    description: string;
+  // Nội dung chi tiết — sẽ được gửi trực tiếp cho AI đọc khi chấm bài.
+  @Column({ type: 'text' })
+  description: string;
 
-    @CreateDateColumn()
-    createdAt: Date;
+  @CreateDateColumn()
+  createdAt: Date;
 
-    @UpdateDateColumn()
-    updatedAt: Date;
+  @UpdateDateColumn()
+  updatedAt: Date;
 }

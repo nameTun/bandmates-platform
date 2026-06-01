@@ -1,379 +1,477 @@
-import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
+import { Injectable, HttpException, HttpStatus, Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, MoreThanOrEqual } from 'typeorm';
+import { Repository } from 'typeorm';
 import { HttpService } from '@nestjs/axios';
 import { lastValueFrom } from 'rxjs';
 import { UserProfile } from '../user-profiles/entities/user-profile.entity';
 import { VocabularyHistory } from './entities/vocabulary-history.entity';
 import { AiService } from '../ai/ai.service';
-import { UsageLimitAiService, UsageAction } from '../usage-limit-ai/usage-limit-ai.service';
+import {
+  UsageLimitAiService,
+  UsageAction,
+} from '../usage-limit-ai/usage-limit-ai.service';
 import { VOCABULARY_API } from './vocabulary.constants';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import type { Cache } from 'cache-manager';
 
 @Injectable()
 export class VocabularyService {
-    // REBUILD_TRIGGER_v5
-    constructor(
-        @InjectRepository(VocabularyHistory)
-        private readonly vocabularyRepository: Repository<VocabularyHistory>,
-        private readonly httpService: HttpService,
-        private readonly aiService: AiService,
-        private readonly usageLimitService: UsageLimitAiService,
-    ) { }
+  // REBUILD_TRIGGER_v5
+  constructor(
+    @InjectRepository(VocabularyHistory)
+    private readonly vocabularyRepository: Repository<VocabularyHistory>,
+    private readonly httpService: HttpService,
+    private readonly aiService: AiService,
+    private readonly usageLimitService: UsageLimitAiService,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
+  ) {}
 
-    async search(word: string, userId?: string): Promise<any> {
-        const cleanWord = word.trim().toLowerCase();
+  async search(word: string, userId?: string): Promise<any> {
+    const cleanWord = word.trim().toLowerCase();
 
-        // [SNAPSHOT CHECK] Nếu đã có dữ liệu trong DB, trả về ngay lập tức
-        if (userId) {
-            const history = await this.vocabularyRepository.findOne({
-                where: { user: { id: userId }, word: cleanWord }
-            });
-            if (history && history.dictionaryData) {
-                return { 
-                    ...history.dictionaryData, 
-                    isSaved: history.isSaved,
-                    fromSnapshot: true 
-                };
-            }
-        }
+    // 1. Kiểm tra trạng thái isSaved từ MySQL (nếu có userId)
+    let isSaved = false;
+    if (userId) {
+      const history = await this.vocabularyRepository.findOne({
+        where: { user: { id: userId }, word: cleanWord },
+      });
+      if (history) {
+        isSaved = history.isSaved;
+      }
+    }
 
-        const [dictResult, datamuseResult] = await Promise.allSettled([
-            this.getDictionaryData(cleanWord),
-            this.getDatamuseData(cleanWord),
-        ]);
+    // 2. Kiểm tra Cache Redis
+    const cacheKey = `vocab:search:${cleanWord}`;
+    let finalResult: any = await this.cacheManager.get(cacheKey);
 
-        const dictionaryData = dictResult.status === 'fulfilled' ? dictResult.value : null;
-        const datamuseData = datamuseResult.status === 'fulfilled' ? datamuseResult.value : null;
+    if (!finalResult) {
+      const [dictResult, datamuseResult] = await Promise.allSettled([
+        this.getDictionaryData(cleanWord),
+        this.getDatamuseData(cleanWord),
+      ]);
 
-        if (!dictionaryData) {
-            throw new HttpException('Không tìm thấy từ này trong từ điển.', HttpStatus.NOT_FOUND);
-        }
+      const dictionaryData =
+        dictResult.status === 'fulfilled' ? dictResult.value : null;
+      const datamuseData =
+        datamuseResult.status === 'fulfilled' ? datamuseResult.value : null;
 
-        const wordFamilyWords = await this.extractWordFamily(cleanWord);
-        
-        // Cấu trúc meanings ban đầu (Anh-Anh) - KHÔNG dịch thuật bằng Google Translate nữa
-        const resultMeanings = (dictionaryData.meanings || []).slice(0, 3).map((m: any) => ({
-            partOfSpeech: m.partOfSpeech,
-            definitions: (m.definitions || []).slice(0, 2).map((d: any) => ({
-                definition: d.definition, 
-                definitionVi: '', 
-                example: d.example || '', 
-                exampleVi: '' 
-            }))
+      if (!dictionaryData) {
+        throw new HttpException(
+          'Không tìm thấy từ này trong từ điển.',
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      const wordFamilyWords = await this.extractWordFamily(cleanWord);
+
+      const resultMeanings = (dictionaryData.meanings || [])
+        .slice(0, 3)
+        .map((m: any) => ({
+          partOfSpeech: m.partOfSpeech,
+          definitions: (m.definitions || []).slice(0, 2).map((d: any) => ({
+            definition: d.definition,
+            definitionVi: '',
+            example: d.example || '',
+            exampleVi: '',
+          })),
         }));
 
-        // Chuyển danh sách từ thô từ Datamuse thành format wordFamilyData cơ bản
-        const basicWordFamilyData = [
-            ...wordFamilyWords.noun.map(w => ({ word: w, partOfSpeech: 'noun' })),
-            ...wordFamilyWords.verb.map(w => ({ word: w, partOfSpeech: 'verb' })),
-            ...wordFamilyWords.adj.map(w => ({ word: w, partOfSpeech: 'adjective' })),
-            ...wordFamilyWords.adv.map(w => ({ word: w, partOfSpeech: 'adverb' })),
-        ];
+      const basicWordFamilyData = [
+        ...wordFamilyWords.noun.map((w) => ({ word: w, partOfSpeech: 'noun' })),
+        ...wordFamilyWords.verb.map((w) => ({ word: w, partOfSpeech: 'verb' })),
+        ...wordFamilyWords.adj.map((w) => ({
+          word: w,
+          partOfSpeech: 'adjective',
+        })),
+        ...wordFamilyWords.adv.map((w) => ({
+          word: w,
+          partOfSpeech: 'adverb',
+        })),
+      ];
 
-        const finalResult = {
-            word: cleanWord,
-            phonetic: dictionaryData.phonetic,
-            audio: dictionaryData.audio,
-            translation: '', 
-            meanings: resultMeanings, 
-            wordFamily: wordFamilyWords,
-            wordFamilyData: basicWordFamilyData, 
-            synonyms: (datamuseData?.synonyms?.length ?? 0) > 0
-                ? datamuseData!.synonyms
-                : dictionaryData.synonyms,
-            antonyms: (datamuseData?.antonyms?.length ?? 0) > 0
-                ? datamuseData!.antonyms
-                : dictionaryData.antonyms,
-        };
+      finalResult = {
+        word: cleanWord,
+        phonetic: dictionaryData.phonetic,
+        audio: dictionaryData.audio,
+        translation: '',
+        meanings: resultMeanings,
+        wordFamily: wordFamilyWords,
+        wordFamilyData: basicWordFamilyData,
+        synonyms:
+          (datamuseData?.synonyms?.length ?? 0) > 0
+            ? datamuseData!.synonyms
+            : dictionaryData.synonyms,
+        antonyms:
+          (datamuseData?.antonyms?.length ?? 0) > 0
+            ? datamuseData!.antonyms
+            : dictionaryData.antonyms,
+      };
 
-        // [SNAPSHOT] Lưu bản ghi lịch sử ban đầu với dữ liệu từ điển
-        let isSaved = false;
-        if (userId) {
-            const history = await this.upsertHistory(userId, cleanWord, {
-                phonetic: finalResult.phonetic,
-                dictionaryData: finalResult
-            });
-            isSaved = history?.isSaved || false;
-        }
-
-        return { ...finalResult, isSaved };
+      // Cache 30 ngày (ms)
+      await this.cacheManager.set(
+        cacheKey,
+        finalResult,
+        30 * 24 * 60 * 60 * 1000,
+      );
     }
 
-    /**
-     * [NÂNG CẤP] Làm giàu dữ liệu Họ từ bằng AI.
-     * Chọn ra 1 từ tiêu biểu nhất cho mỗi loại (n, v, adj, adv) và tạo ví dụ IELTS.
-     */
-    async getExampleWordFamilyAi(word: string, userId?: string, ip?: string, visitorId?: string, userProfile?: UserProfile | null, userRole?: string): Promise<any> {
-        const cleanWord = word.trim().toLowerCase();
-
-        // 1. Kiểm tra và ghi nhận hạn mức (Quay về cơ chế 24h rollback)
-        const usage = await this.usageLimitService.checkAndRecordUsage(userId, visitorId, ip, UsageAction.ANALYZE_WORD_FAMILY, userRole);
-
-        // 2. [SNAPSHOT CHECK] Trả về ngay nếu đã có dữ liệu mẫu trong DB
-        if (userId) {
-            const history = await this.vocabularyRepository.findOne({
-                where: { user: { id: userId }, word: cleanWord }
-            });
-            if (history && history.familyData) {
-                await this.usageLimitService.refundUsage(usage.usageRecordId);
-                usage.used = Math.max(0, usage.used - 1);
-                usage.remaining += 1;
-                return { result: history.familyData, usage };
-            }
-        }
-
-        const familyWords = await this.extractWordFamily(cleanWord);
-        
-        // Chuyển object thành list từ để gửi AI
-        const allFamilyWords = [
-            ...familyWords.noun, 
-            ...familyWords.verb, 
-            ...familyWords.adj, 
-            ...familyWords.adv
-        ];
-
-        if (allFamilyWords.length === 0) return { result: { mainTranslation: '', familyData: [] }, usage };
-
-        // [STAGE 4.2] Cá nhân hóa theo người dùng
-        const targetBand = userProfile?.targetBand ? Number(userProfile.targetBand) : 7.0;
-        const studyPurpose = userProfile?.studyPurpose || 'General IELTS Improvement';
-
-        const prompt = `
-            Bạn là một chuyên gia ngôn ngữ học IELTS chuyên nghiệp. 
-            Nhiệm vụ:
-            1. Dịch từ chính "${cleanWord}" sang Tiếng Việt một cách ngắn gọn.
-            2. Từ danh sách họ từ [${allFamilyWords.join(', ')}], hãy chọn tối đa 6 từ có giá trị sử dụng cao nhất trong bài viết IELTS.
-            3. Với mỗi từ được chọn: 
-               - Cung cấp định nghĩa bằng Tiếng Việt.
-               - Đặt 1 ví dụ Tiếng Anh học thuật (độ khó chuẩn Band ${targetBand}).
-               - ĐẶC BIỆT: Nội dung ví dụ PHẢI sát với bối cảnh mục đích học tập của người dùng là: "${studyPurpose}" (Ví dụ: Nếu mục đích là Work, hãy đặt ví dụ về công sở; nếu là Study Abroad, hãy nói về môi trường học tập).
-               - Dịch ví dụ đó sang Tiếng Việt.
-
-            LƯU Ý: Xưng hô chuyên nghiệp, trung tính. Không xưng hô thân mật quá mức.
-
-            Trả về DUY NHẤT JSON theo cấu trúc:
-            {
-              "mainTranslation": "nghĩa tiếng Việt từ chính",
-              "familyData": [
-                { "word": "...", "partOfSpeech": "noun|verb|adjective|adverb", "definitionVi": "...", "example": "...", "exampleVi": "..." }
-              ]
-            }
-        `;
-
-        try {
-            const result = await this.aiService.generateContent(prompt);
-
-            // [SNAPSHOT] Cập nhật kết quả họ từ mẫu vào DB
-            if (userId && result && result.mainTranslation) {
-                await this.upsertHistory(userId, cleanWord, { familyData: result });
-            }
-
-            return {
-                result: result || { mainTranslation: '', familyData: [] },
-                usage
-            };
-        } catch (error) {
-            console.error('Gemini Word Family Enrichment Error:', error);
-            await this.usageLimitService.refundUsage(usage.usageRecordId);
-            throw error;
-        }
+    // [SNAPSHOT] Ghi lịch sử truy cập (Upsert)
+    if (userId) {
+      await this.upsertHistory(userId, cleanWord, {
+        phonetic: finalResult.phonetic,
+        dictionaryData: finalResult,
+      });
     }
 
-    async getWordAnalysisAi(word: string, userId?: string, ip?: string, visitorId?: string, userProfile?: UserProfile | null, userRole?: string): Promise<any> {
-        const cleanWord = word.trim().toLowerCase();
+    return { ...finalResult, isSaved };
+  }
 
-        // Kiểm tra và ghi nhận hạn mức
-        const usage = await this.usageLimitService.checkAndRecordUsage(userId, visitorId, ip, UsageAction.ANALYZE_WORD_STRUCTURE, userRole);
+  /**
+   * [NÂNG CẤP] Làm giàu dữ liệu Họ từ bằng AI.
+   * Chọn ra 1 từ tiêu biểu nhất cho mỗi loại (n, v, adj, adv) và tạo ví dụ IELTS.
+   */
+  async getExampleWordFamilyAi(
+    word: string,
+    userId?: string,
+    ip?: string,
+    visitorId?: string,
+    userProfile?: UserProfile | null,
+    userRole?: string,
+  ): Promise<any> {
+    const cleanWord = word.trim().toLowerCase();
 
-        // Trả về ngay nếu đã có phân tích AI trong DB
-        if (userId) {
-            const history = await this.vocabularyRepository.findOne({
-                where: { user: { id: userId }, word: cleanWord }
-            });
-            if (history && history.aiNotes) {
-                await this.usageLimitService.refundUsage(usage.usageRecordId);
-                usage.used = Math.max(0, usage.used - 1);
-                usage.remaining += 1;
-                return { result: history.aiNotes, usage };
-            }
-        }
+    // 1. Kiểm tra và ghi nhận hạn mức (Rate Limiting bằng Redis)
+    const usage = await this.usageLimitService.checkAndRecordUsage(
+      userId,
+      visitorId,
+      ip,
+      UsageAction.ANALYZE_WORD_FAMILY,
+      userRole,
+    );
 
-        try {
-            const aiData = await this.getIELTSAnalysis(cleanWord, userProfile);
-            const result = { word: cleanWord, ...aiData };
+    // 2. Khởi tạo cấu hình cá nhân hóa
+    const targetBand = userProfile?.targetBand
+      ? Number(userProfile.targetBand)
+      : 7.0;
+    const studyPurpose =
+      userProfile?.studyPurpose || 'General IELTS Improvement';
 
-            // Cập nhật phân tích IELTS vào DB
-            if (userId && result.ieltsBand) {
-                await this.upsertHistory(userId, cleanWord, { aiNotes: result });
-            }
+    // 3. Kiểm tra Redis Cache
+    const cacheKey = `vocab:family:${cleanWord}:${targetBand}:${studyPurpose.replace(/\\s+/g, '_')}`;
+    let result: any = await this.cacheManager.get(cacheKey);
 
-            return {
-                result: result,
-                usage
-            };
-        } catch (error) {
-            console.error('Gemini Word Analysis Error:', error);
-            await this.usageLimitService.refundUsage(usage.usageRecordId);
-            throw error;
-        }
-    }
+    if (result) {
+      // Hoàn lại lượt dùng vì đã lấy từ Cache
+      await this.usageLimitService.refundUsage(usage.usageRecordId);
+      usage.used = Math.max(0, usage.used - 1);
+      usage.remaining += 1;
+    } else {
+      // Chưa có Cache -> Gọi AI
+      const familyWords = await this.extractWordFamily(cleanWord);
+      const allFamilyWords = [
+        ...familyWords.noun,
+        ...familyWords.verb,
+        ...familyWords.adj,
+        ...familyWords.adv,
+      ];
 
-    async toggleSave(userId: string, word: string) {
-        const cleanWord = word.trim().toLowerCase();
-        const history = await this.vocabularyRepository.findOne({
-            where: { user: { id: userId }, word: cleanWord }
-        });
+      if (allFamilyWords.length === 0)
+        return { result: { mainTranslation: '', familyData: [] }, usage };
 
-        if (!history) {
-            throw new HttpException('Từ vựng chưa có trong lịch sử tra cứu. Hãy tra trước khi lưu.', HttpStatus.NOT_FOUND);
-        }
+      const prompt = `
+                Bạn là một chuyên gia ngôn ngữ học IELTS chuyên nghiệp. 
+                Nhiệm vụ:
+                1. Dịch từ chính "${cleanWord}" sang Tiếng Việt một cách ngắn gọn.
+                2. Từ danh sách họ từ [${allFamilyWords.join(', ')}], hãy chọn tối đa 6 từ có giá trị sử dụng cao nhất trong bài viết IELTS.
+                3. Với mỗi từ được chọn: 
+                   - Cung cấp định nghĩa bằng Tiếng Việt.
+                   - Đặt 1 ví dụ Tiếng Anh học thuật (độ khó chuẩn Band ${targetBand}).
+                   - ĐẶC BIỆT: Nội dung ví dụ PHẢI sát với bối cảnh mục đích học tập của người dùng là: "${studyPurpose}".
+                   - Dịch ví dụ đó sang Tiếng Việt.
 
-        history.isSaved = !history.isSaved;
-        await this.vocabularyRepository.save(history);
+                LƯU Ý: Xưng hô chuyên nghiệp, trung tính. Không xưng hô thân mật quá mức.
 
-        return { word: cleanWord, isSaved: history.isSaved };
-    }
-
-    async getHistory(userId: string, page: number = 1, limit: number = 20, isSavedOnly: boolean = false) {
-        const skip = (page - 1) * limit;
-        const [items, total] = await this.vocabularyRepository.findAndCount({
-            where: { 
-                user: { id: userId },
-                ...(isSavedOnly ? { isSaved: true } : {})
-            },
-            order: { searchedAt: 'DESC' },
-            take: limit,
-            skip: skip,
-            // Ở danh mục lịch sử ta chỉ lấy các trường cần thiết để nhẹ data
-            select: ['id', 'word', 'phonetic', 'isSaved', 'searchedAt']
-        });
-
-        return {
-            items,
-            meta: {
-                total,
-                page,
-                limit,
-                totalPages: Math.ceil(total / limit),
-            },
-        };
-    }
-
-
-
-    /**
-     * [PERSISTENCE] Cập nhật hoặc lưu mới Snapshot lịch sử tra cứu
-     */
-    private async upsertHistory(userId: string, word: string, data: Partial<VocabularyHistory>) {
-        try {
-            let history = await this.vocabularyRepository.findOne({
-                where: { user: { id: userId }, word: word.toLowerCase() }
-            });
-
-            if (history) {
-                // Cập nhật Snapshot (Object.assign để không ghi đè các trường khác)
-                Object.assign(history, data);
-                history.searchedAt = new Date(); // Update thời gian tra gần nhất
-                return await this.vocabularyRepository.save(history);
-            } else {
-                // Tạo mới record
-                const newHistory = this.vocabularyRepository.create({
-                    user: { id: userId },
-                    word: word.toLowerCase(),
-                    ...data
-                });
-                return await this.vocabularyRepository.save(newHistory);
-            }
-        } catch (error) {
-            console.error('Failed to upsert history:', error);
-            return null;
-        }
-    }
-
-    private async getDictionaryData(word: string) {
-        try {
-            const response = await lastValueFrom(this.httpService.get(VOCABULARY_API.DICTIONARY(word)));
-            const data = response.data[0];
-            const audio = data.phonetics?.find((p: any) => p.audio)?.audio || '';
-
-            const synonyms: string[] = [];
-            const antonyms: string[] = [];
-            for (const m of data.meanings || []) {
-                synonyms.push(...(m.synonyms || []));
-                antonyms.push(...(m.antonyms || []));
-                for (const d of m.definitions || []) {
-                    synonyms.push(...(d.synonyms || []));
-                    antonyms.push(...(d.antonyms || []));
+                Trả về DUY NHẤT JSON theo cấu trúc:
+                {
+                  "mainTranslation": "nghĩa tiếng Việt từ chính",
+                  "familyData": [
+                    { "word": "...", "partOfSpeech": "noun|verb|adjective|adverb", "definitionVi": "...", "example": "...", "exampleVi": "..." }
+                  ]
                 }
-            }
+            `;
 
-            return {
-                phonetic: data.phonetic || data.phonetics?.[0]?.text || '',
-                audio,
-                meanings: data.meanings || [],
-                synonyms: [...new Set(synonyms)].slice(0, 8),
-                antonyms: [...new Set(antonyms)].slice(0, 8),
-            };
-        } catch { return null; }
-    }
-
-    private async getDatamuseData(word: string) {
-        try {
-            const [synRes, antRes] = await Promise.all([
-                lastValueFrom(this.httpService.get(VOCABULARY_API.DATAMUSE_SYNONYMS(word))),
-                lastValueFrom(this.httpService.get(VOCABULARY_API.DATAMUSE_ANTONYMS(word))),
-            ]);
-            return { 
-                synonyms: synRes.data.slice(0, 8).map((i: any) => i.word), 
-                antonyms: antRes.data.slice(0, 8).map((i: any) => i.word) 
-            };
-        } catch { return null; }
-    }
-
-    /**
-     * [TỐI ƯU] Trích xuất Họ từ từ Datamuse (Fast)
-     */
-    private async extractWordFamily(word: string) {
-        try {
-            // Sử dụng ml (means like) và rel_trg (trigger) để tìm các từ liên quan chặt chẽ
-            const url = `https://api.datamuse.com/words?ml=${word}&md=p&max=50`;
-            const res = await lastValueFrom(this.httpService.get(url));
-            const data = res.data;
-            const family: any = { noun: [], verb: [], adj: [], adv: [] };
-            
-            // Giảm root length xuống 3 để lấy được nhiều biến thể hơn (vd: success -> succ -> successful)
-            const root = word.toLowerCase().substring(0, 3);
-            
-            data.forEach((item: any) => {
-                const w = item.word.toLowerCase();
-                const tags = item.tags || [];
-                
-                // Điều kiện: Bắt đầu bằng root HOẶC chứa root (với từ đủ dài)
-                if (w !== word && (w.startsWith(root) || (word.length > 5 && w.includes(root)))) {
-                    if (tags.includes('n')) family.noun.push(w);
-                    else if (tags.includes('v')) family.verb.push(w);
-                    else if (tags.includes('adj')) family.adj.push(w);
-                    else if (tags.includes('adv')) family.adv.push(w);
-                }
-            });
-
-            return {
-                noun: [...new Set(family.noun)].slice(0, 3),
-                verb: [...new Set(family.verb)].slice(0, 3),
-                adj: [...new Set(family.adj)].slice(0, 3),
-                adv: [...new Set(family.adv)].slice(0, 3),
-            };
-        } catch { 
-            return { noun: [], verb: [], adj: [], adv: [] }; 
+      try {
+        result = await this.aiService.generateContent(prompt);
+        // Cache 30 ngày
+        if (result && result.mainTranslation) {
+          await this.cacheManager.set(
+            cacheKey,
+            result,
+            30 * 24 * 60 * 60 * 1000,
+          );
         }
+      } catch (error) {
+        console.error('Gemini Word Family Enrichment Error:', error);
+        await this.usageLimitService.refundUsage(usage.usageRecordId);
+        throw error;
+      }
     }
 
-    private async getIELTSAnalysis(word: string, userProfile?: UserProfile | null) {
-        try {
-            const targetBand = userProfile?.targetBand ? Number(userProfile.targetBand) : 7.0;
-            const studyPurpose = userProfile?.studyPurpose || 'General IELTS Improvement';
+    // [SNAPSHOT] Cập nhật vào MySQL
+    if (userId && result && result.mainTranslation) {
+      await this.upsertHistory(userId, cleanWord, { familyData: result });
+    }
 
-            const prompt = `
+    return { result: result || { mainTranslation: '', familyData: [] }, usage };
+  }
+
+  async getWordAnalysisAi(
+    word: string,
+    userId?: string,
+    ip?: string,
+    visitorId?: string,
+    userProfile?: UserProfile | null,
+    userRole?: string,
+  ): Promise<any> {
+    const cleanWord = word.trim().toLowerCase();
+
+    // 1. Kiểm tra hạn mức (Redis Rate Limiting)
+    const usage = await this.usageLimitService.checkAndRecordUsage(
+      userId,
+      visitorId,
+      ip,
+      UsageAction.ANALYZE_WORD_STRUCTURE,
+      userRole,
+    );
+
+    // 2. Khởi tạo cấu hình cá nhân
+    const targetBand = userProfile?.targetBand
+      ? Number(userProfile.targetBand)
+      : 7.0;
+    const studyPurpose =
+      userProfile?.studyPurpose || 'General IELTS Improvement';
+
+    // 3. Kiểm tra Redis Cache
+    const cacheKey = `vocab:analysis:${cleanWord}:${targetBand}:${studyPurpose.replace(/\\s+/g, '_')}`;
+    let result: any = await this.cacheManager.get(cacheKey);
+
+    if (result) {
+      // Refund usage
+      await this.usageLimitService.refundUsage(usage.usageRecordId);
+      usage.used = Math.max(0, usage.used - 1);
+      usage.remaining += 1;
+    } else {
+      try {
+        const aiData = await this.getIELTSAnalysis(cleanWord, userProfile);
+        result = { word: cleanWord, ...aiData };
+
+        if (result.ieltsBand) {
+          await this.cacheManager.set(
+            cacheKey,
+            result,
+            30 * 24 * 60 * 60 * 1000,
+          );
+        }
+      } catch (error) {
+        console.error('Gemini Word Analysis Error:', error);
+        await this.usageLimitService.refundUsage(usage.usageRecordId);
+        throw error;
+      }
+    }
+
+    // Cập nhật vào DB
+    if (userId && result && result.ieltsBand) {
+      await this.upsertHistory(userId, cleanWord, { aiNotes: result });
+    }
+
+    return { result, usage };
+  }
+
+  async toggleSave(userId: string, word: string) {
+    const cleanWord = word.trim().toLowerCase();
+    const history = await this.vocabularyRepository.findOne({
+      where: { user: { id: userId }, word: cleanWord },
+    });
+
+    if (!history) {
+      throw new HttpException(
+        'Từ vựng chưa có trong lịch sử tra cứu. Hãy tra trước khi lưu.',
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    history.isSaved = !history.isSaved;
+    await this.vocabularyRepository.save(history);
+
+    return { word: cleanWord, isSaved: history.isSaved };
+  }
+
+  async getHistory(
+    userId: string,
+    page: number = 1,
+    limit: number = 20,
+    isSavedOnly: boolean = false,
+  ) {
+    const skip = (page - 1) * limit;
+    const [items, total] = await this.vocabularyRepository.findAndCount({
+      where: {
+        user: { id: userId },
+        ...(isSavedOnly ? { isSaved: true } : {}),
+      },
+      order: { searchedAt: 'DESC' },
+      take: limit,
+      skip: skip,
+      // Ở danh mục lịch sử ta chỉ lấy các trường cần thiết để nhẹ data
+      select: ['id', 'word', 'phonetic', 'isSaved', 'searchedAt'],
+    });
+
+    return {
+      items,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  /**
+   * [PERSISTENCE] Cập nhật hoặc lưu mới Snapshot lịch sử tra cứu
+   */
+  private async upsertHistory(
+    userId: string,
+    word: string,
+    data: Partial<VocabularyHistory>,
+  ) {
+    try {
+      const history = await this.vocabularyRepository.findOne({
+        where: { user: { id: userId }, word: word.toLowerCase() },
+      });
+
+      if (history) {
+        // Cập nhật Snapshot (Object.assign để không ghi đè các trường khác)
+        Object.assign(history, data);
+        history.searchedAt = new Date(); // Update thời gian tra gần nhất
+        return await this.vocabularyRepository.save(history);
+      } else {
+        // Tạo mới record
+        const newHistory = this.vocabularyRepository.create({
+          user: { id: userId },
+          word: word.toLowerCase(),
+          ...data,
+        });
+        return await this.vocabularyRepository.save(newHistory);
+      }
+    } catch (error) {
+      console.error('Failed to upsert history:', error);
+      return null;
+    }
+  }
+
+  private async getDictionaryData(word: string) {
+    try {
+      const response = await lastValueFrom(
+        this.httpService.get(VOCABULARY_API.DICTIONARY(word)),
+      );
+      const data = response.data[0];
+      const audio = data.phonetics?.find((p: any) => p.audio)?.audio || '';
+
+      const synonyms: string[] = [];
+      const antonyms: string[] = [];
+      for (const m of data.meanings || []) {
+        synonyms.push(...(m.synonyms || []));
+        antonyms.push(...(m.antonyms || []));
+        for (const d of m.definitions || []) {
+          synonyms.push(...(d.synonyms || []));
+          antonyms.push(...(d.antonyms || []));
+        }
+      }
+
+      return {
+        phonetic: data.phonetic || data.phonetics?.[0]?.text || '',
+        audio,
+        meanings: data.meanings || [],
+        synonyms: [...new Set(synonyms)].slice(0, 8),
+        antonyms: [...new Set(antonyms)].slice(0, 8),
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  private async getDatamuseData(word: string) {
+    try {
+      const [synRes, antRes] = await Promise.all([
+        lastValueFrom(
+          this.httpService.get(VOCABULARY_API.DATAMUSE_SYNONYMS(word)),
+        ),
+        lastValueFrom(
+          this.httpService.get(VOCABULARY_API.DATAMUSE_ANTONYMS(word)),
+        ),
+      ]);
+      return {
+        synonyms: synRes.data.slice(0, 8).map((i: any) => i.word),
+        antonyms: antRes.data.slice(0, 8).map((i: any) => i.word),
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * [TỐI ƯU] Trích xuất Họ từ từ Datamuse (Fast)
+   */
+  private async extractWordFamily(word: string) {
+    try {
+      // Sử dụng ml (means like) và rel_trg (trigger) để tìm các từ liên quan chặt chẽ
+      const url = `https://api.datamuse.com/words?ml=${word}&md=p&max=50`;
+      const res = await lastValueFrom(this.httpService.get(url));
+      const data = res.data;
+      const family: any = { noun: [], verb: [], adj: [], adv: [] };
+
+      // Giảm root length xuống 3 để lấy được nhiều biến thể hơn (vd: success -> succ -> successful)
+      const root = word.toLowerCase().substring(0, 3);
+
+      data.forEach((item: any) => {
+        const w = item.word.toLowerCase();
+        const tags = item.tags || [];
+
+        // Điều kiện: Bắt đầu bằng root HOẶC chứa root (với từ đủ dài)
+        if (
+          w !== word &&
+          (w.startsWith(root) || (word.length > 5 && w.includes(root)))
+        ) {
+          if (tags.includes('n')) family.noun.push(w);
+          else if (tags.includes('v')) family.verb.push(w);
+          else if (tags.includes('adj')) family.adj.push(w);
+          else if (tags.includes('adv')) family.adv.push(w);
+        }
+      });
+
+      return {
+        noun: [...new Set(family.noun)].slice(0, 3),
+        verb: [...new Set(family.verb)].slice(0, 3),
+        adj: [...new Set(family.adj)].slice(0, 3),
+        adv: [...new Set(family.adv)].slice(0, 3),
+      };
+    } catch {
+      return { noun: [], verb: [], adj: [], adv: [] };
+    }
+  }
+
+  private async getIELTSAnalysis(
+    word: string,
+    userProfile?: UserProfile | null,
+  ) {
+    try {
+      const targetBand = userProfile?.targetBand
+        ? Number(userProfile.targetBand)
+        : 7.0;
+      const studyPurpose =
+        userProfile?.studyPurpose || 'General IELTS Improvement';
+
+      const prompt = `
                 Bạn là một giám khảo IELTS 9.0 chuyên nghiệp và khách quan. 
                 Nhiệm vụ: Phân tích chuyên sâu từ "${word}" để giúp học viên nâng trình độ Writing bài bám sát mục đích học tập cá nhân.
                 
@@ -395,11 +493,11 @@ export class VocabularyService {
                     "bandUpgradeTip": "..."
                 }
             `;
-            const res = await this.aiService.generateContent(prompt);
-            return res;
-        } catch (error) { 
-            console.error('IELTS Analysis Error:', error);
-            return null; 
-        }
+      const res = await this.aiService.generateContent(prompt);
+      return res;
+    } catch (error) {
+      console.error('IELTS Analysis Error:', error);
+      return null;
     }
+  }
 }

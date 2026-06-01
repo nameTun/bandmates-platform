@@ -8,48 +8,50 @@ import { TaskType } from '../../common/enums/task-type.enum';
 
 @Injectable()
 export class PracticeService {
-    constructor(
-        private aiService: AiService,
-        private criteriaService: ScoringCriteriaService
-    ) {}
+  constructor(
+    private aiService: AiService,
+    private criteriaService: ScoringCriteriaService,
+  ) {}
 
-    /**
-     * [IELTS SCORING] Chấm điểm bài IELTS Writing.
-     * Hỗ trợ cá nhân hóa dựa trên dữ liệu User Profile.
-     */
-    async checkEnglish(
-        text: string, 
-        promptContent?: string, 
-        userProfile?: UserProfile | null,
-        taskType: TaskType = TaskType.TASK_2
-    ): Promise<any> {
-        let studentContext = '';
-        
-        // Tính toán Target Band + 1.0 (Mặc định 8.0 nếu là khách)
-        const userTargetBand = userProfile?.targetBand ? Number(userProfile.targetBand) : 7.0;
-        const aiTargetBand = Math.min(userTargetBand + 1.0, 9.0);
+  /**
+   * [IELTS SCORING] Chấm điểm bài IELTS Writing.
+   * Hỗ trợ cá nhân hóa dựa trên dữ liệu User Profile.
+   */
+  async checkEnglish(
+    text: string,
+    promptContent?: string,
+    userProfile?: UserProfile | null,
+    taskType: TaskType = TaskType.TASK_2,
+  ): Promise<any> {
+    let studentContext = '';
 
-        if (userProfile) {
-            const userName = userProfile.displayName || 'học viên';
-            studentContext += `\n- Tên học viên: ${userName}`;
-            studentContext += `\n- Mục tiêu hiện tại: Band ${userTargetBand}`;
-            studentContext += `\n- Target Band cho phản hồi này: Band ${aiTargetBand}`;
+    // Tính toán Target Band + 1.0 (Mặc định 8.0 nếu là khách)
+    const userTargetBand = userProfile?.targetBand
+      ? Number(userProfile.targetBand)
+      : 7.0;
+    const aiTargetBand = Math.min(userTargetBand + 1.0, 9.0);
 
-            if (userProfile.weakestSkill && userProfile.weakestSkill.length > 0) {
-                const foci = userProfile.weakestSkill.join(', ');
-                studentContext += `\n- Các trọng tâm cần cải thiện: ${foci}`;
-            }
-        }
+    if (userProfile) {
+      const userName = userProfile.displayName || 'học viên';
+      studentContext += `\n- Tên học viên: ${userName}`;
+      studentContext += `\n- Mục tiêu hiện tại: Band ${userTargetBand}`;
+      studentContext += `\n- Target Band cho phản hồi này: Band ${aiTargetBand}`;
 
-        // ── LẤY TIÊU CHÍ CHẤM ĐIỂM TỪ DATABASE ──
-        const criteria = await this.criteriaService.findByTaskType(taskType);
-        
-        // Tạo chuỗi hướng dẫn tiêu chí cho AI
-        const criteriaInstructions = Object.entries(criteria)
-            .map(([key, desc]) => `[CRITERIA: ${key}]\n${desc}`)
-            .join('\n\n');
+      if (userProfile.weakestSkill && userProfile.weakestSkill.length > 0) {
+        const foci = userProfile.weakestSkill.join(', ');
+        studentContext += `\n- Các trọng tâm cần cải thiện: ${foci}`;
+      }
+    }
 
-        const ieltsPrompt = `
+    // ── LẤY TIÊU CHÍ CHẤM ĐIỂM TỪ DATABASE ──
+    const criteria = await this.criteriaService.findByTaskType(taskType);
+
+    // Tạo chuỗi hướng dẫn tiêu chí cho AI
+    const criteriaInstructions = Object.entries(criteria)
+      .map(([key, desc]) => `[CRITERIA: ${key}]\n${desc}`)
+      .join('\n\n');
+
+    const ieltsPrompt = `
       Bạn là một chuyên gia chấm thi IELTS Writing khách quan và chuyên nghiệp. 
       Nhiệm vụ của bạn là đánh giá bài làm của học viên dựa trên các tiêu chí chính thức của IELTS một cách súc tích, đi thẳng vào vấn đề chuyên môn.
 
@@ -61,12 +63,15 @@ export class PracticeService {
       --- HƯỚNG DẪN CHẤM ĐIỂM CHI TIẾT ---
       Hãy áp dụng các quy định và mô tả Band sau đây để đánh giá từng tiêu chí một cách nghiêm ngặt:
       
-      ${criteriaInstructions || `
+      ${
+        criteriaInstructions ||
+        `
       1. TASK ACHIEVEMENT/RESPONSE: Evaluate how fully the response addresses the prompt and maintains a clear position.
       2. COHERENCE AND COHESION: Check for logical flow, paragraphing, and the effective use of linking words.
       3. LEXICAL RESOURCE: Assess vocabulary range, precision, and correct use of collocations.
       4. GRAMMATICAL RANGE AND ACCURACY: Check for sentence variety and frequency of error-free sentences.
-      `}
+      `
+      }
 
       --- QUY TẮC BẮT BUỘC (STRICT PROTOCOL) ---
       1. Tuân thủ PENALTY RULES & STRICT CHECK: Trong mỗi tiêu chí [CRITERIA] phía trên, nếu có mục "PENALTY RULES" hoặc "STRICT CHECK", bạn PHẢI ưu tiên kiểm tra trước. Nếu vi phạm, điểm số của tiêu chí đó PHẢI bị khống chế (Capped) theo quy định.
@@ -102,6 +107,6 @@ export class PracticeService {
       }
     `;
 
-        return this.aiService.generateWithFallback(ieltsPrompt, AI_MODELS.HEAVY);
-    }
+    return this.aiService.generateWithFallback(ieltsPrompt, AI_MODELS.HEAVY);
+  }
 }

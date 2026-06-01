@@ -1,13 +1,27 @@
-import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
+import { Injectable, HttpException, HttpStatus, Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ConfigService } from '@nestjs/config';
-import { Repository, MoreThanOrEqual, IsNull } from 'typeorm';
+import { Repository } from 'typeorm';
 import { UsageLimitAi } from './entities/usage-limit-ai.entity';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import type { Cache } from 'cache-manager';
 
 export enum UsageAction {
   PRACTICE_ESSAY = 'PRACTICE_ESSAY',
   ANALYZE_WORD_STRUCTURE = 'ANALYZE_WORD_STRUCTURE',
   ANALYZE_WORD_FAMILY = 'ANALYZE_WORD_FAMILY',
+}
+
+interface RedisClient {
+  zRemRangeByScore(
+    key: string,
+    min: string | number,
+    max: string | number,
+  ): Promise<number>;
+  zCard(key: string): Promise<number>;
+  zAdd(key: string, member: { score: number; value: string }): Promise<number>;
+  expire(key: string, seconds: number): Promise<boolean>;
+  zRem(key: string, member: string): Promise<number>;
 }
 
 @Injectable()
@@ -16,7 +30,8 @@ export class UsageLimitAiService {
     @InjectRepository(UsageLimitAi)
     private readonly usageRepository: Repository<UsageLimitAi>,
     private readonly configService: ConfigService,
-  ) { }
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
+  ) {}
 
   /**
    * Kiểm tra hạn mức và ghi lại lượt sử dụng AI tập trung.
@@ -27,14 +42,19 @@ export class UsageLimitAiService {
     ip?: string,
     action: UsageAction = UsageAction.PRACTICE_ESSAY,
     userRole?: string,
-  ): Promise<{ limit: number; used: number; remaining: number; usageRecordId: string }> {
+  ): Promise<{
+    limit: number;
+    used: number;
+    remaining: number;
+    usageRecordId: string;
+  }> {
     // 1. Chuẩn hóa IP: Đảm bảo IPv4 và IPv6 (ví dụ ::1 và 127.0.0.1) được xử lý nhất quán
     // Tránh việc cùng một máy nhưng được tính nhiều lượt do khác định dạng IP.
     const normalizedIp = this.normalizeIp(ip);
 
-    // Sử dụng cơ chế cửa sổ 24 giờ cuốn chiếu (Rolling Window) 
+    // Sử dụng cơ chế cửa sổ 24 giờ cuốn chiếu (Rolling Window)
     // thay vì mốc 0h sáng cố định để tránh lỗi lệch múi giờ giữa App và DB.
-    const timeWindowStart = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const timeWindowStart = Date.now() - 24 * 60 * 60 * 1000;
 
     // Xác định hạn mức dựa trên Role và Action
     const isGuest = !userId; // Nếu không có userId thì là khách vãng lai
@@ -47,36 +67,28 @@ export class UsageLimitAiService {
     }
 
     const limit = this.getLimit(action, isGuest);
-    let currentUsageCount = 0;
-
-    // Đếm số lần đã sử dụng trong ngày
+    // Xác định Redis Key dựa trên thông tin định danh
+    let redisKey = '';
     if (userId) {
-      // Thành viên đã đăng nhập: Đếm theo userId
-      currentUsageCount = await this.usageRepository.count({
-        where: { userId, action, createdAt: MoreThanOrEqual(timeWindowStart) },
-      });
+      redisKey = `rate_limit:${action}:user_${userId}`;
+    } else if (visitorId) {
+      redisKey = `rate_limit:${action}:visitor_${visitorId}`;
+    } else if (normalizedIp) {
+      redisKey = `rate_limit:${action}:ip_${normalizedIp}`;
     } else {
-      // Khách vãng lai: Đếm theo VisitorId HOẶC IP (Để tránh việc người dùng xóa cookie để lách luật)
-      // Ghi chú: Trong TypeORM, khi truyền một Mảng [] cho 'where', nó sẽ tự động hiểu là phép toán HOẶC (OR)
-      const conditions: any[] = [];
-
-      // 1. Nếu có ID trình duyệt (visitorId), thêm vào danh sách kiểm tra
-      if (visitorId) {
-        conditions.push({ visitorId, userId: IsNull(), action, createdAt: MoreThanOrEqual(timeWindowStart) });
-      }
-
-      // 2. Nếu có IP mạng, thêm vào danh sách kiểm tra để "bọc lót"
-      if (normalizedIp) {
-        conditions.push({ ipAddress: normalizedIp, userId: IsNull(), action, createdAt: MoreThanOrEqual(timeWindowStart) });
-      }
-
-      // Chỉ thực hiện đếm nếu có ít nhất 1 thông tin định danh (VisitorId hoặc IP)
-      if (conditions.length > 0) {
-        currentUsageCount = await this.usageRepository.count({ where: conditions });
-      }
+      redisKey = `rate_limit:${action}:unknown`;
     }
 
-    // Kiểm tra chéo hạn mức
+    const redisClient = (this.cacheManager as any).stores[0].opts.store
+      ._client as RedisClient;
+
+    // 1. Xóa các lượt truy cập cũ hơn 24 giờ (Sliding Window)
+    await redisClient.zRemRangeByScore(redisKey, '-inf', timeWindowStart);
+
+    // 2. Đếm số lượng request hiện tại trong Cửa sổ 24h
+    const currentUsageCount = await redisClient.zCard(redisKey);
+
+    // 3. Kiểm tra chéo hạn mức
     if (currentUsageCount >= limit) {
       const userLimit = this.getLimit(action, false);
       const actionLabel = this.getActionLabel(action);
@@ -90,10 +102,25 @@ export class UsageLimitAiService {
       );
     }
 
-    // Ghi lại lượt sử dụng mới (sử dụng IP đã chuẩn hóa)
-    const record = await this.recordUsage(userId, visitorId, normalizedIp, action);
+    // 4. Nếu hợp lệ, lưu vào MySQL để lấy Record ID (dành cho việc Refund sau này nếu cần)
+    const record = await this.recordUsage(
+      userId,
+      visitorId,
+      normalizedIp,
+      action,
+    );
 
-    // Trả về thông tin hạn mức sau khi đã cộng thêm lượt vừa dùng
+    // 5. Thêm lượt dùng mới vào Redis ZSET với Score là Timestamp hiện tại, Value là Record ID
+    const now = Date.now();
+    await redisClient.zAdd(redisKey, {
+      score: now,
+      value: record.id.toString(),
+    });
+
+    // Đặt TTL 24 tiếng cho Redis Key để giải phóng RAM
+    await redisClient.expire(redisKey, 86400);
+
+    // Trả về thông tin hạn mức
     const usedCount = currentUsageCount + 1;
     return {
       limit,
@@ -108,7 +135,28 @@ export class UsageLimitAiService {
    */
   async refundUsage(usageRecordId?: string) {
     if (usageRecordId) {
-      await this.usageRepository.delete(usageRecordId);
+      // 1. Tìm bản ghi gốc để lấy thông tin định danh
+      const record = await this.usageRepository.findOne({
+        where: { id: usageRecordId },
+      });
+      if (record) {
+        let redisKey = '';
+        if (record.userId)
+          redisKey = `rate_limit:${record.action}:user_${record.userId}`;
+        else if (record.visitorId)
+          redisKey = `rate_limit:${record.action}:visitor_${record.visitorId}`;
+        else if (record.ipAddress)
+          redisKey = `rate_limit:${record.action}:ip_${record.ipAddress}`;
+
+        // 2. Xóa lượt dùng khỏi Redis
+        if (redisKey) {
+          const redisClient = (this.cacheManager as any).stores[0].opts.store
+            ._client as RedisClient;
+          await redisClient.zRem(redisKey, usageRecordId.toString());
+        }
+        // 3. Xóa khỏi MySQL
+        await this.usageRepository.delete(usageRecordId);
+      }
     }
   }
 
@@ -130,14 +178,23 @@ export class UsageLimitAiService {
 
   private getActionLabel(action: UsageAction): string {
     switch (action) {
-      case UsageAction.PRACTICE_ESSAY: return 'Luyện tập viết';
-      case UsageAction.ANALYZE_WORD_STRUCTURE: return 'Phân tích cấu trúc';
-      case UsageAction.ANALYZE_WORD_FAMILY: return 'Phân tích word family';
-      default: return 'sử dụng AI';
+      case UsageAction.PRACTICE_ESSAY:
+        return 'Luyện tập viết';
+      case UsageAction.ANALYZE_WORD_STRUCTURE:
+        return 'Phân tích cấu trúc';
+      case UsageAction.ANALYZE_WORD_FAMILY:
+        return 'Phân tích word family';
+      default:
+        return 'sử dụng AI';
     }
   }
   // tăng thêm 1 lần sử dụng bằng cách tăng thêm 1 bản ghi lượt dùng
-  private async recordUsage(userId?: string, visitorId?: string, ip?: string, action?: string): Promise<UsageLimitAi> {
+  private async recordUsage(
+    userId?: string,
+    visitorId?: string,
+    ip?: string,
+    action?: string,
+  ): Promise<UsageLimitAi> {
     return await this.usageRepository.save({
       userId,
       visitorId: userId ? undefined : visitorId,
@@ -147,13 +204,13 @@ export class UsageLimitAiService {
   }
 
   /**
-   * Chuẩn hóa địa chỉ IP: 
+   * Chuẩn hóa địa chỉ IP:
    * - Chuyển IPv6 localhost (::1) về 127.0.0.1
    * - Loại bỏ tiền tố ::ffff: của IPv4-mapped IPv6
    */
   private normalizeIp(ip?: string): string | undefined {
     if (!ip) return undefined;
-    let normalized = ip.trim();
+    const normalized = ip.trim();
     if (normalized === '::1') return '127.0.0.1';
     return normalized.replace(/^::ffff:/, '');
   }

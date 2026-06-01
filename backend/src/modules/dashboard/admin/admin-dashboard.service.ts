@@ -44,7 +44,9 @@ export class AdminDashboardService {
       .innerJoin('attempt.user', 'user')
       .leftJoin('attempt.prompt', 'prompt')
       .where('attempt.status = :status', { status: 'success' })
-      .andWhere('user.role IN (:...roles)', { roles: [UserRole.USER, UserRole.ADMIN] })
+      .andWhere('user.role IN (:...roles)', {
+        roles: [UserRole.USER, UserRole.ADMIN],
+      })
       .getCount();
 
     const task1AcademicAttempts = await this.attemptsRepository
@@ -52,7 +54,9 @@ export class AdminDashboardService {
       .innerJoin('attempt.user', 'user')
       .innerJoin('attempt.prompt', 'prompt')
       .where('attempt.status = :status', { status: 'success' })
-      .andWhere('user.role IN (:...roles)', { roles: [UserRole.USER, UserRole.ADMIN] })
+      .andWhere('user.role IN (:...roles)', {
+        roles: [UserRole.USER, UserRole.ADMIN],
+      })
       .andWhere('prompt.taskType = :type', { type: TaskType.TASK_1_ACADEMIC })
       .getCount();
 
@@ -61,7 +65,9 @@ export class AdminDashboardService {
       .innerJoin('attempt.user', 'user')
       .innerJoin('attempt.prompt', 'prompt')
       .where('attempt.status = :status', { status: 'success' })
-      .andWhere('user.role IN (:...roles)', { roles: [UserRole.USER, UserRole.ADMIN] })
+      .andWhere('user.role IN (:...roles)', {
+        roles: [UserRole.USER, UserRole.ADMIN],
+      })
       .andWhere('prompt.taskType = :type', { type: TaskType.TASK_1_GENERAL })
       .getCount();
 
@@ -70,7 +76,9 @@ export class AdminDashboardService {
       .innerJoin('attempt.user', 'user')
       .innerJoin('attempt.prompt', 'prompt')
       .where('attempt.status = :status', { status: 'success' })
-      .andWhere('user.role IN (:...roles)', { roles: [UserRole.USER, UserRole.ADMIN] })
+      .andWhere('user.role IN (:...roles)', {
+        roles: [UserRole.USER, UserRole.ADMIN],
+      })
       .andWhere('prompt.taskType = :type', { type: TaskType.TASK_2 })
       .getCount();
 
@@ -111,7 +119,8 @@ export class AdminDashboardService {
     const aiUsageStats = aiUsageRaw.map((usage) => {
       const limits = AI_LIMITS[usage.modelName] || { rpm: 0, rpd: 0 };
 
-      const displayRPM = usage.lastMinuteId === currentMinuteId ? usage.currentRPM : 0;
+      const displayRPM =
+        usage.lastMinuteId === currentMinuteId ? usage.currentRPM : 0;
       const displayRPD = usage.resetDayAt === today ? usage.currentRPD : 0;
 
       return {
@@ -119,12 +128,14 @@ export class AdminDashboardService {
         rpm: {
           current: displayRPM,
           limit: limits.rpm,
-          percent: limits.rpm > 0 ? Math.round((displayRPM / limits.rpm) * 100) : 0,
+          percent:
+            limits.rpm > 0 ? Math.round((displayRPM / limits.rpm) * 100) : 0,
         },
         rpd: {
           current: displayRPD,
           limit: limits.rpd,
-          percent: limits.rpd > 0 ? Math.round((displayRPD / limits.rpd) * 100) : 0,
+          percent:
+            limits.rpd > 0 ? Math.round((displayRPD / limits.rpd) * 100) : 0,
         },
         lastRequestAt: usage.lastRequestAt,
       };

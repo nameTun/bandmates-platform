@@ -21,8 +21,12 @@ export class UserDashboardService {
       relations: ['profile'],
     });
 
-    const targetBand = user?.profile?.targetBand ? Number(user.profile.targetBand) : null;
-    const initialBand = user?.profile?.currentBand ? Number(user.profile.currentBand) : null;
+    const targetBand = user?.profile?.targetBand
+      ? Number(user.profile.targetBand)
+      : null;
+    const initialBand = user?.profile?.currentBand
+      ? Number(user.profile.currentBand)
+      : null;
 
     // 2 & 3. Thống kê bài viết và điểm trung bình (chỉ lấy bài thành công)
     const stats = await this.attemptsRepository
@@ -35,7 +39,8 @@ export class UserDashboardService {
 
     const totalEssays = parseInt(stats?.totalAttempts || '0', 10);
     const averageScoreRaw = parseFloat(stats?.averageScore || '0');
-    const averageScore = averageScoreRaw > 0 ? Math.round(averageScoreRaw * 10) / 10 : 0;
+    const averageScore =
+      averageScoreRaw > 0 ? Math.round(averageScoreRaw * 10) / 10 : 0;
 
     // 4. Biểu đồ thay đổi (Progress Trend)
     const recentSuccessAttempts = await this.attemptsRepository.find({

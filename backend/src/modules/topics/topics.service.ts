@@ -36,7 +36,10 @@ export class TopicsService {
     await this.topicsRepository.delete(id);
   }
 
-  async update(id: string, updateData: Partial<CreateTopicDto>): Promise<Topic> {
+  async update(
+    id: string,
+    updateData: Partial<CreateTopicDto>,
+  ): Promise<Topic> {
     const topic = await this.findOne(id);
     Object.assign(topic, updateData);
     return this.topicsRepository.save(topic);
@@ -54,13 +57,19 @@ export class TopicsService {
     const worksheet = workbook.Sheets[workbook.SheetNames[0]];
     const rawData: any[] = XLSX.utils.sheet_to_json(worksheet);
 
-    const results = { total: 0, created: 0, updated: 0, errors: [] as string[] };
+    const results = {
+      total: 0,
+      created: 0,
+      updated: 0,
+      errors: [] as string[],
+    };
 
     for (const [index, row] of rawData.entries()) {
       try {
         results.total++;
         const name = row.name || row.Name || row['Tên'];
-        const taskType = row.taskType || row.TaskType || row['Loại Task'] || TaskType.TASK_2;
+        const taskType =
+          row.taskType || row.TaskType || row['Loại Task'] || TaskType.TASK_2;
         const description = row.description || row.Description || row['Mô tả'];
 
         if (!name) {
@@ -68,8 +77,8 @@ export class TopicsService {
           continue;
         }
 
-        let topic = await this.topicsRepository.findOne({ 
-          where: { name, taskType: taskType as TaskType } 
+        let topic = await this.topicsRepository.findOne({
+          where: { name, taskType: taskType as TaskType },
         });
 
         if (topic) {
@@ -97,11 +106,11 @@ export class TopicsService {
    */
   async exportToExcel() {
     const topics = await this.findAll();
-    const sheetData = topics.map(t => ({
-      'Tên': t.name,
+    const sheetData = topics.map((t) => ({
+      Tên: t.name,
       'Loại Task': t.taskType,
       'Mô tả': t.description,
-      'Số lượng đề bài': (t as any).promptsCount || 0,
+      'Số lượng đề bài': t.promptsCount || 0,
       'Ngày tạo': t.createdAt,
     }));
 

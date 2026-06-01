@@ -8,15 +8,18 @@ import { UpdateUserProfileDto } from './dto/update-user-profile.dto';
 @Controller('user-profiles')
 @UseGuards(JwtAuthGuard)
 export class UserProfilesController {
-    constructor(private readonly userProfilesService: UserProfilesService) {}
+  constructor(private readonly userProfilesService: UserProfilesService) {}
 
-    @Get('me')
-    async getMyProfile(@GetUser() user: User) {
-        return this.userProfilesService.getProfile(user.id);
-    }
+  @Get('me')
+  async getMyProfile(@GetUser() user: User) {
+    return this.userProfilesService.getProfile(user.id);
+  }
 
-    @Post('onboarding')
-    async completeOnboarding(@GetUser() user: User, @Body() dto: UpdateUserProfileDto) {
-        return this.userProfilesService.updateProfile(user.id, dto);
-    }
+  @Post('onboarding')
+  async completeOnboarding(
+    @GetUser() user: User,
+    @Body() dto: UpdateUserProfileDto,
+  ) {
+    return this.userProfilesService.updateProfile(user.id, dto);
+  }
 }

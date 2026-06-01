@@ -5,37 +5,40 @@ import { User } from '../../modules/users/entities/user.entity';
 
 @Injectable()
 export class TokenService {
-    constructor(
-        private jwtService: JwtService,
-        private configService: ConfigService,
-    ) {}
+  constructor(
+    private jwtService: JwtService,
+    private configService: ConfigService,
+  ) {}
 
-    async getTokens(user: User) {
-        // Access Token Payload: Minimal info, relies on explicit user object
-        const accessTokenPayload = {
-            userId: user.id,
-            role: user.role, // Included if role-based access is implemented on UI
-        };
+  async getTokens(user: User) {
+    // Access Token Payload: Minimal info, relies on explicit user object
+    const accessTokenPayload = {
+      userId: user.id,
+      role: user.role, // Included if role-based access is implemented on UI
+    };
 
-        // Refresh Token Payload: Minimal info for security
-        const refreshTokenPayload = {
-            userId: user.id, role: user.role
-        };
+    // Refresh Token Payload: Minimal info for security
+    const refreshTokenPayload = {
+      userId: user.id,
+      role: user.role,
+    };
 
-        const [accessToken, refreshToken] = await Promise.all([
-            this.jwtService.signAsync(accessTokenPayload, {
-                secret: this.configService.get<string>('JWT_SECRET'),
-                expiresIn: (this.configService.get<string>('JWT_ACCESS_EXPIRES_IN') || '15m') as any,
-            }),
-            this.jwtService.signAsync(refreshTokenPayload, {
-                secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
-                expiresIn: (this.configService.get<string>('JWT_REFRESH_EXPIRES_IN') || '7d') as any,
-            }),
-        ]);
+    const [accessToken, refreshToken] = await Promise.all([
+      this.jwtService.signAsync(accessTokenPayload, {
+        secret: this.configService.get<string>('JWT_SECRET'),
+        expiresIn: (this.configService.get<string>('JWT_ACCESS_EXPIRES_IN') ||
+          '15m') as any,
+      }),
+      this.jwtService.signAsync(refreshTokenPayload, {
+        secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
+        expiresIn: (this.configService.get<string>('JWT_REFRESH_EXPIRES_IN') ||
+          '7d') as any,
+      }),
+    ]);
 
-        return {
-            accessToken,
-            refreshToken,
-        };
-    }
+    return {
+      accessToken,
+      refreshToken,
+    };
+  }
 }

@@ -6,10 +6,7 @@ import { UsageLimitAiService } from './usage-limit-ai.service';
 
 @Global()
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([UsageLimitAi]),
-    ConfigModule,
-  ],
+  imports: [TypeOrmModule.forFeature([UsageLimitAi]), ConfigModule],
   providers: [UsageLimitAiService],
   exports: [UsageLimitAiService],
 })
