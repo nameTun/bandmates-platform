@@ -1,10 +1,15 @@
 import { AI_MODELS, AI_LIMITS } from '../../config/ai-models.config';
 import { Injectable } from '@nestjs/common';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI, Schema } from '@google/generative-ai';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AiUsage } from './entities/ai-usage.entity';
+
+export interface AiGenerateOptions {
+  systemInstruction?: string;
+  responseSchema?: Schema;
+}
 
 @Injectable()
 export class AiService {
@@ -51,6 +56,7 @@ export class AiService {
   async generateWithFallback(
     prompt: string,
     modelList: string[],
+    options?: AiGenerateOptions,
   ): Promise<any> {
     let lastError: any;
 
@@ -68,7 +74,17 @@ export class AiService {
       }
 
       try {
-        const model = this.genAI.getGenerativeModel({ model: modelName });
+        const modelConfig: any = { model: modelName };
+        if (options?.systemInstruction) {
+          modelConfig.systemInstruction = options.systemInstruction;
+        }
+        if (options?.responseSchema) {
+          modelConfig.generationConfig = {
+            responseMimeType: 'application/json',
+            responseSchema: options.responseSchema,
+          };
+        }
+        const model = this.genAI.getGenerativeModel(modelConfig);
 
         return await this.withRetry(async () => {
           const result = await model.generateContent(prompt);
@@ -86,6 +102,18 @@ export class AiService {
           await this.recordUsage(modelName);
 
           const textResponse = response.text();
+          
+          // Nếu đã sử dụng responseSchema, Gemini chắc chắn trả về JSON chuẩn
+          if (options?.responseSchema) {
+            try {
+              return JSON.parse(textResponse);
+            } catch (e) {
+              console.error('Failed to parse Gemini JSON output despite using responseSchema:', textResponse);
+              throw new Error('AI trả về định dạng JSON không hợp lệ.');
+            }
+          }
+
+          // Fallback cho các trường hợp gọi AI cũ chưa dùng responseSchema
           try {
             const cleanJson = textResponse.replace(/```json|```/g, '').trim();
             return JSON.parse(cleanJson);
@@ -231,7 +259,7 @@ export class AiService {
   /**
    * [GENERIC] Gửi bất kỳ prompt tùy ý nào hỗ trợ nhóm model LIGHT.
    */
-  async generateContent(prompt: string): Promise<any> {
-    return this.generateWithFallback(prompt, AI_MODELS.LIGHT);
+  async generateContent(prompt: string, options?: AiGenerateOptions): Promise<any> {
+    return this.generateWithFallback(prompt, AI_MODELS.LIGHT, options);
   }
 }
