@@ -13,6 +13,16 @@ import {
 import { VOCABULARY_API } from './vocabulary.constants';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
+import {
+  WORD_FAMILY_SYSTEM_INSTRUCTION,
+  WORD_FAMILY_RESPONSE_SCHEMA,
+  buildWordFamilyUserPrompt,
+} from './prompts/word-family.prompt';
+import {
+  WORD_ANALYSIS_SYSTEM_INSTRUCTION,
+  WORD_ANALYSIS_RESPONSE_SCHEMA,
+  buildWordAnalysisUserPrompt,
+} from './prompts/word-analysis.prompt';
 
 @Injectable()
 export class VocabularyService {
@@ -168,40 +178,28 @@ export class VocabularyService {
     } else {
       // Chưa có Cache -> Gọi AI
       const familyWords = await this.extractWordFamily(cleanWord);
-      const allFamilyWords = [
-        ...familyWords.noun,
-        ...familyWords.verb,
-        ...familyWords.adj,
-        ...familyWords.adv,
+      const allFamilyWords: string[] = [
+        ...(familyWords.noun as string[]),
+        ...(familyWords.verb as string[]),
+        ...(familyWords.adj as string[]),
+        ...(familyWords.adv as string[]),
       ];
 
       if (allFamilyWords.length === 0)
         return { result: { mainTranslation: '', familyData: [] }, usage };
 
-      const prompt = `
-                Bạn là một chuyên gia ngôn ngữ học IELTS chuyên nghiệp. 
-                Nhiệm vụ:
-                1. Dịch từ chính "${cleanWord}" sang Tiếng Việt một cách ngắn gọn.
-                2. Từ danh sách họ từ [${allFamilyWords.join(', ')}], hãy chọn tối đa 6 từ có giá trị sử dụng cao nhất trong bài viết IELTS.
-                3. Với mỗi từ được chọn: 
-                   - Cung cấp định nghĩa bằng Tiếng Việt.
-                   - Đặt 1 ví dụ Tiếng Anh học thuật (độ khó chuẩn Band ${targetBand}).
-                   - ĐẶC BIỆT: Nội dung ví dụ PHẢI sát với bối cảnh mục đích học tập của người dùng là: "${studyPurpose}".
-                   - Dịch ví dụ đó sang Tiếng Việt.
-
-                LƯU Ý: Xưng hô chuyên nghiệp, trung tính. Không xưng hô thân mật quá mức.
-
-                Trả về DUY NHẤT JSON theo cấu trúc:
-                {
-                  "mainTranslation": "nghĩa tiếng Việt từ chính",
-                  "familyData": [
-                    { "word": "...", "partOfSpeech": "noun|verb|adjective|adverb", "definitionVi": "...", "example": "...", "exampleVi": "..." }
-                  ]
-                }
-            `;
+      const userPrompt = buildWordFamilyUserPrompt(
+        cleanWord,
+        allFamilyWords,
+        targetBand,
+        studyPurpose,
+      );
 
       try {
-        result = await this.aiService.generateContent(prompt);
+        result = await this.aiService.generateContent(userPrompt, {
+          systemInstruction: WORD_FAMILY_SYSTEM_INSTRUCTION,
+          responseSchema: WORD_FAMILY_RESPONSE_SCHEMA,
+        });
         // Cache 30 ngày
         if (result && result.mainTranslation) {
           await this.cacheManager.set(
@@ -471,29 +469,15 @@ export class VocabularyService {
       const studyPurpose =
         userProfile?.studyPurpose || 'General IELTS Improvement';
 
-      const prompt = `
-                Bạn là một giám khảo IELTS 9.0 chuyên nghiệp và khách quan. 
-                Nhiệm vụ: Phân tích chuyên sâu từ "${word}" để giúp học viên nâng trình độ Writing bài bám sát mục đích học tập cá nhân.
-                
-                Nội dung bao gồm:
-                1. "ieltsBand": Đánh giá trình độ của từ này (VD: "Đây là từ vựng thuộc Band 7.0+, hãy dùng nó để bứt phá điểm số").
-                2. "collocations": Các cụm từ đi kèm phổ biến. Mỗi cụm từ gồm: "phrase" (Tiếng Anh), "meaning" (Giải thích Tiếng Việt súc tích), "example" (Ví dụ Tiếng Anh sát bối cảnh "${studyPurpose}", chuẩn Band ${targetBand}).
-                3. "writingStructures": Các cấu trúc câu ăn điểm khi dùng từ này. Bao gồm "structure" (Công thức), "explanation" (Cách dùng bằng Tiếng Việt), "example" (Ví dụ Tiếng Anh chuẩn Band ${targetBand} trong bối cảnh "${studyPurpose}").
-                4. "commonMistakes": Các lỗi người học hay mắc phải. "wrong" (Lỗi sai), "correct" (Cách sửa), "note" (Giải thích tại sao sai bằng Tiếng Việt).
-                5. "bandUpgradeTip": Lời khuyên "vàng" bằng Tiếng Việt để dùng từ này đạt Band điểm cao hơn (không nhắc đến con số Band của đề xuất ngầm).
-
-                LƯU Ý: Xưng hô chuyên nghiệp, trung tính. Giải thích dùng Tiếng Việt. Ví dụ dùng Tiếng Anh.
-
-                Trả về DUY NHẤT đối tượng JSON:
-                {
-                    "ieltsBand": "...",
-                    "collocations": [ { "phrase": "...", "meaning": "...", "example": "..." } ],
-                    "writingStructures": [ { "structure": "...", "explanation": "...", "example": "..." } ],
-                    "commonMistakes": [ { "wrong": "...", "correct": "...", "note": "..." } ],
-                    "bandUpgradeTip": "..."
-                }
-            `;
-      const res = await this.aiService.generateContent(prompt);
+      const userPrompt = buildWordAnalysisUserPrompt(
+        word,
+        targetBand,
+        studyPurpose,
+      );
+      const res = await this.aiService.generateContent(userPrompt, {
+        systemInstruction: WORD_ANALYSIS_SYSTEM_INSTRUCTION,
+        responseSchema: WORD_ANALYSIS_RESPONSE_SCHEMA,
+      });
       return res;
     } catch (error) {
       console.error('IELTS Analysis Error:', error);
