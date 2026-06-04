@@ -20,6 +20,7 @@ import { CategoriesModule } from './modules/categories/categories.module';
 import { TopicsModule } from './modules/topics/topics.module';
 import { PracticeModule } from './modules/practice/practice.module';
 import { HistoryModule } from './modules/history/history.module';
+import { QueueModule } from './modules/queue/queue.module';
 
 @Module({
   imports: [
@@ -38,7 +39,7 @@ import { HistoryModule } from './modules/history/history.module';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: async (configService: ConfigService) => {
-        const host = configService.get<string>('REDIS_HOST', 'localhost');
+        const host = configService.get<string>('REDIS_HOST', '127.0.0.1');
         const port = configService.get<number>('REDIS_PORT', 6379);
         return {
           stores: [createKeyv(`redis://${host}:${port}`)],
@@ -63,6 +64,7 @@ import { HistoryModule } from './modules/history/history.module';
     HistoryModule, // Lịch sử bài làm Essay & Từ vựng tra cứu
     PromptsModule, // Quản lý kho đề thi (Tasks, Topics)
     VocabularyModule, // Học từ vựng & AI Word Analysis
+    QueueModule, // Message Queue RabbitMQ
   ],
   controllers: [],
   providers: [],

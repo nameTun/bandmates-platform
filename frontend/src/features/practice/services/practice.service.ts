@@ -59,22 +59,42 @@ export interface UsageInfo {
 }
 
 export interface AIAnalysisResponse {
-    result: AIResponse;
+    result?: AIResponse;
+    usage?: UsageInfo;
+    attemptId?: string;
+}
+
+export interface CheckQueueResponse {
+    submissionId: string;
     usage: UsageInfo;
-    attemptId: string;
+    message: string;
+}
+
+export interface CheckStatusResponse {
+    submissionId: string;
+    status: 'PENDING' | 'PROCESSING' | 'RETRYING' | 'COMPLETED' | 'FAILED';
+    result?: AIResponse;
 }
 
 export const practiceService = {
     /**
-     * Gửi bài viết để AI chấm điểm
+     * Gửi bài viết để AI chấm điểm (Bắn vào MQ, không đợi kết quả)
      */
-    checkIelts: async (text: string, promptId?: string, timeSpent?: number): Promise<AIAnalysisResponse> => {
+    checkIelts: async (text: string, promptId?: string, timeSpent?: number): Promise<CheckQueueResponse> => {
         const response = await api.post('/practice/check', {
             text,
             promptId,
             timeSpent,
         });
 
+        return response.data;
+    },
+
+    /**
+     * Hỏi thăm trạng thái chấm điểm của AI (Polling)
+     */
+    getCheckStatus: async (submissionId: string): Promise<CheckStatusResponse> => {
+        const response = await api.get(`/practice/check/${submissionId}`);
         return response.data;
     },
 
