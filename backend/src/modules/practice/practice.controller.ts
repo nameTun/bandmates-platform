@@ -1,15 +1,18 @@
 import {
   Controller,
   Post,
+  Get,
+  Param,
   Body,
   UseGuards,
   HttpStatus,
   HttpException,
+  HttpCode,
   Ip,
+  Inject,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { PracticeService } from './practice.service';
 import { UserProfilesService } from '../user-profiles/user-profiles.service';
 import { CheckTextDto } from './dto/check-text.dto';
 import { PracticeAttempt } from './entities/practice-attempt.entity';
@@ -23,21 +26,27 @@ import {
   UsageAction,
 } from '../usage-limit-ai/usage-limit-ai.service';
 import { TaskType } from '../../common/enums/task-type.enum';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import type { Cache } from 'cache-manager';
+import { ClientProxy } from '@nestjs/microservices';
+import { PRACTICE_QUEUE } from '../queue/queue.module';
 
 @Controller('practice')
 export class PracticeController {
   constructor(
-    private practiceService: PracticeService,
-    private userProfilesService: UserProfilesService,
-    private usageLimitService: UsageLimitAiService,
+    private readonly userProfilesService: UserProfilesService,
+    private readonly usageLimitService: UsageLimitAiService,
     @InjectRepository(PracticeAttempt)
-    private attemptRepository: Repository<PracticeAttempt>,
+    private readonly attemptRepository: Repository<PracticeAttempt>,
     @InjectRepository(Prompt)
-    private promptRepository: Repository<Prompt>,
-  ) {}
+    private readonly promptRepository: Repository<Prompt>,
+    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
+    @Inject(PRACTICE_QUEUE) private readonly queueClient: ClientProxy,
+  ) { }
 
   @Post('check')
   @UseGuards(OptionalJwtAuthGuard)
+  @HttpCode(HttpStatus.ACCEPTED)
   async checkEnglish(
     @Body() dto: CheckTextDto,
     @GetUser() user: User | null,
@@ -46,7 +55,7 @@ export class PracticeController {
   ) {
     const realUserId = user?.id || (user as any)?.userId;
 
-    // Kiểm tra hạn mức sử dụng trong file config backend/env
+    // 1. Kiểm tra hạn mức sử dụng (Trừ Quota đồng bộ)
     const usage = await this.usageLimitService.checkAndRecordUsage(
       realUserId,
       visitorId,
@@ -54,36 +63,38 @@ export class PracticeController {
       UsageAction.PRACTICE_ESSAY,
       user?.role,
     );
-
     // Tự động đếm số từ (Word Count)
-    const wordCount = dto.text.trim().split(/\s+/).length;
+    const wordCount = dto.text.trim().split(/\\s+/).length;
     const timeSpent = dto.timeSpent || 0;
 
-    // Lấy nội dung đề bài (nếu có)
+    // 2. Lấy nội dung đề bài (nếu có)
     let promptContent = '';
     let promptEntity = null;
     if (dto.promptId) {
       promptEntity = await this.promptRepository.findOne({
-        where: { id: dto.promptId },
+        where: { id: dto.promptId, isActive: true }, // Chỉ chấp nhận đề đang active
       });
-      if (promptEntity) {
-        promptContent = promptEntity.content;
+      // Nếu hacker gửi promptId giả/không tồn tại/đã ẩn → báo lỗi ngay
+      if (!promptEntity) {
+        throw new HttpException(
+          'Đề bài không tồn tại hoặc đã bị vô hiệu hóa.',
+          HttpStatus.NOT_FOUND,
+        );
       }
+      promptContent = promptEntity.content;
     }
 
-    // Lấy thông tin Profile để cá nhân hóa AI (nếu user đã đăng nhập)
+    // 3. Lấy thông tin Profile
     let userProfile = null;
     if (user && user.id) {
       try {
         userProfile = await this.userProfilesService.getProfile(user.id);
       } catch (e) {
-        console.warn(
-          'Không lấy được profile để cá nhân hóa AI, chuyển về mặc định.',
-        );
+        console.warn('Không lấy được profile để cá nhân hóa AI.');
       }
     }
 
-    // --- 1. KHỞI TẠO BẢN GHI PENDING ---
+    // 4. KHỞI TẠO BẢN GHI PENDING trong MySQL
     const attempt = this.attemptRepository.create({
       originalText: dto.text,
       wordCount: wordCount,
@@ -99,49 +110,96 @@ export class PracticeController {
     }
 
     await this.attemptRepository.save(attempt);
+    const submissionId = attempt.id;
 
-    // --- 2. GỌI AI CHẤM ĐIỂM ---
-    let aiResult;
     try {
+      // 5. LƯU TRẠNG THÁI PENDING VÀO REDIS (TTL 1 giờ)
+      const redisKey = `submission:${submissionId}`;
+      await this.cacheManager.set(
+        redisKey,
+        { status: 'PENDING', result: null },
+        3600000, // 1 hour in ms
+      );
+
+      // 6. BẮN MESSAGE VÀO RABBITMQ
       const taskType = promptEntity?.taskType || TaskType.TASK_2;
-      aiResult = await this.practiceService.checkEnglish(
-        dto.text,
+      this.queueClient.emit('evaluate_essay', {
+        submissionId,
+        text: dto.text,
         promptContent,
         userProfile,
         taskType,
-      );
-
-      // --- 3. CẬP NHẬT TRẠNG THÁI SUCCESS ---
-      Object.assign(attempt, {
-        aiResponse: aiResult,
-        overallScore: aiResult?.overallScore || 0,
-        scoreTA: aiResult?.scoreTA || 0,
-        scoreCC: aiResult?.scoreCC || 0,
-        scoreLR: aiResult?.scoreLR || 0,
-        scoreGRA: aiResult?.scoreGRA || 0,
-        status: 'success',
+        usageRecordId: usage.usageRecordId,
+      }).subscribe({
+        error: (err) => console.error('RabbitMQ Emit Error:', err),
       });
-      await this.attemptRepository.save(attempt);
-    } catch (error) {
-      // --- 4. CẬP NHẬT TRẠNG THÁI FAILED VÀ HOÀN LƯỢT DÙNG ---
-      attempt.status = 'failed';
-      await this.attemptRepository.save(attempt);
 
-      // Refund the usage limit if AI fail
+      // 7. TRẢ VỀ HTTP 202 ACCEPTED (do @HttpCode() ở trên hàm xử lý)
+      return {
+        submissionId,
+        usage,
+        message: 'Bài luận đã được gửi để xử lý.',
+      };
+    } catch (e) {
+      console.error('Lỗi khi nộp bài:', e);
+      // Xoá attempt nếu lỗi
+      await this.attemptRepository.delete(submissionId);
+      // Trả lại usage
       await this.usageLimitService.refundUsage(usage.usageRecordId);
+      throw new HttpException('Lỗi hệ thống khi nộp bài', HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
 
-      console.error('Practice Error for attempt', attempt.id, ':', error);
+  @Get('check/:submissionId')
+  @UseGuards(OptionalJwtAuthGuard)
+  async getCheckStatus(
+    @Param('submissionId') submissionId: string,
+    @GetUser() user: User | null,
+    @VisitorId() visitorId: string,
+  ) {
+    const redisKey = `submission:${submissionId}`;
+    const cacheData: any = await this.cacheManager.get(redisKey);
+
+    if (cacheData) {
+      return {
+        submissionId,
+        status: cacheData.status,
+        result: cacheData.result,
+      };
+    }
+
+    // Fallback: Lấy từ MySQL nếu Redis hết hạn
+    const attempt = await this.attemptRepository.findOne({
+      where: { id: submissionId },
+      relations: ['user'], // Cần load quan hệ user để check quyền
+    });
+
+    if (!attempt) {
+      throw new HttpException('Không tìm thấy bài nộp.', HttpStatus.NOT_FOUND);
+    }
+
+    // Validate quyền truy cập
+    const realUserId = user?.id || (user as any)?.userId;
+    const isOwner = realUserId
+      ? attempt.user?.id === realUserId
+      : attempt.visitorId === visitorId;
+
+    if (!isOwner) {
       throw new HttpException(
-        'Hệ thống chấm điểm AI đang bận hoặc gặp sự cố. Vui lòng thử lại sau vài phút.',
-        HttpStatus.SERVICE_UNAVAILABLE,
+        'Không có quyền truy cập kết quả này.',
+        HttpStatus.FORBIDDEN,
       );
     }
 
-    // Trả về kết quả cho Frontend kèm thông tin hạn mức
+    let result = null;
+    if (attempt.status === 'success') {
+      result = attempt.aiResponse;
+    }
+
     return {
-      result: aiResult,
-      attemptId: attempt.id,
-      usage: usage,
+      submissionId: attempt.id,
+      status: attempt.status.toUpperCase(),
+      result,
     };
   }
 }

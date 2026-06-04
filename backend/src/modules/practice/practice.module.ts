@@ -8,6 +8,7 @@ import { Prompt } from '../prompts/entities/prompt.entity';
 import { AiModule } from '../ai/ai.module';
 import { UserProfilesModule } from '../user-profiles/user-profiles.module';
 import { ScoringCriteriaModule } from '../scoring-criteria/scoring-criteria.module';
+import { PracticeWorker } from './practice.worker';
 
 @Module({
   imports: [
@@ -17,7 +18,7 @@ import { ScoringCriteriaModule } from '../scoring-criteria/scoring-criteria.modu
     UserProfilesModule,
     ScoringCriteriaModule,
   ],
-  controllers: [PracticeController],
+  controllers: [PracticeController, PracticeWorker],
   providers: [PracticeService],
   exports: [TypeOrmModule, PracticeService],
 })

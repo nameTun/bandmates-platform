@@ -6,6 +6,7 @@ import helmet from 'helmet';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { Transport } from '@nestjs/microservices';
 
 /**
  * bootstrap() là hàm khởi động trung tâm của ứng dụng NestJS.
@@ -78,6 +79,17 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document);
 
+  // --- Kết nối RabbitMQ Microservice ---
+  app.connectMicroservice({
+    transport: Transport.RMQ,
+    options: {
+      urls: [process.env.RABBITMQ_URL || 'amqp://guest:guest@localhost:5672'],
+      queue: 'practice_queue',
+      noAck: false, // Bắt buộc Worker phải tự báo Cáo đã xử lý xong (ack)
+    },
+  });
+
+  await app.startAllMicroservices();
   await app.listen(process.env.PORT ?? 3000);
 }
 

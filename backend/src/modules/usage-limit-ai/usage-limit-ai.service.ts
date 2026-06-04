@@ -1,10 +1,11 @@
-import { Injectable, HttpException, HttpStatus, Inject } from '@nestjs/common';
+import { Injectable, HttpException, HttpStatus, Inject, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ConfigService } from '@nestjs/config';
 import { Repository } from 'typeorm';
 import { UsageLimitAi } from './entities/usage-limit-ai.entity';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
+import { Redis } from 'ioredis';
 
 export enum UsageAction {
   PRACTICE_ESSAY = 'PRACTICE_ESSAY',
@@ -12,26 +13,26 @@ export enum UsageAction {
   ANALYZE_WORD_FAMILY = 'ANALYZE_WORD_FAMILY',
 }
 
-interface RedisClient {
-  zRemRangeByScore(
-    key: string,
-    min: string | number,
-    max: string | number,
-  ): Promise<number>;
-  zCard(key: string): Promise<number>;
-  zAdd(key: string, member: { score: number; value: string }): Promise<number>;
-  expire(key: string, seconds: number): Promise<boolean>;
-  zRem(key: string, member: string): Promise<number>;
-}
-
 @Injectable()
-export class UsageLimitAiService {
+export class UsageLimitAiService implements OnModuleInit, OnModuleDestroy {
+  private redisClient: Redis;
+
   constructor(
     @InjectRepository(UsageLimitAi)
     private readonly usageRepository: Repository<UsageLimitAi>,
     private readonly configService: ConfigService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
+
+  onModuleInit() {
+    const host = this.configService.get<string>('REDIS_HOST', '127.0.0.1');
+    const port = this.configService.get<number>('REDIS_PORT', 6379);
+    this.redisClient = new Redis(port, host);
+  }
+
+  onModuleDestroy() {
+    this.redisClient.disconnect();
+  }
 
   /**
    * Kiểm tra hạn mức và ghi lại lượt sử dụng AI tập trung.
@@ -48,26 +49,17 @@ export class UsageLimitAiService {
     remaining: number;
     usageRecordId: string;
   }> {
-    // 1. Chuẩn hóa IP: Đảm bảo IPv4 và IPv6 (ví dụ ::1 và 127.0.0.1) được xử lý nhất quán
-    // Tránh việc cùng một máy nhưng được tính nhiều lượt do khác định dạng IP.
     const normalizedIp = this.normalizeIp(ip);
-
-    // Sử dụng cơ chế cửa sổ 24 giờ cuốn chiếu (Rolling Window)
-    // thay vì mốc 0h sáng cố định để tránh lỗi lệch múi giờ giữa App và DB.
     const timeWindowStart = Date.now() - 24 * 60 * 60 * 1000;
+    const isGuest = !userId;
+    const isAdmin = userRole === 'admin';
 
-    // Xác định hạn mức dựa trên Role và Action
-    const isGuest = !userId; // Nếu không có userId thì là khách vãng lai
-    const isAdmin = userRole === 'admin'; // Nếu là admin thì không giới hạn lượt dùng
-
-    // Nếu là Admin thì không giới hạn lượt dùng
     if (isAdmin) {
       const record = await this.recordUsage(userId, visitorId, ip, action);
-      return { limit: 999, used: 0, remaining: 999, usageRecordId: record.id }; // Admin thì không giới hạn số lượt
+      return { limit: 999, used: 0, remaining: 999, usageRecordId: record.id };
     }
 
     const limit = this.getLimit(action, isGuest);
-    // Xác định Redis Key dựa trên thông tin định danh
     let redisKey = '';
     if (userId) {
       redisKey = `rate_limit:${action}:user_${userId}`;
@@ -79,14 +71,11 @@ export class UsageLimitAiService {
       redisKey = `rate_limit:${action}:unknown`;
     }
 
-    const redisClient = (this.cacheManager as any).stores[0].opts.store
-      ._client as RedisClient;
+    // 1. Xóa các lượt truy cập cũ hơn 24 giờ
+    await this.redisClient.zremrangebyscore(redisKey, '-inf', timeWindowStart.toString());
 
-    // 1. Xóa các lượt truy cập cũ hơn 24 giờ (Sliding Window)
-    await redisClient.zRemRangeByScore(redisKey, '-inf', timeWindowStart);
-
-    // 2. Đếm số lượng request hiện tại trong Cửa sổ 24h
-    const currentUsageCount = await redisClient.zCard(redisKey);
+    // 2. Đếm số lượng request hiện tại
+    const currentUsageCount = await this.redisClient.zcard(redisKey);
 
     // 3. Kiểm tra chéo hạn mức
     if (currentUsageCount >= limit) {
@@ -102,7 +91,7 @@ export class UsageLimitAiService {
       );
     }
 
-    // 4. Nếu hợp lệ, lưu vào MySQL để lấy Record ID (dành cho việc Refund sau này nếu cần)
+    // 4. Lưu vào MySQL
     const record = await this.recordUsage(
       userId,
       visitorId,
@@ -110,17 +99,11 @@ export class UsageLimitAiService {
       action,
     );
 
-    // 5. Thêm lượt dùng mới vào Redis ZSET với Score là Timestamp hiện tại, Value là Record ID
+    // 5. Thêm vào Redis ZSET
     const now = Date.now();
-    await redisClient.zAdd(redisKey, {
-      score: now,
-      value: record.id.toString(),
-    });
+    await this.redisClient.zadd(redisKey, now, record.id.toString());
+    await this.redisClient.expire(redisKey, 86400);
 
-    // Đặt TTL 24 tiếng cho Redis Key để giải phóng RAM
-    await redisClient.expire(redisKey, 86400);
-
-    // Trả về thông tin hạn mức
     const usedCount = currentUsageCount + 1;
     return {
       limit,
@@ -150,9 +133,7 @@ export class UsageLimitAiService {
 
         // 2. Xóa lượt dùng khỏi Redis
         if (redisKey) {
-          const redisClient = (this.cacheManager as any).stores[0].opts.store
-            ._client as RedisClient;
-          await redisClient.zRem(redisKey, usageRecordId.toString());
+          await this.redisClient.zrem(redisKey, usageRecordId.toString());
         }
         // 3. Xóa khỏi MySQL
         await this.usageRepository.delete(usageRecordId);

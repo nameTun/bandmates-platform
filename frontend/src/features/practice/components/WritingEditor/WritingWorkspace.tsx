@@ -25,6 +25,7 @@ interface WritingWorkspaceProps {
 export const WritingWorkspace: React.FC<WritingWorkspaceProps> = ({ promptObj, onBack, onReset, onError, reviewAttempt }) => {
   const [text, setText] = useState(reviewAttempt?.originalText || '');
   const [loading, setLoading] = useState(false);
+  const [loadingText, setLoadingText] = useState('Đang chấm...');
   const [result, setResult] = useState<AIResponse | null>(reviewAttempt?.aiResponse || null);
   const [usage, setUsage] = useState<{ limit: number; used: number; remaining: number } | null>(null);
   const [activeTab, setActiveTab] = useState<'mistakes' | 'feedback' | 'improved'>('mistakes');
@@ -118,18 +119,55 @@ export const WritingWorkspace: React.FC<WritingWorkspaceProps> = ({ promptObj, o
 
     setIsPaused(true);
     setLoading(true);
+    setLoadingText('Đang đẩy vào hàng đợi...');
     setResult(null);
     try {
       const data = await practiceService.checkIelts(text, promptObj.id, timeSpent);
-      setResult(data.result);
       setUsage(data.usage);
-      setActiveTab('mistakes');
+
+      const submissionId = data.submissionId;
+      
+      const pollInterval = setInterval(async () => {
+         try {
+             const statusData = await practiceService.getCheckStatus(submissionId);
+             
+             if (statusData.status === 'PROCESSING') {
+                 setLoadingText('AI đang phân tích bài luận...');
+             } else if (statusData.status === 'RETRYING') {
+                 setLoadingText('AI bận, đang tự động thử lại...');
+             } else if (statusData.status === 'COMPLETED') {
+                 clearInterval(pollInterval);
+                 setResult(statusData.result || null);
+                 setActiveTab('mistakes');
+                 setLoading(false);
+             } else if (statusData.status === 'FAILED') {
+                 clearInterval(pollInterval);
+                 setLoading(false);
+                 onError?.(500, 'Chấm điểm thất bại, lượt dùng của bạn đã được hoàn trả.');
+                 setUsage(prev => prev ? { ...prev, used: Math.max(0, prev.used - 1), remaining: prev.remaining + 1 } : null);
+             }
+         } catch(e) {
+             clearInterval(pollInterval);
+             setLoading(false);
+             onError?.(500, 'Mất kết nối kiểm tra trạng thái bài làm.');
+         }
+      }, 3000);
+
+      // Tự huỷ polling sau 10 phút nếu kẹt
+      setTimeout(() => {
+          clearInterval(pollInterval);
+          setLoading(false);
+      }, 10 * 60 * 1000);
+
     } catch (err: any) {
+      setLoading(false);
       if (err.response?.status === 429) {
         const data = err.response.data;
         onError?.(429, data?.message || 'Hết lượt dùng', data);
+      } else {
+        onError?.(500, err.response?.data?.message || 'Có lỗi xảy ra khi nộp bài');
       }
-    } finally { setLoading(false); }
+    }
   };
 
   const handleReset = () => {
@@ -257,7 +295,7 @@ export const WritingWorkspace: React.FC<WritingWorkspaceProps> = ({ promptObj, o
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                       </svg>
-                      Đang chấm...
+                      {loadingText}
                     </>
                   ) : (
                     <>
