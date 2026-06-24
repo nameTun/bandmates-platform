@@ -22,7 +22,7 @@ export class UsageLimitAiService implements OnModuleInit, OnModuleDestroy {
     private readonly usageRepository: Repository<UsageLimitAi>,
     private readonly configService: ConfigService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
-  ) {}
+  ) { }
 
   onModuleInit() {
     const host = this.configService.get<string>('REDIS_HOST', '127.0.0.1');
@@ -49,17 +49,26 @@ export class UsageLimitAiService implements OnModuleInit, OnModuleDestroy {
     remaining: number;
     usageRecordId: string;
   }> {
+    // 1. Chuẩn hóa IP: Đảm bảo IPv4 và IPv6 (ví dụ ::1 và 127.0.0.1) được xử lý nhất quán
+    // Tránh việc cùng một máy nhưng được tính nhiều lượt do khác định dạng IP.
     const normalizedIp = this.normalizeIp(ip);
-    const timeWindowStart = Date.now() - 24 * 60 * 60 * 1000;
-    const isGuest = !userId;
-    const isAdmin = userRole === 'admin';
 
+    // Sử dụng cơ chế cửa sổ 24 giờ cuốn chiếu (Rolling Window)
+    // thay vì mốc 0h sáng cố định để tránh lỗi lệch múi giờ giữa App và DB.
+    const timeWindowStart = Date.now() - 24 * 60 * 60 * 1000;
+
+    // Xác định hạn mức dựa trên Role và Action
+    const isGuest = !userId; // Nếu không có userId thì là khách vãng lai
+    const isAdmin = userRole === 'admin'; // Nếu là admin thì không giới hạn lượt dùng
+
+    // Nếu là Admin thì không giới hạn lượt dùng
     if (isAdmin) {
       const record = await this.recordUsage(userId, visitorId, ip, action);
-      return { limit: 999, used: 0, remaining: 999, usageRecordId: record.id };
+      return { limit: 999, used: 0, remaining: 999, usageRecordId: record.id }; // Admin thì không giới hạn số lượt
     }
 
     const limit = this.getLimit(action, isGuest);
+    // Xác định Redis Key dựa trên thông tin định danh
     let redisKey = '';
     if (userId) {
       redisKey = `rate_limit:${action}:user_${userId}`;
@@ -91,7 +100,7 @@ export class UsageLimitAiService implements OnModuleInit, OnModuleDestroy {
       );
     }
 
-    // 4. Lưu vào MySQL
+    // 4. Nếu hợp lệ, lưu vào MySQL để lấy Record ID (dành cho việc Refund sau này nếu cần)
     const record = await this.recordUsage(
       userId,
       visitorId,
@@ -104,6 +113,7 @@ export class UsageLimitAiService implements OnModuleInit, OnModuleDestroy {
     await this.redisClient.zadd(redisKey, now, record.id.toString());
     await this.redisClient.expire(redisKey, 86400);
 
+    // Trả về thông tin hạn mức
     const usedCount = currentUsageCount + 1;
     return {
       limit,

@@ -72,16 +72,11 @@ export class PracticeController {
     let promptEntity = null;
     if (dto.promptId) {
       promptEntity = await this.promptRepository.findOne({
-        where: { id: dto.promptId, isActive: true }, // Chỉ chấp nhận đề đang active
+        where: { id: dto.promptId },
       });
-      // Nếu hacker gửi promptId giả/không tồn tại/đã ẩn → báo lỗi ngay
-      if (!promptEntity) {
-        throw new HttpException(
-          'Đề bài không tồn tại hoặc đã bị vô hiệu hóa.',
-          HttpStatus.NOT_FOUND,
-        );
+      if (promptEntity) {
+        promptContent = promptEntity.content;
       }
-      promptContent = promptEntity.content;
     }
 
     // 3. Lấy thông tin Profile
